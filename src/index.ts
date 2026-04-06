@@ -1,6 +1,15 @@
 export { AgentArmor } from './agent-armor';
 
-// All detectors (for advanced usage / custom pipelines)
+// Pattern database (for custom patterns / remote updates)
+export type { PatternDatabase, PatternEntry } from './patterns';
+export { DEFAULT_PATTERNS } from './patterns';
+
+// Detectors (for advanced usage / custom pipelines)
+export { PatternDetector } from './detectors/pattern-detector';
+export { BaseDetector } from './detectors';
+export type { PatternMatch } from './detectors';
+
+// Legacy individual detectors (still available for direct use)
 export {
   HiddenHTMLDetector,
   MetadataInjectionDetector,
@@ -9,10 +18,7 @@ export {
   JailbreakPatternDetector,
   ExfiltrationDetector,
   SubAgentSpawningDetector,
-  BaseDetector,
 } from './detectors';
-
-export type { PatternMatch } from './detectors';
 
 export type {
   AgentArmorConfig,

@@ -1,0 +1,441 @@
+{
+  "version": "0.1.0",
+  "updatedAt": "2026-04-06",
+  "detectors": {
+    "hidden-html": [
+      {
+        "id": "hh-display-none",
+        "regex": "<[^>]+style\\s*=\\s*[\"'][^\"']*display\\s*:\\s*none[^\"']*[\"'][^>]*>([\\s\\S]*?)<\\/[^>]+>",
+        "flags": "gi",
+        "category": "content-injection",
+        "type": "hidden-html",
+        "severity": "high",
+        "confidence": 0.85,
+        "label": "CSS display:none hiding content",
+        "extractGroup": 1,
+        "minLength": 5,
+        "boostOnInstructions": true
+      },
+      {
+        "id": "hh-visibility-hidden",
+        "regex": "<[^>]+style\\s*=\\s*[\"'][^\"']*visibility\\s*:\\s*hidden[^\"']*[\"'][^>]*>([\\s\\S]*?)<\\/[^>]+>",
+        "flags": "gi",
+        "category": "content-injection",
+        "type": "hidden-html",
+        "severity": "high",
+        "confidence": 0.85,
+        "label": "CSS visibility:hidden hiding content",
+        "extractGroup": 1,
+        "minLength": 5,
+        "boostOnInstructions": true
+      },
+      {
+        "id": "hh-offscreen",
+        "regex": "<[^>]+style\\s*=\\s*[\"'][^\"']*(?:left|top|right|bottom)\\s*:\\s*-\\d{3,}px[^\"']*[\"'][^>]*>([\\s\\S]*?)<\\/[^>]+>",
+        "flags": "gi",
+        "category": "content-injection",
+        "type": "hidden-html",
+        "severity": "high",
+        "confidence": 0.8,
+        "label": "Off-screen positioning hiding content",
+        "extractGroup": 1,
+        "minLength": 5,
+        "boostOnInstructions": true
+      },
+      {
+        "id": "hh-zero-size",
+        "regex": "<[^>]+style\\s*=\\s*[\"'][^\"']*(?:font-size\\s*:\\s*0|width\\s*:\\s*0|height\\s*:\\s*0)[^\"']*[\"'][^>]*>([\\s\\S]*?)<\\/[^>]+>",
+        "flags": "gi",
+        "category": "content-injection",
+        "type": "hidden-html",
+        "severity": "medium",
+        "confidence": 0.7,
+        "label": "Zero-size element hiding content",
+        "extractGroup": 1,
+        "minLength": 5,
+        "boostOnInstructions": true
+      },
+      {
+        "id": "hh-opacity-zero",
+        "regex": "<[^>]+style\\s*=\\s*[\"'][^\"']*opacity\\s*:\\s*0[^\"']*[\"'][^>]*>([\\s\\S]*?)<\\/[^>]+>",
+        "flags": "gi",
+        "category": "content-injection",
+        "type": "hidden-html",
+        "severity": "medium",
+        "confidence": 0.7,
+        "label": "Opacity:0 hiding content",
+        "extractGroup": 1,
+        "minLength": 5,
+        "boostOnInstructions": true
+      },
+      {
+        "id": "hh-overflow-micro",
+        "regex": "<[^>]+style\\s*=\\s*[\"'][^\"']*overflow\\s*:\\s*hidden[^\"']*(?:max-height|max-width)\\s*:\\s*[01]px[^\"']*[\"'][^>]*>([\\s\\S]*?)<\\/[^>]+>",
+        "flags": "gi",
+        "category": "content-injection",
+        "type": "hidden-html",
+        "severity": "medium",
+        "confidence": 0.65,
+        "label": "Overflow-hidden micro container",
+        "extractGroup": 1,
+        "minLength": 5,
+        "boostOnInstructions": true
+      }
+    ],
+    "metadata-injection": [
+      {
+        "id": "mi-html-comment",
+        "regex": "<!--([\\s\\S]*?)-->",
+        "flags": "g",
+        "category": "content-injection",
+        "type": "metadata-injection",
+        "severity": "high",
+        "confidence": 0.4,
+        "label": "HTML comment",
+        "extractGroup": 1,
+        "minLength": 10,
+        "boostOnInstructions": true
+      },
+      {
+        "id": "mi-aria-label",
+        "regex": "aria-label\\s*=\\s*[\"']([^\"']{50,})[\"']",
+        "flags": "gi",
+        "category": "content-injection",
+        "type": "metadata-injection",
+        "severity": "high",
+        "confidence": 0.6,
+        "label": "Suspicious aria-label content",
+        "extractGroup": 1,
+        "minLength": 10,
+        "boostOnInstructions": true
+      },
+      {
+        "id": "mi-alt-text",
+        "regex": "alt\\s*=\\s*[\"']([^\"']{80,})[\"']",
+        "flags": "gi",
+        "category": "content-injection",
+        "type": "metadata-injection",
+        "severity": "medium",
+        "confidence": 0.4,
+        "label": "Suspicious alt text",
+        "extractGroup": 1,
+        "minLength": 10,
+        "boostOnInstructions": true
+      },
+      {
+        "id": "mi-meta-tag",
+        "regex": "<meta\\s+[^>]*content\\s*=\\s*[\"']([^\"']{50,})[\"'][^>]*>",
+        "flags": "gi",
+        "category": "content-injection",
+        "type": "metadata-injection",
+        "severity": "medium",
+        "confidence": 0.4,
+        "label": "Meta tag content",
+        "extractGroup": 1,
+        "minLength": 10,
+        "boostOnInstructions": true
+      },
+      {
+        "id": "mi-data-attr",
+        "regex": "data-[\\w-]+\\s*=\\s*[\"']([^\"']{80,})[\"']",
+        "flags": "gi",
+        "category": "content-injection",
+        "type": "metadata-injection",
+        "severity": "medium",
+        "confidence": 0.5,
+        "label": "Suspicious data attribute",
+        "extractGroup": 1,
+        "minLength": 10,
+        "boostOnInstructions": true
+      }
+    ],
+    "dynamic-cloaking": [
+      {
+        "id": "dc-useragent-bot",
+        "regex": "(?:navigator\\.userAgent|user[\\s_-]?agent)[\\s\\S]{0,100}(?:bot|crawl|spider|scrape|headless|phantom|puppeteer|playwright|selenium|webdriver)",
+        "flags": "gi",
+        "category": "content-injection",
+        "type": "dynamic-cloaking",
+        "severity": "high",
+        "confidence": 0.75,
+        "label": "User-agent bot detection"
+      },
+      {
+        "id": "dc-webdriver",
+        "regex": "(?:navigator\\.webdriver|window\\.webdriver|__selenium|__webdriver|callPhantom|_phantom|phantom\\.callback)",
+        "flags": "gi",
+        "category": "content-injection",
+        "type": "dynamic-cloaking",
+        "severity": "high",
+        "confidence": 0.8,
+        "label": "Automation framework detection"
+      },
+      {
+        "id": "dc-conditional-bot",
+        "regex": "if\\s*\\([^)]*(?:isBot|is_bot|isRobot|isCrawler|isAgent|isAutomated)[^)]*\\)\\s*\\{[\\s\\S]{0,500}\\}",
+        "flags": "gi",
+        "category": "content-injection",
+        "type": "dynamic-cloaking",
+        "severity": "high",
+        "confidence": 0.85,
+        "label": "Conditional content based on bot detection"
+      },
+      {
+        "id": "dc-headless-fingerprint",
+        "regex": "(?:window\\.chrome\\s*&&\\s*!window\\.chrome\\.runtime|navigator\\.languages\\.length\\s*===\\s*0|!navigator\\.plugins\\.length)",
+        "flags": "gi",
+        "category": "content-injection",
+        "type": "dynamic-cloaking",
+        "severity": "medium",
+        "confidence": 0.7,
+        "label": "Headless browser fingerprinting"
+      }
+    ],
+    "syntactic-masking": [
+      {
+        "id": "sm-latex-tiny",
+        "regex": "\\\\(?:tiny|scriptsize|footnotesize)\\s*\\{([^}]+)\\}",
+        "flags": "g",
+        "category": "content-injection",
+        "type": "syntactic-masking",
+        "severity": "high",
+        "confidence": 0.6,
+        "label": "LaTeX small-font text",
+        "extractGroup": 1,
+        "minLength": 5,
+        "boostOnInstructions": true
+      },
+      {
+        "id": "sm-latex-white",
+        "regex": "\\\\(?:textcolor|color)\\s*\\{(?:white|background)\\}\\s*\\{([^}]+)\\}",
+        "flags": "g",
+        "category": "content-injection",
+        "type": "syntactic-masking",
+        "severity": "high",
+        "confidence": 0.8,
+        "label": "LaTeX invisible text color",
+        "extractGroup": 1,
+        "minLength": 5,
+        "boostOnInstructions": true
+      },
+      {
+        "id": "sm-zero-width",
+        "regex": "[\\u200B\\u200C\\u200D\\uFEFF]{2,}",
+        "flags": "g",
+        "category": "content-injection",
+        "type": "syntactic-masking",
+        "severity": "medium",
+        "confidence": 0.6,
+        "label": "Cluster of zero-width characters",
+        "minLength": 2
+      },
+      {
+        "id": "sm-bidi-override",
+        "regex": "[\\u202A-\\u202E\\u2066-\\u2069]+[^]*?[\\u202C\\u2069]",
+        "flags": "g",
+        "category": "content-injection",
+        "type": "syntactic-masking",
+        "severity": "high",
+        "confidence": 0.75,
+        "label": "Unicode bidirectional override",
+        "minLength": 3
+      }
+    ],
+    "jailbreak-patterns": [
+      {
+        "id": "jb-instruction-override",
+        "regex": "(?:ignore|disregard|forget)\\s+(?:all\\s+)?(?:previous|prior|above|earlier|your)\\s+(?:instructions?|rules?|guidelines?|constraints?|directives?)",
+        "flags": "gi",
+        "category": "behavioural-control",
+        "type": "embedded-jailbreak",
+        "severity": "critical",
+        "confidence": 0.95,
+        "label": "Instruction override attempt"
+      },
+      {
+        "id": "jb-system-prompt",
+        "regex": "(?:^|\\n)\\s*(?:SYSTEM|System)\\s*:\\s*.{10,}",
+        "flags": "gm",
+        "category": "behavioural-control",
+        "type": "embedded-jailbreak",
+        "severity": "critical",
+        "confidence": 0.9,
+        "label": "System prompt injection"
+      },
+      {
+        "id": "jb-role-assignment",
+        "regex": "(?:you are now|from now on you|act as|pretend (?:to be|you are)|roleplay as|imagine you are)\\s+(?:an?\\s+)?(?:unrestricted|unfiltered|uncensored|jailbroken|DAN|evil|unethical)",
+        "flags": "gi",
+        "category": "behavioural-control",
+        "type": "embedded-jailbreak",
+        "severity": "critical",
+        "confidence": 0.95,
+        "label": "Role assignment jailbreak"
+      },
+      {
+        "id": "jb-educational-bypass",
+        "regex": "(?:for\\s+(?:educational|research|academic|security)\\s+purposes?\\s+only|this\\s+is\\s+(?:a|an)\\s+(?:hypothetical|thought\\s+experiment|simulation|red[\\s-]?team))",
+        "flags": "gi",
+        "category": "behavioural-control",
+        "type": "embedded-jailbreak",
+        "severity": "high",
+        "confidence": 0.7,
+        "label": "Educational/hypothetical framing bypass"
+      },
+      {
+        "id": "jb-dan",
+        "regex": "\\bD\\.?A\\.?N\\.?\\b.*(?:mode|enabled|activated|jailbreak)",
+        "flags": "gi",
+        "category": "behavioural-control",
+        "type": "embedded-jailbreak",
+        "severity": "critical",
+        "confidence": 0.95,
+        "label": "DAN jailbreak keyword"
+      },
+      {
+        "id": "jb-fictional-bypass",
+        "regex": "(?:in\\s+(?:this|a)\\s+(?:fictional|alternate|hypothetical)\\s+(?:world|universe|scenario|reality))\\s*[,.]?\\s*(?:you|there\\s+are\\s+no|all\\s+restrictions)",
+        "flags": "gi",
+        "category": "behavioural-control",
+        "type": "embedded-jailbreak",
+        "severity": "high",
+        "confidence": 0.8,
+        "label": "Fictional context bypass"
+      },
+      {
+        "id": "jb-dev-mode",
+        "regex": "(?:developer|admin|debug|maintenance|root|sudo|superuser|override)\\s+mode\\s+(?:enabled|activated|on|initiated)",
+        "flags": "gi",
+        "category": "behavioural-control",
+        "type": "embedded-jailbreak",
+        "severity": "critical",
+        "confidence": 0.9,
+        "label": "False privilege escalation claim"
+      },
+      {
+        "id": "jb-context-reset",
+        "regex": "(?:new\\s+conversation|reset\\s+context|clear\\s+(?:all\\s+)?(?:previous|prior)\\s+(?:context|messages|history))",
+        "flags": "gi",
+        "category": "behavioural-control",
+        "type": "embedded-jailbreak",
+        "severity": "high",
+        "confidence": 0.85,
+        "label": "Context reset attempt"
+      }
+    ],
+    "exfiltration": [
+      {
+        "id": "ex-direct",
+        "regex": "(?:send|transmit|post|forward|upload|exfiltrate|leak|share|deliver)\\s+(?:the\\s+)?(?:data|content|information|context|conversation|messages?|history|credentials?|password|token|key|secret|api[\\s_-]?key|session)",
+        "flags": "gi",
+        "category": "behavioural-control",
+        "type": "data-exfiltration",
+        "severity": "critical",
+        "confidence": 0.85,
+        "label": "Direct data exfiltration instruction"
+      },
+      {
+        "id": "ex-webhook",
+        "regex": "(?:webhook|callback|endpoint|receiver|collector|listener)[\\s\\S]{0,50}(?:https?:\\/\\/)",
+        "flags": "gi",
+        "category": "behavioural-control",
+        "type": "data-exfiltration",
+        "severity": "high",
+        "confidence": 0.7,
+        "label": "Webhook/callback exfiltration pattern"
+      },
+      {
+        "id": "ex-read-transmit",
+        "regex": "(?:read|access|retrieve|get|fetch|find|locate|extract)\\s+[\\s\\S]{0,80}(?:then|and|after\\s+that)\\s+(?:send|post|transmit|forward|share|deliver|upload)",
+        "flags": "gi",
+        "category": "behavioural-control",
+        "type": "data-exfiltration",
+        "severity": "critical",
+        "confidence": 0.9,
+        "label": "Read-then-transmit pattern"
+      },
+      {
+        "id": "ex-encode",
+        "regex": "(?:encode|convert|transform)\\s+(?:the\\s+)?(?:data|content|response|context|conversation)\\s+(?:to|into|as|using)\\s+(?:base64|hex|url[\\s-]?encoded|json)",
+        "flags": "gi",
+        "category": "behavioural-control",
+        "type": "data-exfiltration",
+        "severity": "high",
+        "confidence": 0.8,
+        "label": "Data encoding for exfiltration"
+      },
+      {
+        "id": "ex-sensitive-file",
+        "regex": "(?:read|access|open|cat|list|find)\\s+(?:the\\s+)?(?:file|files|directory|folder|path)\\s+(?:at|in|from)\\s+[\\s\\S]{0,50}(?:\\.env|\\.ssh|credentials?|password|secret|config|token)",
+        "flags": "gi",
+        "category": "behavioural-control",
+        "type": "data-exfiltration",
+        "severity": "critical",
+        "confidence": 0.9,
+        "label": "Sensitive file access instruction"
+      },
+      {
+        "id": "ex-email",
+        "regex": "(?:send|email|mail|forward)\\s+(?:the\\s+)?(?:data|content|results?|output|context|summary)\\s+to\\s+[\\w.+-]+@[\\w.-]+",
+        "flags": "gi",
+        "category": "behavioural-control",
+        "type": "data-exfiltration",
+        "severity": "high",
+        "confidence": 0.8,
+        "label": "Email exfiltration attempt"
+      }
+    ],
+    "sub-agent-spawning": [
+      {
+        "id": "sa-spawn",
+        "regex": "(?:create|spawn|instantiate|launch|start|initialize|invoke|call|run)\\s+(?:a\\s+)?(?:new\\s+)?(?:agent|sub[\\s-]?agent|assistant|worker|helper|bot|process|thread|task)",
+        "flags": "gi",
+        "category": "behavioural-control",
+        "type": "sub-agent-spawning",
+        "severity": "high",
+        "confidence": 0.7,
+        "label": "Agent spawning instruction"
+      },
+      {
+        "id": "sa-poisoned-prompt",
+        "regex": "(?:with|using)\\s+(?:the\\s+)?(?:system\\s+)?(?:prompt|instructions?|role)\\s*[=:]\\s*[\"'`]",
+        "flags": "gi",
+        "category": "behavioural-control",
+        "type": "sub-agent-spawning",
+        "severity": "critical",
+        "confidence": 0.85,
+        "label": "System prompt for spawned agent"
+      },
+      {
+        "id": "sa-privilege-escalation",
+        "regex": "(?:grant|give|enable|allow|provide|add)\\s+(?:the\\s+)?(?:agent|assistant|it|them)\\s+(?:access|permission|ability|capability)\\s+to\\s+(?:read|write|delete|run|browse|fetch|call)",
+        "flags": "gi",
+        "category": "behavioural-control",
+        "type": "sub-agent-spawning",
+        "severity": "critical",
+        "confidence": 0.85,
+        "label": "Tool privilege escalation request"
+      },
+      {
+        "id": "sa-poisoned-critic",
+        "regex": "(?:spin\\s+up|create)\\s+(?:a\\s+)?(?:critic|reviewer|validator|checker)\\s+[\\s\\S]{0,100}(?:approve|accept|pass|allow|authorize)",
+        "flags": "gi",
+        "category": "behavioural-control",
+        "type": "sub-agent-spawning",
+        "severity": "critical",
+        "confidence": 0.9,
+        "label": "Poisoned critic agent spawning"
+      },
+      {
+        "id": "sa-pipeline-inject",
+        "regex": "(?:add|insert|inject)\\s+(?:a\\s+)?(?:step|stage|phase|node)\\s+(?:to|into|in)\\s+(?:the\\s+)?(?:pipeline|workflow|chain|graph)",
+        "flags": "gi",
+        "category": "behavioural-control",
+        "type": "sub-agent-spawning",
+        "severity": "high",
+        "confidence": 0.75,
+        "label": "Pipeline/workflow injection"
+      }
+    ]
+  }
+}

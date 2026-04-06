@@ -6,17 +6,9 @@ import type {
   Strictness,
   Threat,
 } from './types';
-import {
-  HiddenHTMLDetector,
-  MetadataInjectionDetector,
-  DynamicCloakingDetector,
-  SyntacticMaskingDetector,
-} from './detectors/content-injection';
-import {
-  JailbreakPatternDetector,
-  ExfiltrationDetector,
-  SubAgentSpawningDetector,
-} from './detectors/behavioural-control';
+import type { PatternDatabase } from './patterns/pattern-db';
+import { DEFAULT_PATTERNS } from './patterns/default-patterns';
+import { PatternDetector } from './detectors/pattern-detector';
 
 const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
   strictness: 'balanced',
@@ -41,9 +33,102 @@ const SEVERITY_ORDER: Record<Severity, number> = {
   low: 1,
 };
 
+/** Detector config: maps config flags to pattern DB keys + metadata */
+const DETECTOR_REGISTRY: Array<{
+  configGroup: 'contentInjection' | 'behaviouralControl';
+  configKey: string;
+  patternDbKey: string;
+  id: string;
+  name: string;
+  category: 'content-injection' | 'behavioural-control';
+  trapType: string;
+  sanitizeMode: 'remove' | 'replace' | 'none';
+  replaceText?: string;
+}> = [
+  // Content Injection
+  {
+    configGroup: 'contentInjection',
+    configKey: 'hiddenHTML',
+    patternDbKey: 'hidden-html',
+    id: 'hidden-html',
+    name: 'Hidden HTML Detector',
+    category: 'content-injection',
+    trapType: 'hidden-html',
+    sanitizeMode: 'remove',
+  },
+  {
+    configGroup: 'contentInjection',
+    configKey: 'metadataInjection',
+    patternDbKey: 'metadata-injection',
+    id: 'metadata-injection',
+    name: 'Metadata Injection Detector',
+    category: 'content-injection',
+    trapType: 'metadata-injection',
+    sanitizeMode: 'remove',
+  },
+  {
+    configGroup: 'contentInjection',
+    configKey: 'dynamicCloaking',
+    patternDbKey: 'dynamic-cloaking',
+    id: 'dynamic-cloaking',
+    name: 'Dynamic Cloaking Detector',
+    category: 'content-injection',
+    trapType: 'dynamic-cloaking',
+    sanitizeMode: 'none',
+  },
+  {
+    configGroup: 'contentInjection',
+    configKey: 'syntacticMasking',
+    patternDbKey: 'syntactic-masking',
+    id: 'syntactic-masking',
+    name: 'Syntactic Masking Detector',
+    category: 'content-injection',
+    trapType: 'syntactic-masking',
+    sanitizeMode: 'remove',
+  },
+  // Behavioural Control
+  {
+    configGroup: 'behaviouralControl',
+    configKey: 'jailbreakPatterns',
+    patternDbKey: 'jailbreak-patterns',
+    id: 'jailbreak-patterns',
+    name: 'Jailbreak Pattern Detector',
+    category: 'behavioural-control',
+    trapType: 'embedded-jailbreak',
+    sanitizeMode: 'replace',
+    replaceText:
+      '[BLOCKED: potential jailbreak sequence removed by AgentArmor]',
+  },
+  {
+    configGroup: 'behaviouralControl',
+    configKey: 'exfiltrationURLs',
+    patternDbKey: 'exfiltration',
+    id: 'exfiltration',
+    name: 'Data Exfiltration Detector',
+    category: 'behavioural-control',
+    trapType: 'data-exfiltration',
+    sanitizeMode: 'replace',
+    replaceText:
+      '[BLOCKED: exfiltration instruction removed by AgentArmor]',
+  },
+  {
+    configGroup: 'behaviouralControl',
+    configKey: 'privilegeEscalation',
+    patternDbKey: 'sub-agent-spawning',
+    id: 'sub-agent-spawning',
+    name: 'Sub-Agent Spawning Detector',
+    category: 'behavioural-control',
+    trapType: 'sub-agent-spawning',
+    sanitizeMode: 'replace',
+    replaceText:
+      '[BLOCKED: agent spawning instruction removed by AgentArmor]',
+  },
+];
+
 export class AgentArmor {
   private config: Required<AgentArmorConfig>;
   private detectors: Detector[] = [];
+  private patternDb: PatternDatabase;
 
   constructor(config?: AgentArmorConfig) {
     this.config = {
@@ -60,12 +145,48 @@ export class AgentArmor {
       customDetectors: config?.customDetectors ?? [],
     };
 
+    this.patternDb = DEFAULT_PATTERNS;
     this.loadDetectors();
   }
 
   /**
-   * Scan arbitrary content (HTML, markdown, plain text) for agent traps.
-   * Use this for web-fetched content before it enters agent context.
+   * Load a custom pattern database (e.g. from a remote update).
+   * Rebuilds all detectors with the new patterns.
+   */
+  loadPatterns(patterns: PatternDatabase): void {
+    this.patternDb = patterns;
+    this.detectors = [];
+    this.loadDetectors();
+  }
+
+  /**
+   * Get the current pattern database version.
+   */
+  get patternVersion(): string {
+    return this.patternDb.version;
+  }
+
+  /**
+   * Fetch the latest patterns from a remote URL.
+   * Defaults to the agent-armor GitHub releases.
+   */
+  static async fetchLatestPatterns(
+    url?: string
+  ): Promise<PatternDatabase> {
+    const fetchUrl =
+      url ??
+      'https://raw.githubusercontent.com/stylusnexus/agent-armor/main/patterns.json';
+    const response = await fetch(fetchUrl);
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch patterns: ${response.status} ${response.statusText}`
+      );
+    }
+    return (await response.json()) as PatternDatabase;
+  }
+
+  /**
+   * Scan arbitrary content for agent traps.
    */
   scanContent(content: string): ScanResult {
     return this.runScanPipeline(content);
@@ -73,7 +194,6 @@ export class AgentArmor {
 
   /**
    * Scan retrieved RAG chunks before prompt assembly.
-   * Returns per-chunk results so you can filter poisoned documents.
    */
   scanRAGChunks(chunks: string[]): ScanResult[] {
     return chunks.map((chunk) => this.runScanPipeline(chunk));
@@ -81,15 +201,11 @@ export class AgentArmor {
 
   /**
    * Scan agent output before it reaches the user.
-   * Detects exfiltration attempts and social engineering patterns.
    */
   scanOutput(output: string): ScanResult {
     return this.runScanPipeline(output);
   }
 
-  /**
-   * Get the current strictness level.
-   */
   get strictness(): Strictness {
     return this.config.strictness;
   }
@@ -99,24 +215,26 @@ export class AgentArmor {
   // ---------------------------------------------------------------------------
 
   private loadDetectors(): void {
-    const ci = this.config.contentInjection;
-    const bc = this.config.behaviouralControl;
+    for (const reg of DETECTOR_REGISTRY) {
+      const groupConfig =
+        this.config[reg.configGroup] as Record<string, boolean>;
+      if (!groupConfig[reg.configKey]) continue;
 
-    // Content Injection detectors
-    if (ci.hiddenHTML) this.detectors.push(new HiddenHTMLDetector());
-    if (ci.metadataInjection)
-      this.detectors.push(new MetadataInjectionDetector());
-    if (ci.dynamicCloaking)
-      this.detectors.push(new DynamicCloakingDetector());
-    if (ci.syntacticMasking)
-      this.detectors.push(new SyntacticMaskingDetector());
+      const patterns = this.patternDb.detectors[reg.patternDbKey];
+      if (!patterns || patterns.length === 0) continue;
 
-    // Behavioural Control detectors
-    if (bc.jailbreakPatterns)
-      this.detectors.push(new JailbreakPatternDetector());
-    if (bc.exfiltrationURLs) this.detectors.push(new ExfiltrationDetector());
-    if (bc.privilegeEscalation)
-      this.detectors.push(new SubAgentSpawningDetector());
+      this.detectors.push(
+        new PatternDetector({
+          id: reg.id,
+          name: reg.name,
+          category: reg.category,
+          trapType: reg.trapType as any,
+          patterns,
+          sanitizeMode: reg.sanitizeMode,
+          replaceText: reg.replaceText,
+        })
+      );
+    }
 
     // Custom detectors
     this.detectors.push(...this.config.customDetectors);
@@ -133,14 +251,12 @@ export class AgentArmor {
       allThreats.push(...result.threats);
     }
 
-    // Sort by severity descending, then confidence descending
     allThreats.sort((a, b) => {
       const sevDiff = SEVERITY_ORDER[b.severity] - SEVERITY_ORDER[a.severity];
       if (sevDiff !== 0) return sevDiff;
       return b.confidence - a.confidence;
     });
 
-    // Sanitize content by running all detectors' sanitize methods
     let sanitized = content;
     for (const detector of this.detectors) {
       const relevantThreats = allThreats.filter(
