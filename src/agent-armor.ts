@@ -1,6 +1,7 @@
 import type {
   AgentArmorConfig,
   Detector,
+  MLConfig,
   ScanResult,
   Severity,
   Strictness,
@@ -133,6 +134,7 @@ export class AgentArmor {
   private config: Required<AgentArmorConfig>;
   private detectors: Detector[] = [];
   private patternDb: PatternDatabase;
+  private mlDetector: Detector | null = null;
 
   constructor(config?: AgentArmorConfig) {
     this.config = {
@@ -151,6 +153,26 @@ export class AgentArmor {
 
     this.patternDb = DEFAULT_PATTERNS;
     this.loadDetectors();
+  }
+
+  /**
+   * Create an AgentArmor instance with optional ML classifier.
+   * Use this when ML detection is needed (async model loading).
+   */
+  static async create(config?: AgentArmorConfig): Promise<AgentArmor> {
+    const instance = new AgentArmor(config);
+    if (config?.ml) {
+      await instance.initML(config.ml);
+    }
+    return instance;
+  }
+
+  /**
+   * Create a regex-only AgentArmor instance.
+   * Convenience method that makes the sync-only intent explicit.
+   */
+  static regexOnly(config?: Omit<AgentArmorConfig, 'ml'>): AgentArmor {
+    return new AgentArmor(config);
   }
 
   /**
@@ -216,6 +238,36 @@ export class AgentArmor {
   // ---------------------------------------------------------------------------
   // Internal
   // ---------------------------------------------------------------------------
+
+  private async initML(mlConfig: MLConfig): Promise<void> {
+    if (mlConfig.detector) {
+      this.mlDetector = mlConfig.detector;
+      this.detectors.push(this.mlDetector);
+      return;
+    }
+
+    if (mlConfig.enabled || mlConfig.modelDir) {
+      try {
+        // @ts-ignore -- @stylusnexus/agentarmor-ml is an optional peer dependency
+        const mlModule = await import('@stylusnexus/agentarmor-ml');
+        const detector = await mlModule.createMLDetector(mlConfig);
+        this.mlDetector = detector;
+        this.detectors.push(detector);
+      } catch (err) {
+        const behavior = mlConfig.onUnavailable ?? 'throw';
+        if (behavior === 'throw') {
+          throw new Error(
+            `ML classifier unavailable: ${err instanceof Error ? err.message : String(err)}. ` +
+            `Install @stylusnexus/agentarmor-ml or set ml.onUnavailable to 'warn-and-skip'.`
+          );
+        } else if (behavior === 'warn-and-skip') {
+          console.warn(
+            `[AgentArmor] ML classifier unavailable, falling back to regex-only: ${err instanceof Error ? err.message : String(err)}`
+          );
+        }
+      }
+    }
+  }
 
   private loadDetectors(): void {
     for (const reg of DETECTOR_REGISTRY) {
