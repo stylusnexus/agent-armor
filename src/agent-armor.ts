@@ -24,6 +24,16 @@ const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
     exfiltrationURLs: true,
     privilegeEscalation: true,
   },
+  cognitiveState: {
+    ragPoisoning: true,
+    memoryPoisoning: true,
+    contextualLearning: true,
+  },
+  semanticManipulation: {
+    biasedFraming: true,
+    oversightEvasion: true,
+    personaHyperstition: true,
+  },
   customDetectors: [],
   ml: {
     enabled: false,
@@ -40,12 +50,12 @@ const SEVERITY_ORDER: Record<Severity, number> = {
 
 /** Detector config: maps config flags to pattern DB keys + metadata */
 const DETECTOR_REGISTRY: Array<{
-  configGroup: 'contentInjection' | 'behaviouralControl';
+  configGroup: 'contentInjection' | 'behaviouralControl' | 'cognitiveState' | 'semanticManipulation';
   configKey: string;
   patternDbKey: string;
   id: string;
   name: string;
-  category: 'content-injection' | 'behavioural-control';
+  category: 'content-injection' | 'behavioural-control' | 'cognitive-state' | 'semantic-manipulation';
   trapType: string;
   sanitizeMode: 'remove' | 'replace' | 'none';
   replaceText?: string;
@@ -128,6 +138,80 @@ const DETECTOR_REGISTRY: Array<{
     replaceText:
       '[BLOCKED: agent spawning instruction removed by AgentArmor]',
   },
+  // Cognitive State
+  {
+    configGroup: 'cognitiveState',
+    configKey: 'ragPoisoning',
+    patternDbKey: 'rag-knowledge-poisoning',
+    id: 'rag-knowledge-poisoning',
+    name: 'RAG Knowledge Poisoning Detector',
+    category: 'cognitive-state',
+    trapType: 'rag-knowledge-poisoning',
+    sanitizeMode: 'replace',
+    replaceText:
+      '[BLOCKED: RAG poisoning content removed by AgentArmor]',
+  },
+  {
+    configGroup: 'cognitiveState',
+    configKey: 'memoryPoisoning',
+    patternDbKey: 'latent-memory-poisoning',
+    id: 'latent-memory-poisoning',
+    name: 'Latent Memory Poisoning Detector',
+    category: 'cognitive-state',
+    trapType: 'latent-memory-poisoning',
+    sanitizeMode: 'replace',
+    replaceText:
+      '[BLOCKED: memory poisoning content removed by AgentArmor]',
+  },
+  {
+    configGroup: 'cognitiveState',
+    configKey: 'contextualLearning',
+    patternDbKey: 'contextual-learning-trap',
+    id: 'contextual-learning-trap',
+    name: 'Contextual Learning Trap Detector',
+    category: 'cognitive-state',
+    trapType: 'contextual-learning-trap',
+    sanitizeMode: 'replace',
+    replaceText:
+      '[BLOCKED: manipulated few-shot content removed by AgentArmor]',
+  },
+  // Semantic Manipulation
+  {
+    configGroup: 'semanticManipulation',
+    configKey: 'biasedFraming',
+    patternDbKey: 'biased-framing',
+    id: 'biased-framing',
+    name: 'Biased Framing Detector',
+    category: 'semantic-manipulation',
+    trapType: 'biased-framing',
+    sanitizeMode: 'replace',
+    replaceText:
+      '[BLOCKED: biased framing content removed by AgentArmor]',
+  },
+  {
+    configGroup: 'semanticManipulation',
+    configKey: 'oversightEvasion',
+    patternDbKey: 'oversight-evasion',
+    id: 'oversight-evasion',
+    name: 'Oversight Evasion Detector',
+    category: 'semantic-manipulation',
+    trapType: 'oversight-evasion',
+    sanitizeMode: 'replace',
+    replaceText:
+      '[BLOCKED: oversight evasion content removed by AgentArmor]',
+  },
+  {
+    configGroup: 'semanticManipulation',
+    configKey: 'personaHyperstition',
+    patternDbKey: 'persona-hyperstition',
+    id: 'persona-hyperstition',
+    name: 'Persona Hyperstition Detector',
+    category: 'semantic-manipulation',
+    trapType: 'persona-hyperstition',
+    sanitizeMode: 'replace',
+    replaceText:
+      '[BLOCKED: persona manipulation content removed by AgentArmor]',
+  },
 ];
 
 export class AgentArmor {
@@ -147,6 +231,14 @@ export class AgentArmor {
       behaviouralControl: {
         ...DEFAULT_CONFIG.behaviouralControl,
         ...config?.behaviouralControl,
+      },
+      cognitiveState: {
+        ...DEFAULT_CONFIG.cognitiveState,
+        ...config?.cognitiveState,
+      },
+      semanticManipulation: {
+        ...DEFAULT_CONFIG.semanticManipulation,
+        ...config?.semanticManipulation,
       },
       customDetectors: config?.customDetectors ?? [],
     };

@@ -199,6 +199,16 @@ export interface AgentArmorConfig {
     exfiltrationURLs?: boolean;
     privilegeEscalation?: boolean;
   };
+  cognitiveState?: {
+    ragPoisoning?: boolean;
+    memoryPoisoning?: boolean;
+    contextualLearning?: boolean;
+  };
+  semanticManipulation?: {
+    biasedFraming?: boolean;
+    oversightEvasion?: boolean;
+    personaHyperstition?: boolean;
+  };
   /** Custom detectors to add to the pipeline */
   customDetectors?: Detector[];
   /** ML classifier configuration (requires @stylusnexus/agentarmor-ml) */
