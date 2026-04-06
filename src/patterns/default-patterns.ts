@@ -8,7 +8,7 @@ import type { PatternDatabase } from './pattern-db';
  *   0.1.0 — Initial patterns extracted from hardcoded detectors
  */
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.2.0',
+  version: '0.3.0',
   updatedAt: '2026-04-06',
   detectors: {
     'hidden-html': [
@@ -77,6 +77,20 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         severity: 'medium',
         confidence: 0.7,
         label: 'Opacity:0 hiding content',
+        extractGroup: 1,
+        minLength: 20,
+        boostOnInstructions: true,
+        requireInstructions: true,
+      },
+      {
+        id: 'hh-color-transparent',
+        regex: '<[^>]+style\\s*=\\s*["\'][^"\']*color\\s*:\\s*(?:transparent|rgba?\\([^)]*,\\s*0\\s*\\))[^"\']*["\'][^>]*>([\\s\\S]*?)<\\/[^>]+>',
+        flags: 'gi',
+        category: 'content-injection',
+        type: 'hidden-html',
+        severity: 'medium',
+        confidence: 0.7,
+        label: 'Color:transparent hiding content',
         extractGroup: 1,
         minLength: 20,
         boostOnInstructions: true,
@@ -310,6 +324,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         severity: 'critical',
         confidence: 0.95,
         label: 'DAN jailbreak keyword',
+        requireInstructions: true,
       },
       {
         id: 'jb-fictional-bypass',
@@ -363,6 +378,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         severity: 'critical',
         confidence: 0.85,
         label: 'Direct data exfiltration instruction',
+        boostOnInstructions: true,
+        requireInstructions: true,
       },
       {
         id: 'ex-webhook',
@@ -373,6 +390,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         severity: 'high',
         confidence: 0.7,
         label: 'Webhook/callback exfiltration pattern',
+        requireInstructions: true,
       },
       {
         id: 'ex-read-transmit',
@@ -425,6 +443,39 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         severity: 'high',
         confidence: 0.8,
         label: 'Email exfiltration attempt',
+      },
+      {
+        id: 'ex-markdown-image',
+        regex: '!\\[[^\\]]*\\]\\(https?:\\/\\/[^)]*(?:data|token|secret|key|context|conversation|history|session|password|credential|api[_-]?key|env)\\b[^)]*\\)',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'critical',
+        confidence: 0.85,
+        label: 'Markdown image data exfiltration',
+      },
+      {
+        id: 'ex-read-env',
+        regex: '(?:read|access|open|cat|print|output|display|show|reveal)\\s+(?:the\\s+)?(?:contents?\\s+of\\s+)?(?:my\\s+)?(?:\\.env|\\.ssh|~/\\.ssh|~/\\.aws|environment\\s+variables?|api\\s+keys?|credentials?|secrets?|private\\s+keys?|ssh\\s+keys?|id_rsa)',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'critical',
+        confidence: 0.8,
+        label: 'Sensitive credential access instruction',
+        boostOnInstructions: true,
+      },
+      {
+        id: 'ex-tool-chain',
+        regex: '(?:use|call|invoke|run)\\s+(?:the\\s+)?(?:\\w+\\s+)?(?:tool|function|command|api)\\s+[\\s\\S]{0,200}(?:then|and|after|\\d+\\.\\s*)\\s*(?:use|call|invoke|run|send|post|transmit|upload|forward|share)',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'high',
+        confidence: 0.6,
+        label: 'Multi-step tool chain exfiltration',
+        boostOnInstructions: true,
+        requireInstructions: true,
       },
     ],
 
