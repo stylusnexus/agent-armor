@@ -1,0 +1,58 @@
+{
+  "name": "agent-armor",
+  "version": "0.1.0",
+  "description": "Open-source agent security framework. Detects and defends against AI Agent Traps - content injection, embedded jailbreaks, RAG poisoning, data exfiltration, and more.",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./scanners/*": {
+      "import": "./dist/scanners/*.mjs",
+      "require": "./dist/scanners/*.js",
+      "types": "./dist/scanners/*.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "ai-security",
+    "agent-safety",
+    "prompt-injection",
+    "llm-security",
+    "agent-traps",
+    "rag-poisoning",
+    "content-injection",
+    "jailbreak-detection",
+    "data-exfiltration",
+    "ai-agents"
+  ],
+  "author": "StylusNexus",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stylusnexus/agent-armor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/stylusnexus/agent-armor/issues"
+  },
+  "homepage": "https://github.com/stylusnexus/agent-armor#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ]
+}

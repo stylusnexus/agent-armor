@@ -1,0 +1,20 @@
+export { AgentArmor } from './agent-armor';
+export type {
+  AgentArmorConfig,
+  Confidence,
+  Detector,
+  DetectorOptions,
+  DetectorResult,
+  ScanResult,
+  Severity,
+  Strictness,
+  Threat,
+  TrapCategory,
+  TrapType,
+  ContentInjectionType,
+  SemanticManipulationType,
+  CognitiveStateType,
+  BehaviouralControlType,
+  SystemicType,
+  HumanInTheLoopType,
+} from './types';
