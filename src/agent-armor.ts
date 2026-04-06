@@ -1,6 +1,7 @@
 import type {
   AgentArmorConfig,
   Detector,
+  MLConfig,
   ScanResult,
   Severity,
   Strictness,
@@ -24,6 +25,10 @@ const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
     privilegeEscalation: true,
   },
   customDetectors: [],
+  ml: {
+    enabled: false,
+    onUnavailable: 'warn-and-skip',
+  },
 };
 
 const SEVERITY_ORDER: Record<Severity, number> = {
@@ -129,6 +134,7 @@ export class AgentArmor {
   private config: Required<AgentArmorConfig>;
   private detectors: Detector[] = [];
   private patternDb: PatternDatabase;
+  private mlDetector: Detector | null = null;
 
   constructor(config?: AgentArmorConfig) {
     this.config = {
@@ -150,6 +156,26 @@ export class AgentArmor {
   }
 
   /**
+   * Create an AgentArmor instance with optional ML classifier.
+   * Use this when ML detection is needed (async model loading).
+   */
+  static async create(config?: AgentArmorConfig): Promise<AgentArmor> {
+    const instance = new AgentArmor(config);
+    if (config?.ml) {
+      await instance.initML(config.ml);
+    }
+    return instance;
+  }
+
+  /**
+   * Create a regex-only AgentArmor instance.
+   * Convenience method that makes the sync-only intent explicit.
+   */
+  static regexOnly(config?: Omit<AgentArmorConfig, 'ml'>): AgentArmor {
+    return new AgentArmor(config);
+  }
+
+  /**
    * Load a custom pattern database (e.g. from a remote update).
    * Rebuilds all detectors with the new patterns.
    */
@@ -168,14 +194,10 @@ export class AgentArmor {
 
   /**
    * Fetch the latest patterns from a remote URL.
-   * Defaults to the agent-armor GitHub releases.
+   * URL is required — there is no default endpoint.
    */
-  static async fetchLatestPatterns(
-    url?: string
-  ): Promise<PatternDatabase> {
-    const fetchUrl =
-      url ?? 'https://api.agentarmor.dev/patterns/latest';
-    const response = await fetch(fetchUrl);
+  static async fetchLatestPatterns(url: string): Promise<PatternDatabase> {
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error(
         `Failed to fetch patterns: ${response.status} ${response.statusText}`
@@ -185,24 +207,46 @@ export class AgentArmor {
   }
 
   /**
-   * Scan arbitrary content for agent traps.
+   * Scan arbitrary content for agent traps (sync).
    */
-  scanContent(content: string): ScanResult {
+  scanSync(content: string): ScanResult {
     return this.runScanPipeline(content);
   }
 
   /**
-   * Scan retrieved RAG chunks before prompt assembly.
+   * Scan retrieved RAG chunks before prompt assembly (sync).
    */
-  scanRAGChunks(chunks: string[]): ScanResult[] {
+  scanRAGChunksSync(chunks: string[]): ScanResult[] {
     return chunks.map((chunk) => this.runScanPipeline(chunk));
   }
 
   /**
-   * Scan agent output before it reaches the user.
+   * Scan agent output before it reaches the user (sync).
    */
-  scanOutput(output: string): ScanResult {
+  scanOutputSync(output: string): ScanResult {
     return this.runScanPipeline(output);
+  }
+
+  /**
+   * Scan arbitrary content for agent traps (async).
+   * Prefers scanAsync on detectors that support it.
+   */
+  async scan(content: string): Promise<ScanResult> {
+    return this.runScanPipelineAsync(content);
+  }
+
+  /**
+   * Scan retrieved RAG chunks before prompt assembly (async).
+   */
+  async scanRAGChunks(chunks: string[]): Promise<ScanResult[]> {
+    return Promise.all(chunks.map((chunk) => this.runScanPipelineAsync(chunk)));
+  }
+
+  /**
+   * Scan agent output before it reaches the user (async).
+   */
+  async scanOutput(output: string): Promise<ScanResult> {
+    return this.runScanPipelineAsync(output);
   }
 
   get strictness(): Strictness {
@@ -212,6 +256,36 @@ export class AgentArmor {
   // ---------------------------------------------------------------------------
   // Internal
   // ---------------------------------------------------------------------------
+
+  private async initML(mlConfig: MLConfig): Promise<void> {
+    if (mlConfig.detector) {
+      this.mlDetector = mlConfig.detector;
+      this.detectors.push(this.mlDetector);
+      return;
+    }
+
+    if (mlConfig.enabled || mlConfig.modelDir) {
+      try {
+        // @ts-ignore -- @stylusnexus/agentarmor-ml is an optional peer dependency
+        const mlModule = await import('@stylusnexus/agentarmor-ml');
+        const detector = await mlModule.createMLDetector(mlConfig);
+        this.mlDetector = detector;
+        this.detectors.push(detector);
+      } catch (err) {
+        const behavior = mlConfig.onUnavailable ?? 'throw';
+        if (behavior === 'throw') {
+          throw new Error(
+            `ML classifier unavailable: ${err instanceof Error ? err.message : String(err)}. ` +
+            `Install @stylusnexus/agentarmor-ml or set ml.onUnavailable to 'warn-and-skip'.`
+          );
+        } else if (behavior === 'warn-and-skip') {
+          console.warn(
+            `[AgentArmor] ML classifier unavailable, falling back to regex-only: ${err instanceof Error ? err.message : String(err)}`
+          );
+        }
+      }
+    }
+  }
 
   private loadDetectors(): void {
     for (const reg of DETECTOR_REGISTRY) {
@@ -244,10 +318,71 @@ export class AgentArmor {
     const allThreats: Threat[] = [];
 
     for (const detector of this.detectors) {
-      const result = detector.scan(content, {
-        strictness: this.config.strictness,
-      });
-      allThreats.push(...result.threats);
+      try {
+        const result = detector.scan(content, {
+          strictness: this.config.strictness,
+        });
+        allThreats.push(...result.threats);
+      } catch (err) {
+        console.warn(
+          `[AgentArmor] Detector "${detector.id}" threw during scan: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
+    }
+
+    allThreats.sort((a, b) => {
+      const sevDiff = SEVERITY_ORDER[b.severity] - SEVERITY_ORDER[a.severity];
+      if (sevDiff !== 0) return sevDiff;
+      return b.confidence - a.confidence;
+    });
+
+    let sanitized = content;
+    for (const detector of this.detectors) {
+      const relevantThreats = allThreats.filter(
+        (t) => t.detectorId === detector.id
+      );
+      if (relevantThreats.length > 0) {
+        sanitized = detector.sanitize(sanitized, relevantThreats);
+      }
+    }
+
+    const durationMs = performance.now() - start;
+
+    return {
+      clean: allThreats.length === 0,
+      threats: allThreats,
+      sanitized,
+      durationMs,
+      stats: {
+        detectorsRun: this.detectors.length,
+        threatsFound: allThreats.length,
+        highestSeverity: allThreats[0]?.severity ?? null,
+      },
+    };
+  }
+
+  private async runScanPipelineAsync(content: string): Promise<ScanResult> {
+    const start = performance.now();
+    const allThreats: Threat[] = [];
+
+    for (const detector of this.detectors) {
+      try {
+        if ('scanAsync' in detector && typeof detector.scanAsync === 'function') {
+          const result = await detector.scanAsync(content, {
+            strictness: this.config.strictness,
+          });
+          allThreats.push(...result.threats);
+        } else {
+          const result = detector.scan(content, {
+            strictness: this.config.strictness,
+          });
+          allThreats.push(...result.threats);
+        }
+      } catch (err) {
+        console.warn(
+          `[AgentArmor] Detector "${detector.id}" threw during scan: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
     }
 
     allThreats.sort((a, b) => {

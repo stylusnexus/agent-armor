@@ -66,6 +66,8 @@ export type Severity = 'low' | 'medium' | 'high' | 'critical';
 /** 0-1 confidence score from a detector */
 export type Confidence = number;
 
+export type ThreatSource = 'pattern' | 'ml' | 'custom';
+
 // ---------------------------------------------------------------------------
 // Threat descriptor
 // ---------------------------------------------------------------------------
@@ -87,6 +89,8 @@ export interface Threat {
   location?: { offset: number; length: number };
   /** Which detector found this */
   detectorId: string;
+  /** Where this threat was detected: pattern (regex), ml (classifier), or custom */
+  source: ThreatSource;
 }
 
 // ---------------------------------------------------------------------------
@@ -125,6 +129,8 @@ export interface Detector {
   scan(content: string, options?: DetectorOptions): DetectorResult;
   /** Return sanitized content with threats neutralized */
   sanitize(content: string, threats: Threat[]): string;
+  /** Async scan method (used by ML detectors where inference is async) */
+  scanAsync?(content: string, options?: DetectorOptions): Promise<DetectorResult>;
 }
 
 export interface DetectorOptions {
@@ -134,6 +140,44 @@ export interface DetectorOptions {
 
 export interface DetectorResult {
   threats: Threat[];
+}
+
+// ---------------------------------------------------------------------------
+// ML configuration
+// ---------------------------------------------------------------------------
+
+export type ModelErrorCode =
+  | 'MODEL_NOT_FOUND'
+  | 'CHECKSUM_MISMATCH'
+  | 'DOWNLOAD_FAILED'
+  | 'DOWNLOAD_TIMEOUT'
+  | 'DISK_FULL'
+  | 'LOCK_TIMEOUT';
+
+export interface MLDownloadConfig {
+  /** Download timeout in ms (default: 120_000) */
+  timeoutMs?: number;
+  /** Number of retry attempts (default: 2) */
+  retries?: number;
+  /** Progress callback */
+  onProgress?: (bytesReceived: number, totalBytes: number) => void;
+}
+
+export interface MLConfig {
+  /** Enable ML classifier (downloads model on first use) */
+  enabled?: boolean;
+  /** Local directory containing ONNX model + tokenizer files */
+  modelDir?: string;
+  /** Inject a custom Detector (skips model download, useful for testing) */
+  detector?: Detector;
+  /** Behavior when ML model is unavailable */
+  onUnavailable?: 'throw' | 'warn-and-skip' | 'silent-skip';
+  /** API key for Pro tier pattern/model updates (future) */
+  apiKey?: string;
+  /** Custom model download URL (future) */
+  modelUrl?: string;
+  /** Download configuration */
+  download?: MLDownloadConfig;
 }
 
 // ---------------------------------------------------------------------------
@@ -157,4 +201,6 @@ export interface AgentArmorConfig {
   };
   /** Custom detectors to add to the pipeline */
   customDetectors?: Detector[];
+  /** ML classifier configuration (requires @stylusnexus/agentarmor-ml) */
+  ml?: MLConfig;
 }
