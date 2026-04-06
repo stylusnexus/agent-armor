@@ -258,6 +258,7 @@ describe('AgentArmor', () => {
                   description: 'Custom threat',
                   evidence: 'test',
                   detectorId: 'custom-test',
+                  source: 'custom',
                 },
               ],
             }),

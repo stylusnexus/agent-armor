@@ -66,6 +66,8 @@ export type Severity = 'low' | 'medium' | 'high' | 'critical';
 /** 0-1 confidence score from a detector */
 export type Confidence = number;
 
+export type ThreatSource = 'pattern' | 'ml' | 'custom';
+
 // ---------------------------------------------------------------------------
 // Threat descriptor
 // ---------------------------------------------------------------------------
@@ -87,6 +89,8 @@ export interface Threat {
   location?: { offset: number; length: number };
   /** Which detector found this */
   detectorId: string;
+  /** Where this threat was detected: pattern (regex), ml (classifier), or custom */
+  source: ThreatSource;
 }
 
 // ---------------------------------------------------------------------------

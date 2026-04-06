@@ -57,6 +57,7 @@ export abstract class BaseDetector implements Detector {
         evidence: truncate(m.match, 200),
         location: { offset: m.index, length: m.length },
         detectorId: this.id,
+        source: 'pattern' as const,
       }));
 
     return { threats };
