@@ -1,6 +1,6 @@
 {
   "name": "@stylusnexus/agentarmor",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Open-source agent security framework. Detects and defends against AI Agent Traps - content injection, embedded jailbreaks, RAG poisoning, data exfiltration, and more.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

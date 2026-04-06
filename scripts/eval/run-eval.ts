@@ -35,7 +35,7 @@ function evaluate(
   const results: DetectionResult[] = [];
 
   for (const sample of ALL_SAMPLES) {
-    const scanResult = armor.scanContent(sample.content);
+    const scanResult = armor.scanSync(sample.content);
     const detected = [
       ...new Set(scanResult.threats.map((t) => t.type)),
     ] as TrapType[];
