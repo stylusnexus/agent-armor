@@ -129,6 +129,8 @@ export interface Detector {
   scan(content: string, options?: DetectorOptions): DetectorResult;
   /** Return sanitized content with threats neutralized */
   sanitize(content: string, threats: Threat[]): string;
+  /** Async scan method (used by ML detectors where inference is async) */
+  scanAsync?(content: string, options?: DetectorOptions): Promise<DetectorResult>;
 }
 
 export interface DetectorOptions {

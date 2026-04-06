@@ -211,24 +211,46 @@ export class AgentArmor {
   }
 
   /**
-   * Scan arbitrary content for agent traps.
+   * Scan arbitrary content for agent traps (sync).
    */
-  scanContent(content: string): ScanResult {
+  scanSync(content: string): ScanResult {
     return this.runScanPipeline(content);
   }
 
   /**
-   * Scan retrieved RAG chunks before prompt assembly.
+   * Scan retrieved RAG chunks before prompt assembly (sync).
    */
-  scanRAGChunks(chunks: string[]): ScanResult[] {
+  scanRAGChunksSync(chunks: string[]): ScanResult[] {
     return chunks.map((chunk) => this.runScanPipeline(chunk));
   }
 
   /**
-   * Scan agent output before it reaches the user.
+   * Scan agent output before it reaches the user (sync).
    */
-  scanOutput(output: string): ScanResult {
+  scanOutputSync(output: string): ScanResult {
     return this.runScanPipeline(output);
+  }
+
+  /**
+   * Scan arbitrary content for agent traps (async).
+   * Prefers scanAsync on detectors that support it.
+   */
+  async scan(content: string): Promise<ScanResult> {
+    return this.runScanPipelineAsync(content);
+  }
+
+  /**
+   * Scan retrieved RAG chunks before prompt assembly (async).
+   */
+  async scanRAGChunks(chunks: string[]): Promise<ScanResult[]> {
+    return Promise.all(chunks.map((chunk) => this.runScanPipelineAsync(chunk)));
+  }
+
+  /**
+   * Scan agent output before it reaches the user (async).
+   */
+  async scanOutput(output: string): Promise<ScanResult> {
+    return this.runScanPipelineAsync(output);
   }
 
   get strictness(): Strictness {
@@ -300,10 +322,71 @@ export class AgentArmor {
     const allThreats: Threat[] = [];
 
     for (const detector of this.detectors) {
-      const result = detector.scan(content, {
-        strictness: this.config.strictness,
-      });
-      allThreats.push(...result.threats);
+      try {
+        const result = detector.scan(content, {
+          strictness: this.config.strictness,
+        });
+        allThreats.push(...result.threats);
+      } catch (err) {
+        console.warn(
+          `[AgentArmor] Detector "${detector.id}" threw during scan: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
+    }
+
+    allThreats.sort((a, b) => {
+      const sevDiff = SEVERITY_ORDER[b.severity] - SEVERITY_ORDER[a.severity];
+      if (sevDiff !== 0) return sevDiff;
+      return b.confidence - a.confidence;
+    });
+
+    let sanitized = content;
+    for (const detector of this.detectors) {
+      const relevantThreats = allThreats.filter(
+        (t) => t.detectorId === detector.id
+      );
+      if (relevantThreats.length > 0) {
+        sanitized = detector.sanitize(sanitized, relevantThreats);
+      }
+    }
+
+    const durationMs = performance.now() - start;
+
+    return {
+      clean: allThreats.length === 0,
+      threats: allThreats,
+      sanitized,
+      durationMs,
+      stats: {
+        detectorsRun: this.detectors.length,
+        threatsFound: allThreats.length,
+        highestSeverity: allThreats[0]?.severity ?? null,
+      },
+    };
+  }
+
+  private async runScanPipelineAsync(content: string): Promise<ScanResult> {
+    const start = performance.now();
+    const allThreats: Threat[] = [];
+
+    for (const detector of this.detectors) {
+      try {
+        if ('scanAsync' in detector && typeof detector.scanAsync === 'function') {
+          const result = await detector.scanAsync(content, {
+            strictness: this.config.strictness,
+          });
+          allThreats.push(...result.threats);
+        } else {
+          const result = detector.scan(content, {
+            strictness: this.config.strictness,
+          });
+          allThreats.push(...result.threats);
+        }
+      } catch (err) {
+        console.warn(
+          `[AgentArmor] Detector "${detector.id}" threw during scan: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
     }
 
     allThreats.sort((a, b) => {
