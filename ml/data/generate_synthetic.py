@@ -244,25 +244,19 @@ def generate_category(
 
         # Handle special template placeholders for syntactic-masking
         if "{instruction_entities}" in template:
-            filled = make_html_entities(payload)
+            filled = template.replace(
+                "{instruction_entities}", make_html_entities(payload)
+            )
         elif "{instruction_confusables}" in template:
-            filled = make_confusables(payload)
+            filled = template.replace(
+                "{instruction_confusables}", make_confusables(payload)
+            )
         elif "{instruction}" in template:
             filled = template.replace("{instruction}", payload)
         else:
-            # Template has no placeholder (e.g. data-exfil templates with
-            # self-contained instructions) — use as-is
             filled = template
 
-        # If the template itself was the filled text (entity/confusable case),
-        # don't try to replace {instruction} again
-        if filled == template and "{instruction}" not in template:
-            sample_text = filled
-        elif "{instruction}" in filled:
-            # Should not happen, but safeguard
-            sample_text = filled
-        else:
-            sample_text = filled
+        sample_text = filled
 
         # Wrap in benign context
         wrapped = context.replace("{sample}", sample_text)
@@ -300,7 +294,8 @@ def main() -> None:
     # Shuffle for training variety
     random.shuffle(all_samples)
 
-    output_path = Path("ml/data/output/synthetic.jsonl")
+    root = Path(__file__).resolve().parent.parent.parent
+    output_path = root / "ml" / "data" / "output" / "synthetic.jsonl"
     write_jsonl(all_samples, output_path)
 
     print(f"Generated {len(all_samples)} synthetic adversarial samples")

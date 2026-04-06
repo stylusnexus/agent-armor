@@ -8,7 +8,8 @@ from pathlib import Path
 
 from ml.data.schema import TrainingSample, ALL_LABELS, read_jsonl, write_jsonl
 
-OUTPUT_DIR = Path("ml/data/output")
+ROOT = Path(__file__).resolve().parent.parent.parent
+OUTPUT_DIR = ROOT / "ml" / "data" / "output"
 
 TRAIN_RATIO = 0.80
 VAL_RATIO = 0.10

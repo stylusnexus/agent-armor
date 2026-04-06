@@ -66,6 +66,12 @@ class TrainingSample:
         if self.text and len(self.text) < 10:
             errors.append("text must be at least 10 characters")
 
+        if self.source not in VALID_SOURCES:
+            errors.append(f"unknown source: {self.source!r}")
+
+        if self.difficulty not in VALID_DIFFICULTIES:
+            errors.append(f"unknown difficulty: {self.difficulty!r}")
+
         return errors
 
     def to_jsonl(self) -> str:

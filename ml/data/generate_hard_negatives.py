@@ -584,7 +584,8 @@ def main() -> None:
     """Generate hard negative samples and write to JSONL."""
     samples = build_samples()
 
-    output_path = Path("ml/data/output/hard_negatives.jsonl")
+    root = Path(__file__).resolve().parent.parent.parent
+    output_path = root / "ml" / "data" / "output" / "hard_negatives.jsonl"
     write_jsonl(samples, output_path)
 
     print(f"Generated {len(samples)} hard negative samples")
