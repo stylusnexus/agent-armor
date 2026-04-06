@@ -9,3 +9,6 @@ CLAUDE.md
 MEMORY.md
 agent-armor.code-workspace
 .claude/
+docs/superpowers/
+ml/data/output/
+__pycache__/
