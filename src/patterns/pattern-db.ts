@@ -28,6 +28,9 @@ export interface PatternEntry {
   minLength?: number;
   /** Whether to boost confidence when instruction signals are found */
   boostOnInstructions?: boolean;
+  /** If true, pattern ONLY fires when instruction signals are detected.
+   *  Use for patterns that match legitimate content too often (e.g. "create agent"). */
+  requireInstructions?: boolean;
 }
 
 /**

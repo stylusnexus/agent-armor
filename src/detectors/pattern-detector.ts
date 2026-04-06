@@ -4,7 +4,7 @@ import { compilePattern } from '../patterns/pattern-db';
 import type { Threat, TrapCategory, TrapType } from '../types';
 
 const INSTRUCTION_SIGNALS =
-  /(?:ignore|disregard|forget|override|system|assistant|you (?:are|must|should|will)|IMPORTANT|instruction|do not|instead|pretend|act as|role|new task|exfiltrat|send to|transmit|summarise|summarize|say that|respond with|output|generate|write|tell the user)/i;
+  /(?:ignore|disregard|forget|override|system|assistant|you (?:are|must|should|will)|IMPORTANT|instruction|do not|instead|pretend|act as|role|new task|exfiltrat|send to|transmit|summarise|summarize|say that|respond with|output|generate|write|tell the user|without\s+(?:restrictions?|scrutiny|review)|approve\s+(?:all|everything|any)|all\s+files|arbitrary|bypass|credentials?|privileged|unrestricted)/i;
 
 const CONFIDENCE_BOOST = 0.35;
 
@@ -63,7 +63,12 @@ export class PatternDetector extends BaseDetector {
           else if (severity === 'medium') severity = 'high';
         }
 
-        // Low-confidence patterns only fire with instruction signals
+        // Hard gate: requireInstructions means no instruction = no detection
+        if (entry.requireInstructions && !hasInstruction) {
+          continue;
+        }
+
+        // Soft gate: low-confidence boost-eligible patterns need instructions
         if (entry.boostOnInstructions && !hasInstruction && entry.confidence < 0.5) {
           continue;
         }

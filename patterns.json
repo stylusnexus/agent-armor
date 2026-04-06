@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
+  "version": "0.2.0",
   "updatedAt": "2026-04-06",
   "detectors": {
     "hidden-html": [
@@ -13,8 +13,9 @@
         "confidence": 0.85,
         "label": "CSS display:none hiding content",
         "extractGroup": 1,
-        "minLength": 5,
-        "boostOnInstructions": true
+        "minLength": 20,
+        "boostOnInstructions": true,
+        "requireInstructions": true
       },
       {
         "id": "hh-visibility-hidden",
@@ -26,8 +27,9 @@
         "confidence": 0.85,
         "label": "CSS visibility:hidden hiding content",
         "extractGroup": 1,
-        "minLength": 5,
-        "boostOnInstructions": true
+        "minLength": 20,
+        "boostOnInstructions": true,
+        "requireInstructions": true
       },
       {
         "id": "hh-offscreen",
@@ -39,8 +41,9 @@
         "confidence": 0.8,
         "label": "Off-screen positioning hiding content",
         "extractGroup": 1,
-        "minLength": 5,
-        "boostOnInstructions": true
+        "minLength": 20,
+        "boostOnInstructions": true,
+        "requireInstructions": true
       },
       {
         "id": "hh-zero-size",
@@ -52,8 +55,9 @@
         "confidence": 0.7,
         "label": "Zero-size element hiding content",
         "extractGroup": 1,
-        "minLength": 5,
-        "boostOnInstructions": true
+        "minLength": 20,
+        "boostOnInstructions": true,
+        "requireInstructions": true
       },
       {
         "id": "hh-opacity-zero",
@@ -65,8 +69,9 @@
         "confidence": 0.7,
         "label": "Opacity:0 hiding content",
         "extractGroup": 1,
-        "minLength": 5,
-        "boostOnInstructions": true
+        "minLength": 20,
+        "boostOnInstructions": true,
+        "requireInstructions": true
       },
       {
         "id": "hh-overflow-micro",
@@ -199,11 +204,12 @@
         "category": "content-injection",
         "type": "syntactic-masking",
         "severity": "high",
-        "confidence": 0.6,
+        "confidence": 0.4,
         "label": "LaTeX small-font text",
         "extractGroup": 1,
-        "minLength": 5,
-        "boostOnInstructions": true
+        "minLength": 10,
+        "boostOnInstructions": true,
+        "requireInstructions": true
       },
       {
         "id": "sm-latex-white",
@@ -321,6 +327,16 @@
         "severity": "high",
         "confidence": 0.85,
         "label": "Context reset attempt"
+      },
+      {
+        "id": "jb-fictional-world-loose",
+        "regex": "(?:fictional|hypothetical|alternate|imaginary)\\s+(?:world|universe|scenario|reality)[\\s\\S]{0,100}(?:no\\s+(?:rules|restrictions|limits|constraints)|freely|without\\s+(?:restrictions?|limits?|constraints?))",
+        "flags": "gi",
+        "category": "behavioural-control",
+        "type": "embedded-jailbreak",
+        "severity": "high",
+        "confidence": 0.8,
+        "label": "Fictional world restriction bypass (loose)"
       }
     ],
     "exfiltration": [
@@ -351,18 +367,30 @@
         "category": "behavioural-control",
         "type": "data-exfiltration",
         "severity": "critical",
-        "confidence": 0.9,
-        "label": "Read-then-transmit pattern"
+        "confidence": 0.6,
+        "label": "Read-then-transmit pattern",
+        "boostOnInstructions": true,
+        "requireInstructions": true
       },
       {
         "id": "ex-encode",
-        "regex": "(?:encode|convert|transform)\\s+(?:the\\s+)?(?:data|content|response|context|conversation)\\s+(?:to|into|as|using)\\s+(?:base64|hex|url[\\s-]?encoded|json)",
+        "regex": "(?:encode|convert|transform)\\s+(?:the\\s+)?(?:data|content|response|context|conversation|history|messages?)\\s+(?:to|into|as|using)\\s+(?:base64|hex|url[\\s-]?encoded|json)",
         "flags": "gi",
         "category": "behavioural-control",
         "type": "data-exfiltration",
         "severity": "high",
         "confidence": 0.8,
         "label": "Data encoding for exfiltration"
+      },
+      {
+        "id": "ex-encode-include",
+        "regex": "(?:encode|convert)\\s+(?:the\\s+)?(?:data|content|conversation|history|context)\\s+[\\s\\S]{0,40}(?:include|embed|append|attach)\\s+(?:it|the|as)",
+        "flags": "gi",
+        "category": "behavioural-control",
+        "type": "data-exfiltration",
+        "severity": "high",
+        "confidence": 0.8,
+        "label": "Encode-and-include exfiltration pattern"
       },
       {
         "id": "ex-sensitive-file",
@@ -376,7 +404,7 @@
       },
       {
         "id": "ex-email",
-        "regex": "(?:send|email|mail|forward)\\s+(?:the\\s+)?(?:data|content|results?|output|context|summary)\\s+to\\s+[\\w.+-]+@[\\w.-]+",
+        "regex": "(?:send|email|mail|forward)\\s+(?:the\\s+)?(?:full\\s+)?(?:data|content|results?|output|context|summary|conversation|history|messages?)\\s+[\\s\\S]{0,40}to\\s+[\\w.+-]+@[\\w.-]+",
         "flags": "gi",
         "category": "behavioural-control",
         "type": "data-exfiltration",
@@ -393,8 +421,10 @@
         "category": "behavioural-control",
         "type": "sub-agent-spawning",
         "severity": "high",
-        "confidence": 0.7,
-        "label": "Agent spawning instruction"
+        "confidence": 0.4,
+        "label": "Agent spawning instruction",
+        "boostOnInstructions": true,
+        "requireInstructions": true
       },
       {
         "id": "sa-poisoned-prompt",
@@ -414,7 +444,8 @@
         "type": "sub-agent-spawning",
         "severity": "critical",
         "confidence": 0.85,
-        "label": "Tool privilege escalation request"
+        "label": "Tool privilege escalation request",
+        "requireInstructions": true
       },
       {
         "id": "sa-poisoned-critic",
@@ -433,8 +464,10 @@
         "category": "behavioural-control",
         "type": "sub-agent-spawning",
         "severity": "high",
-        "confidence": 0.75,
-        "label": "Pipeline/workflow injection"
+        "confidence": 0.4,
+        "label": "Pipeline/workflow injection",
+        "boostOnInstructions": true,
+        "requireInstructions": true
       }
     ]
   }
