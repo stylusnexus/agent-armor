@@ -174,8 +174,7 @@ export class AgentArmor {
     url?: string
   ): Promise<PatternDatabase> {
     const fetchUrl =
-      url ??
-      'https://raw.githubusercontent.com/stylusnexus/agent-armor/main/patterns.json';
+      url ?? 'https://api.agentarmor.dev/patterns/latest';
     const response = await fetch(fetchUrl);
     if (!response.ok) {
       throw new Error(

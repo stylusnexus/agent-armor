@@ -46,7 +46,7 @@
   "bugs": {
     "url": "https://github.com/stylusnexus/agent-armor/issues"
   },
-  "homepage": "https://github.com/stylusnexus/agent-armor#readme",
+  "homepage": "https://agentarmor.dev",
   "engines": {
     "node": ">=18.0.0"
   },
