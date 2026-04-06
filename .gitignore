@@ -11,4 +11,5 @@ agent-armor.code-workspace
 .claude/
 docs/superpowers/
 ml/data/output/
+ml/train/output/
 __pycache__/
