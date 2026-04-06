@@ -194,14 +194,10 @@ export class AgentArmor {
 
   /**
    * Fetch the latest patterns from a remote URL.
-   * Defaults to the agent-armor GitHub releases.
+   * URL is required — there is no default endpoint.
    */
-  static async fetchLatestPatterns(
-    url?: string
-  ): Promise<PatternDatabase> {
-    const fetchUrl =
-      url ?? 'https://api.agentarmor.dev/patterns/latest';
-    const response = await fetch(fetchUrl);
+  static async fetchLatestPatterns(url: string): Promise<PatternDatabase> {
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error(
         `Failed to fetch patterns: ${response.status} ${response.statusText}`
