@@ -14,3 +14,5 @@ docs/internal/
 ml/data/output/
 ml/train/output/
 __pycache__/
+packages/ml/dist/
+packages/ml/node_modules/
