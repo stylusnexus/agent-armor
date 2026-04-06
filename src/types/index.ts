@@ -141,6 +141,44 @@ export interface DetectorResult {
 }
 
 // ---------------------------------------------------------------------------
+// ML configuration
+// ---------------------------------------------------------------------------
+
+export type ModelErrorCode =
+  | 'MODEL_NOT_FOUND'
+  | 'CHECKSUM_MISMATCH'
+  | 'DOWNLOAD_FAILED'
+  | 'DOWNLOAD_TIMEOUT'
+  | 'DISK_FULL'
+  | 'LOCK_TIMEOUT';
+
+export interface MLDownloadConfig {
+  /** Download timeout in ms (default: 120_000) */
+  timeoutMs?: number;
+  /** Number of retry attempts (default: 2) */
+  retries?: number;
+  /** Progress callback */
+  onProgress?: (bytesReceived: number, totalBytes: number) => void;
+}
+
+export interface MLConfig {
+  /** Enable ML classifier (downloads model on first use) */
+  enabled?: boolean;
+  /** Local directory containing ONNX model + tokenizer files */
+  modelDir?: string;
+  /** Inject a custom Detector (skips model download, useful for testing) */
+  detector?: Detector;
+  /** Behavior when ML model is unavailable */
+  onUnavailable?: 'throw' | 'warn-and-skip' | 'silent-skip';
+  /** API key for Pro tier pattern/model updates (future) */
+  apiKey?: string;
+  /** Custom model download URL (future) */
+  modelUrl?: string;
+  /** Download configuration */
+  download?: MLDownloadConfig;
+}
+
+// ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
 
@@ -161,4 +199,6 @@ export interface AgentArmorConfig {
   };
   /** Custom detectors to add to the pipeline */
   customDetectors?: Detector[];
+  /** ML classifier configuration (requires @stylusnexus/agentarmor-ml) */
+  ml?: MLConfig;
 }

@@ -24,6 +24,10 @@ const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
     privilegeEscalation: true,
   },
   customDetectors: [],
+  ml: {
+    enabled: false,
+    onUnavailable: 'warn-and-skip',
+  },
 };
 
 const SEVERITY_ORDER: Record<Severity, number> = {
