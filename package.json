@@ -1,5 +1,5 @@
 {
-  "name": "agent-armor",
+  "name": "agentarmor",
   "version": "0.1.0",
   "description": "Open-source agent security framework. Detects and defends against AI Agent Traps - content injection, embedded jailbreaks, RAG poisoning, data exfiltration, and more.",
   "main": "dist/index.js",
@@ -7,14 +7,9 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./scanners/*": {
-      "import": "./dist/scanners/*.mjs",
-      "require": "./dist/scanners/*.js",
-      "types": "./dist/scanners/*.d.ts"
+      "require": "./dist/index.js"
     }
   },
   "scripts": {

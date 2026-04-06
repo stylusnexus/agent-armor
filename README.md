@@ -26,11 +26,11 @@ Agent Armor provides a defense-in-depth pipeline that scans content at every sta
 ## Quick Start
 
 ```bash
-npm install agent-armor
+npm install agentarmor
 ```
 
 ```typescript
-import { AgentArmor } from 'agent-armor';
+import { AgentArmor } from 'agentarmor';
 
 const armor = new AgentArmor();
 
