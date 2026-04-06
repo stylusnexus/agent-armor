@@ -1,0 +1,47 @@
+{
+  "name": "@stylusnexus/agentarmor-ml",
+  "version": "0.1.0",
+  "description": "ML classifier add-on for Agent Armor. Downloads and runs a DeBERTa-v3-small ONNX model for agent trap detection.",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "agentarmor-ml": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": ["ai-security", "agent-safety", "ml-classifier", "onnx", "agent-armor"],
+  "author": "StylusNexus",
+  "license": "MIT",
+  "peerDependencies": {
+    "@stylusnexus/agentarmor": ">=0.2.0"
+  },
+  "dependencies": {
+    "onnxruntime-node": "^1.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.5.0",
+    "typescript": "^6.0.0",
+    "vitest": "^4.1.0"
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stylusnexus/agent-armor.git",
+    "directory": "packages/ml"
+  },
+  "homepage": "https://agentarmor.dev",
+  "engines": { "node": ">=18.0.0" }
+}
