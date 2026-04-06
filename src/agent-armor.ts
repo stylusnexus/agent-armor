@@ -6,6 +6,17 @@ import type {
   Strictness,
   Threat,
 } from './types';
+import {
+  HiddenHTMLDetector,
+  MetadataInjectionDetector,
+  DynamicCloakingDetector,
+  SyntacticMaskingDetector,
+} from './detectors/content-injection';
+import {
+  JailbreakPatternDetector,
+  ExfiltrationDetector,
+  SubAgentSpawningDetector,
+} from './detectors/behavioural-control';
 
 const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
   strictness: 'balanced',
@@ -88,9 +99,27 @@ export class AgentArmor {
   // ---------------------------------------------------------------------------
 
   private loadDetectors(): void {
-    // Detectors will be registered here as they're implemented.
-    // Each detector self-registers based on config flags.
-    this.detectors = [...this.config.customDetectors];
+    const ci = this.config.contentInjection;
+    const bc = this.config.behaviouralControl;
+
+    // Content Injection detectors
+    if (ci.hiddenHTML) this.detectors.push(new HiddenHTMLDetector());
+    if (ci.metadataInjection)
+      this.detectors.push(new MetadataInjectionDetector());
+    if (ci.dynamicCloaking)
+      this.detectors.push(new DynamicCloakingDetector());
+    if (ci.syntacticMasking)
+      this.detectors.push(new SyntacticMaskingDetector());
+
+    // Behavioural Control detectors
+    if (bc.jailbreakPatterns)
+      this.detectors.push(new JailbreakPatternDetector());
+    if (bc.exfiltrationURLs) this.detectors.push(new ExfiltrationDetector());
+    if (bc.privilegeEscalation)
+      this.detectors.push(new SubAgentSpawningDetector());
+
+    // Custom detectors
+    this.detectors.push(...this.config.customDetectors);
   }
 
   private runScanPipeline(content: string): ScanResult {
