@@ -61,7 +61,7 @@ const clean = armor.scanRAGChunksSync(chunks)
 - GitHub: https://github.com/stylusnexus/agent-armor
 - npm: https://www.npmjs.com/package/@stylusnexus/agentarmor
 - ML package: https://www.npmjs.com/package/@stylusnexus/agentarmor-ml
-- Taxonomy paper: https://arxiv.org/abs/2502.06635
+- Taxonomy paper: https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438
 
 ## License
 

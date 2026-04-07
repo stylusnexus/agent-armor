@@ -9,7 +9,7 @@ ML classifier add-on for [Agent Armor](https://github.com/stylusnexus/agent-armo
 
 Regex-based detection handles the obvious attacks: hidden HTML instructions, known jailbreak patterns, blatant exfiltration triggers. But sophisticated attacks use natural language to manipulate agent behavior through biased framing, subtle persona shifts, or contextual learning traps. These don't have a regex signature.
 
-The ML classifier catches what patterns can't. It's trained on the full [AI Agent Traps](https://arxiv.org/abs/2506.01559) taxonomy, runs locally (no API calls, no data leaves your machine), and adds meaningful detection coverage on the semantic manipulation categories where regex falls short.
+The ML classifier catches what patterns can't. It's trained on the full [AI Agent Traps](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438) taxonomy, runs locally (no API calls, no data leaves your machine), and adds meaningful detection coverage on the semantic manipulation categories where regex falls short.
 
 ## Install
 
