@@ -7,7 +7,7 @@
 
 Open-source security framework for AI agents. Detects and defends against **AI Agent Traps** — adversarial content designed to manipulate, deceive, or exploit autonomous AI agents.
 
-Built on the taxonomy from [AI Agent Traps](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438) (Franklin et al., Google DeepMind, 2025).
+Built on the taxonomy from [AI Agent Traps](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438) (Franklin et al., Google DeepMind, 2026).
 
 ## Why This Matters
 
@@ -20,7 +20,7 @@ This isn't theoretical. It's happening now:
 - **[Devin AI pentest](https://adversa.ai/blog/adversa-ai-unveils-explosive-2025-ai-security-incidents-report-revealing-how-generative-and-agentic-ai-are-already-under-attack/)** (2025): A $500 security test found the coding agent completely defenseless against prompt injection. It exposed ports, leaked access tokens, and installed command-and-control malware.
 - **[SSH key exfiltration via GPT-4o](https://swarmsignal.net/ai-agent-security-2026/)** (Jan 2026): A single poisoned email coerced GPT-4o into executing Python that exfiltrated SSH keys in 80% of trials.
 
-Google DeepMind's [AI Agent Traps](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438) taxonomy (Franklin et al., 2025) catalogs 14 attack types across 6 categories. [OpenAI has stated](https://techcrunch.com/2025/12/22/openai-says-ai-browsers-may-always-be-vulnerable-to-prompt-injection-attacks/) that AI browsers "may always be vulnerable" to prompt injection.
+Google DeepMind's [AI Agent Traps](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438) taxonomy (Franklin et al., 2026) catalogs 14 attack types across 6 categories. [OpenAI has stated](https://techcrunch.com/2025/12/22/openai-says-ai-browsers-may-always-be-vulnerable-to-prompt-injection-attacks/) that AI browsers "may always be vulnerable" to prompt injection.
 
 Agent Armor scans content at every stage of the agent lifecycle: before ingestion, after retrieval, and before the agent's output reaches the user. Input validation *and* output validation in one pipeline.
 
@@ -456,7 +456,7 @@ Areas where contributions are especially valuable:
 
 This project implements defenses based on the systematic framework proposed in:
 
-> Franklin, M., Tomasev, N., Jacobs, J., Leibo, J.Z., & Osindero, S. (2025). *AI Agent Traps*. Google DeepMind. [papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438)
+> Franklin, M., Tomasev, N., Jacobs, J., Leibo, J.Z., & Osindero, S. (2026). *AI Agent Traps*. Google DeepMind. [papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438)
 
 ## License
 

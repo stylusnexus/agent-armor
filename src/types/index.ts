@@ -1,7 +1,7 @@
 /**
  * Core types for Agent Armor.
  *
- * Taxonomy based on "AI Agent Traps" (Franklin et al., Google DeepMind, 2025).
+ * Taxonomy based on "AI Agent Traps" (Franklin et al., Google DeepMind, 2026).
  */
 
 // ---------------------------------------------------------------------------

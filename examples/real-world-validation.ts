@@ -365,7 +365,7 @@ Common techniques include:
 
 Defenses include input validation, output filtering, and architectural
 isolation of the AI system from sensitive operations. Researchers at
-Google DeepMind published a taxonomy of these "agent traps" in 2025.
+Google DeepMind published a taxonomy of these "agent traps" in 2026.
 
 It is important to note that no single defense is sufficient. A layered
 approach combining multiple detection strategies provides the best protection.`,

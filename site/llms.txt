@@ -6,7 +6,7 @@
 
 Agent Armor is a TypeScript middleware library that scans text content for adversarial attacks targeting AI agents. It sits in your agent pipeline at three interception points: pre-ingestion (user input), post-retrieval (RAG chunks), and pre-execution (LLM output).
 
-It detects threats based on the Google DeepMind Agent Trap taxonomy (Franklin et al., 2025).
+It detects threats based on the Google DeepMind Agent Trap taxonomy (Franklin et al., 2026).
 
 ## Install
 
