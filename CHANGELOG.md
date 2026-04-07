@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor versions may contain breaking changes.
 
+## [0.2.4] - 2026-04-07
+
+### Fixed
+- `AgentArmor.create()` now correctly defaults `onUnavailable` to `'warn-and-skip'` instead of throwing when ML model is unavailable
+- `loadPatterns()` no longer silently drops the ML detector when rebuilding pattern detectors
+- Removed `requireInstructions` gate from `cl-learn-from` and `cl-follow-pattern` patterns — these are inherently instructional and don't need a second signal check
+- Corrected eval sample count across all docs (71 samples: 49 adversarial, 22 benign)
+- Corrected Franklin et al. paper date from 2025 to 2026 across all references
+- Removed stale "NOT tested" note for cognitive-state and semantic-manipulation in real-world validation example
+
+### Changed
+- Eval detection rate at balanced/strict now 100% (up from 98%) after pattern fix
+- Permissive detection rate updated to 87.8% (reflects current sample set)
+
+### Added
+- Strictness Levels section in README explaining confidence thresholds and tradeoffs
+- Strictness explanations in landing page and llms.txt
+
+## [0.2.3] - 2026-04-06
+
+### Fixed
+- Updated AI Agent Traps paper link from arXiv to SSRN
+
+## [0.2.2] - 2026-04-06
+
+### Added
+- Static landing page for agentarmor.dev
+- SEO, structured data, llms.txt, and alpha badge
+- Footer updated to Stylus Nexus Holdings, LLC
+
 ## [0.2.1] - 2026-04-06
 
 ### Fixed
