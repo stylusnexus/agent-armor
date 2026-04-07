@@ -68,13 +68,13 @@ npm install @stylusnexus/agentarmor-ml
 
 ## Evaluation Results
 
-Tested against 42 curated samples (28 adversarial, 14 benign) covering all 7 detector categories:
+Tested against 71 curated samples (49 adversarial, 22 benign) covering all 13 detector categories:
 
 | Strictness | Detection Rate | False Positive Rate |
 |---|---|---|
-| Permissive | 96.4% | 0.0% |
-| **Balanced** | **100%** | **0.0%** |
-| Strict | 100% | 0.0% |
+| Permissive | 83.7% | 0.0% |
+| **Balanced** | **98.0%** | **0.0%** |
+| Strict | 98.0% | 0.0% |
 
 Run the evaluation yourself: `npx tsx scripts/eval/run-eval.ts`
 
@@ -84,8 +84,8 @@ Run the evaluation yourself: `npx tsx scripts/eval/run-eval.ts`
 |---|---|---|---|
 | **Content Injection** | Perception | Shipped | Hidden HTML/CSS instructions, metadata injection, dynamic cloaking artifacts, syntactic masking |
 | **Behavioural Control** | Action | Shipped | Embedded jailbreak sequences, data exfiltration patterns, sub-agent spawning traps |
-| **Cognitive State** | Memory | Planned | RAG knowledge poisoning, latent memory poisoning, contextual learning manipulation |
-| **Semantic Manipulation** | Reasoning | Planned | Biased framing/priming, oversight evasion, persona hyperstition |
+| **Cognitive State** | Memory | Shipped | RAG knowledge poisoning, latent memory poisoning, contextual learning manipulation |
+| **Semantic Manipulation** | Reasoning | Shipped | Biased framing/priming, oversight evasion, persona hyperstition |
 | **Systemic** | Multi-Agent | Planned | Congestion traps, interdependence cascades, tacit collusion, compositional fragments, sybil attacks |
 | **Human-in-the-Loop** | Overseer | Planned | Approval fatigue induction, social engineering via compromised agent |
 
