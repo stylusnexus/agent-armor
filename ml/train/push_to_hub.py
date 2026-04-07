@@ -174,9 +174,9 @@ for i, label in label_map.items():
 
 ## Limitations
 
-- Trained on synthetic data only; may not generalize to all real-world
-  attack variants.
-- Small dataset (239 training samples) limits robustness against novel
+- Trained on synthetic + augmented + benchmark data; may not generalize
+  to all real-world attack variants.
+- Dataset size (1,713 training samples) may limit robustness against novel
   attack patterns.
 - Multi-label classification means multiple labels can fire simultaneously;
   downstream systems should apply a threshold (default 0.5).

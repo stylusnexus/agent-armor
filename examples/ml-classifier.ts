@@ -5,7 +5,7 @@
  *   npm install @stylusnexus/agentarmor @stylusnexus/agentarmor-ml
  *
  * The ML classifier catches novel attacks that bypass regex patterns.
- * First run downloads the model (~140MB) from HuggingFace.
+ * First run downloads the model (~165MB) from HuggingFace.
  */
 import { AgentArmor } from '@stylusnexus/agentarmor';
 

@@ -34,7 +34,7 @@ result.threats.filter(t => t.source === 'ml');
 
 ## How It Works
 
-On first use, the model (~140MB quantized ONNX) is downloaded from HuggingFace and cached locally:
+On first use, the model (~165MB quantized ONNX) is downloaded from HuggingFace and cached locally:
 
 - **macOS:** `~/Library/Caches/agentarmor/v1/`
 - **Linux:** `~/.cache/agentarmor/v1/`
@@ -89,7 +89,7 @@ agentarmor-ml clear-cache
 
 ## Deployment Notes
 
-- **AWS Lambda:** 140MB model + ~40MB onnxruntime = ~180MB, fits the 250MB limit but is tight. Use `modelDir` to bundle the model in your deployment package.
+- **AWS Lambda:** 165MB model + ~40MB onnxruntime = ~205MB, fits the 250MB limit but is tight. Use `modelDir` to bundle the model in your deployment package.
 - **Vercel Edge:** Not supported (ONNX runtime requires Node.js native bindings).
 
 ## Requirements

@@ -456,7 +456,7 @@ With the ML classifier enabled, expect 50-200ms depending on content length and 
 
 ### Is my data sent anywhere?
 
-No. Everything runs locally. The regex detectors are pure computation with no network calls. The ML classifier runs an ONNX model on your machine. No content leaves your infrastructure. The only network call is the one-time model download (~140MB) on first use, which can be skipped by bundling the model in your deployment.
+No. Everything runs locally. The regex detectors are pure computation with no network calls. The ML classifier runs an ONNX model on your machine. No content leaves your infrastructure. The only network call is the one-time model download (~165MB) on first use, which can be skipped by bundling the model in your deployment.
 
 ## Contributing
 
