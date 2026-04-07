@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Armor - AI Agent Security Framework</title>
+  <meta name="description" content="Open-source security framework that detects and defends against AI Agent Traps. Content injection, jailbreaks, RAG poisoning, exfiltration, and more.">
+  <meta property="og:title" content="Agent Armor">
+  <meta property="og:description" content="Open-source AI agent security framework. Detects and defends against AI Agent Traps.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://agentarmor.dev">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --border: #1e1e2e;
+      --text: #e0e0e8;
+      --text-muted: #8888a0;
+      --accent: #6366f1;
+      --accent-dim: #4f46e5;
+      --green: #22c55e;
+      --code-bg: #1a1a28;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Header */
+    header {
+      padding: 24px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    header .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+    }
+
+    .header-links {
+      display: flex;
+      gap: 20px;
+    }
+
+    .header-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.15s;
+    }
+
+    .header-links a:hover { color: var(--text); }
+
+    /* Hero */
+    .hero {
+      padding: 80px 0 60px;
+    }
+
+    .hero h1 {
+      font-size: 40px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+
+    .hero p {
+      font-size: 18px;
+      color: var(--text-muted);
+      max-width: 540px;
+      margin-bottom: 32px;
+    }
+
+    .install-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 20px;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 15px;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      -webkit-user-select: all;
+      user-select: all;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+
+    .install-block:hover { border-color: var(--accent-dim); }
+
+    .install-block .prompt { color: var(--text-muted); -webkit-user-select: none; user-select: none; }
+    .install-block .cmd { color: var(--green); }
+
+    /* Detects */
+    .detects {
+      padding: 60px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .detects h2 {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .threat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .threat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+
+    .threat-card h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .threat-card p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .threat-card .status {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+    }
+
+    .status-shipped {
+      background: rgba(34, 197, 94, 0.12);
+      color: var(--green);
+    }
+
+    .status-planned {
+      background: rgba(99, 102, 241, 0.12);
+      color: var(--accent);
+    }
+
+    /* Code example */
+    .example {
+      padding: 60px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .example h2 {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 24px;
+      overflow-x: auto;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    pre .kw { color: #c792ea; }
+    pre .str { color: #c3e88d; }
+    pre .fn { color: #82aaff; }
+    pre .cm { color: #546e7a; }
+    pre .const { color: #f78c6c; }
+
+    /* Eval results */
+    .eval {
+      padding: 60px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .eval h2 {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .eval-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .eval-table th, .eval-table td {
+      text-align: left;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    .eval-table th {
+      color: var(--text-muted);
+      font-weight: 500;
+      font-size: 13px;
+    }
+
+    .eval-table td:last-child { color: var(--green); }
+
+    /* Footer */
+    footer {
+      padding: 40px 0;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    footer .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    footer a {
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+
+    footer a:hover { color: var(--text); }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .hero h1 { font-size: 28px; }
+      .hero p { font-size: 16px; }
+      .threat-grid { grid-template-columns: 1fr; }
+      footer .container { flex-direction: column; gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="container">
+      <a href="/" class="logo">Agent Armor</a>
+      <div class="header-links">
+        <a href="https://github.com/stylusnexus/agent-armor">GitHub</a>
+        <a href="https://www.npmjs.com/package/@stylusnexus/agentarmor">npm</a>
+        <a href="https://github.com/stylusnexus/agent-armor#readme">Docs</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <h1>Security framework for AI agents</h1>
+        <p>Open-source middleware that detects and defends against AI Agent Traps. Scan inputs, RAG chunks, and outputs before they reach your LLM.</p>
+        <div class="install-block" title="Click to select">
+          <span class="prompt">$</span>
+          <span class="cmd">npm install @stylusnexus/agentarmor</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="detects">
+      <div class="container">
+        <h2>What it detects</h2>
+        <div class="threat-grid">
+          <div class="threat-card">
+            <span class="status status-shipped">Shipped</span>
+            <h3>Content Injection</h3>
+            <p>Hidden HTML, metadata injection, dynamic cloaking, syntactic masking</p>
+          </div>
+          <div class="threat-card">
+            <span class="status status-shipped">Shipped</span>
+            <h3>Behavioural Control</h3>
+            <p>Jailbreak patterns, data exfiltration, unauthorized sub-agent spawning</p>
+          </div>
+          <div class="threat-card">
+            <span class="status status-shipped">Shipped</span>
+            <h3>Cognitive State</h3>
+            <p>RAG poisoning, memory poisoning, contextual learning manipulation</p>
+          </div>
+          <div class="threat-card">
+            <span class="status status-shipped">Shipped</span>
+            <h3>Semantic Manipulation</h3>
+            <p>Biased framing, oversight evasion, persona hyperstition</p>
+          </div>
+          <div class="threat-card">
+            <span class="status status-shipped">Shipped</span>
+            <h3>ML Classifier</h3>
+            <p>DeBERTa-v3 multi-label model via ONNX. Optional async detection alongside regex patterns.</p>
+          </div>
+          <div class="threat-card">
+            <span class="status status-planned">Planned</span>
+            <h3>Systemic + HITL</h3>
+            <p>Congestion, cascades, collusion, approval fatigue, social engineering</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="example">
+      <div class="container">
+        <h2>Quick start</h2>
+        <pre><code><span class="kw">import</span> { AgentArmor } <span class="kw">from</span> <span class="str">'@stylusnexus/agentarmor'</span>;
+
+<span class="kw">const</span> armor = <span class="kw">new</span> <span class="fn">AgentArmor</span>();
+
+<span class="cm">// Scan any text before it reaches your LLM</span>
+<span class="kw">const</span> result = armor.<span class="fn">scanSync</span>(userInput);
+
+<span class="kw">if</span> (result.threats.length > <span class="const">0</span>) {
+  console.<span class="fn">log</span>(<span class="str">'Threats detected:'</span>, result.threats);
+  <span class="kw">const</span> safe = armor.<span class="fn">sanitize</span>(userInput, result);
+}
+
+<span class="cm">// Filter RAG chunks before context assembly</span>
+<span class="kw">const</span> clean = armor.<span class="fn">scanRAGChunksSync</span>(chunks)
+  .<span class="fn">filter</span>(r => r.threats.length === <span class="const">0</span>);</code></pre>
+      </div>
+    </section>
+
+    <section class="eval">
+      <div class="container">
+        <h2>Eval results (v0.4.0 patterns)</h2>
+        <table class="eval-table">
+          <thead>
+            <tr><th>Strictness</th><th>Detection Rate</th><th>False Positive Rate</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Permissive</td><td>96.4%</td><td>0.0%</td></tr>
+            <tr><td>Balanced</td><td>100%</td><td>0.0%</td></tr>
+            <tr><td>Strict</td><td>100%</td><td>0.0%</td></tr>
+          </tbody>
+        </table>
+        <p style="color: var(--text-muted); font-size: 13px; margin-top: 12px;">72 curated samples (50 adversarial, 22 benign) from WASP, HackAPrompt, Greshake et al., and real-world incidents.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span>MIT License &middot; Built by <a href="https://github.com/stylusnexus">StylusNexus</a></span>
+      <span>Based on the <a href="https://arxiv.org/abs/2502.06635">DeepMind Agent Trap Taxonomy</a></span>
+    </div>
+  </footer>
+
+</body>
+</html>
