@@ -113,6 +113,26 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
 
     'metadata-injection': [
       {
+        id: 'mi-markdown-comment',
+        regex: '\\[//\\]:\\s*#\\s*\\([^)]*(?:INSTRUCTION|SYSTEM|OVERRIDE|ignore|disregard|read\\s+(?:the|all)|send\\s+(?:the|all)|forward|exfiltrat|encode|extract)[^)]*\\)',
+        flags: 'gi',
+        category: 'content-injection',
+        type: 'metadata-injection',
+        severity: 'high',
+        confidence: 0.85,
+        label: 'Markdown comment with adversarial instruction',
+      },
+      {
+        id: 'mi-bracket-command',
+        regex: '\\[(?:AI|SYSTEM|ASSISTANT|INSTRUCTION|MEMORY|ADMIN)(?:[\\s_](?:SYSTEM|OVERRIDE|INSTRUCTION|COMMAND|UPDATE|NOTE|MEMORY)){1,2}[:\\s]([^\\]]{20,})\\]',
+        flags: 'gi',
+        category: 'content-injection',
+        type: 'metadata-injection',
+        severity: 'high',
+        confidence: 0.8,
+        label: 'Bracket-delimited fake system command',
+      },
+      {
         id: 'mi-html-comment',
         regex: '<!--([\\s\\S]*?)-->',
         flags: 'g',
@@ -296,6 +316,27 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         label: 'System prompt injection',
       },
       {
+        id: 'jb-system-override',
+        regex: '(?:SYSTEM|CONTEXT|INSTRUCTION)\\s+(?:OVERRIDE|UPDATE|CHANGE)\\s*[:\\-]?\\s*.{10,}',
+        flags: 'gm',
+        category: 'behavioural-control',
+        type: 'embedded-jailbreak',
+        severity: 'critical',
+        confidence: 0.85,
+        label: 'System override declaration',
+      },
+      {
+        id: 'jb-precedence-claim',
+        regex: '(?:takes?|has)\\s+precedence\\s+over\\s+(?:all\\s+(?:other|previous|existing))?',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'embedded-jailbreak',
+        severity: 'high',
+        confidence: 0.7,
+        label: 'Precedence claim over other instructions',
+        boostOnInstructions: true,
+      },
+      {
         id: 'jb-role-assignment',
         regex: '(?:you are now|from now on you|act as|pretend (?:to be|you are)|roleplay as|imagine you are)\\s+(?:an?\\s+)?(?:unrestricted|unfiltered|uncensored|jailbroken|DAN|evil|unethical)',
         flags: 'gi',
@@ -463,6 +504,17 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         severity: 'critical',
         confidence: 0.8,
         label: 'Sensitive credential access instruction',
+        boostOnInstructions: true,
+      },
+      {
+        id: 'ex-concealment',
+        regex: '(?:do\\s+not|don\'t|never)\\s+(?:mention|include|reveal|disclose|reference|show|display|tell)\\s+(?:this|the|these|that)\\s+(?:step|instruction|action|operation|command|task|request)',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'high',
+        confidence: 0.75,
+        label: 'Concealment instruction (hide action from user)',
         boostOnInstructions: true,
       },
       {
@@ -697,6 +749,16 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
     ],
 
     'oversight-evasion': [
+      {
+        id: 'oe-deceptive-display',
+        regex: '(?:display|show|present)\\s+[\\s\\S]{5,80}(?:(?:but|while|however)\\s+(?:the\\s+)?actual|(?:the\\s+)?actual\\s+(?:operation|action|destination|target|recipient)\\s+(?:should|will|must))',
+        flags: 'gi',
+        category: 'semantic-manipulation',
+        type: 'oversight-evasion',
+        severity: 'critical',
+        confidence: 0.85,
+        label: 'Deceptive display instruction (shown differs from actual)',
+      },
       {
         id: 'oe-test-exercise',
         regex: '(?:this\\s+is\\s+(?:just|only|merely)\\s+(?:a\\s+)?(?:test|exercise|drill|simulation|practice))\\s*[,.]?\\s*(?:so\\s+)?(?:you\\s+(?:can|may|should)|no\\s+(?:need|harm)|it\\s*(?:\'s|\\s+is)\\s+(?:ok|okay|fine|safe)\\s+to)',
