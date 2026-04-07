@@ -29,9 +29,12 @@ ALL_LABELS: list[str] = TRAP_LABELS + ["benign"]
 Source = Literal[
     "eval-suite",
     "synthetic",
+    "synthetic-augmented",
     "benchmark-wasp",
     "benchmark-agentdojo",
     "benchmark-jailbreakbench",
+    "benchmark-llmail",
+    "benchmark-ragpoison",
     "manual",
 ]
 
