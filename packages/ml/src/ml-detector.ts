@@ -57,6 +57,12 @@ const LABEL_TO_CATEGORY: Record<string, string> = {
   'embedded-jailbreak': 'behavioural-control',
   'data-exfiltration': 'behavioural-control',
   'sub-agent-spawning': 'behavioural-control',
+  'rag-knowledge-poisoning': 'cognitive-state',
+  'latent-memory-poisoning': 'cognitive-state',
+  'contextual-learning-trap': 'cognitive-state',
+  'biased-framing': 'semantic-manipulation',
+  'oversight-evasion': 'semantic-manipulation',
+  'persona-hyperstition': 'semantic-manipulation',
   'benign': 'content-injection',
 };
 

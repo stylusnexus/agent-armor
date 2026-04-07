@@ -29,6 +29,12 @@ LABELS = [
     "embedded-jailbreak",
     "data-exfiltration",
     "sub-agent-spawning",
+    "rag-knowledge-poisoning",
+    "latent-memory-poisoning",
+    "contextual-learning-trap",
+    "biased-framing",
+    "oversight-evasion",
+    "persona-hyperstition",
     "benign",
 ]
 
@@ -40,6 +46,12 @@ LABEL_DESCRIPTIONS = {
     "embedded-jailbreak": "Jailbreak prompts embedded within tool outputs or documents",
     "data-exfiltration": "Attempts to leak private data through URLs, APIs, or side channels",
     "sub-agent-spawning": "Instructions that try to spawn unauthorized sub-agents or tools",
+    "rag-knowledge-poisoning": "Poisoned retrieval content that embeds authoritative-sounding override instructions",
+    "latent-memory-poisoning": "Instructions designed to persist across sessions or activate on future triggers",
+    "contextual-learning-trap": "Manipulated few-shot examples or demonstrations that teach malicious behavior",
+    "biased-framing": "Heavily one-sided content using fake consensus, emotional manipulation, or absolutism",
+    "oversight-evasion": "Attempts to bypass safety filters via test/research/debug framing or fake authorization",
+    "persona-hyperstition": "Identity override attempts that redefine the AI's personality or purpose",
     "benign": "Safe, non-malicious content with no injection attempt",
 }
 
@@ -74,8 +86,8 @@ pipeline_tag: text-classification
 
 A fine-tuned DeBERTa-v3-small model that detects **prompt-injection and
 tool-poisoning attacks** targeting agentic AI systems. The model classifies
-text into 8 labels covering the attack taxonomy from the DeepMind Compound AI
-Threats paper.
+text into 14 labels covering the attack taxonomy from the DeepMind Compound AI
+Threats paper (P0 + P1 categories).
 
 ## Labels
 
@@ -99,7 +111,7 @@ standalone prompt-injection detection outside agentic workflows.
 ## Training Data
 
 The training set was synthetically generated using the CritForge Agentic NLU
-pipeline, producing realistic attack payloads across 7 attack categories plus
+pipeline, producing realistic attack payloads across 13 attack categories plus
 a benign class.
 
 | Split | Samples |
