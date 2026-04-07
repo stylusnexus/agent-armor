@@ -9,7 +9,44 @@
   <meta property="og:description" content="Open-source AI agent security framework. Detects and defends against AI Agent Traps.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://agentarmor.dev">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Agent Armor">
+  <meta name="twitter:description" content="Open-source AI agent security framework. Detects and defends against AI Agent Traps.">
+  <link rel="canonical" href="https://agentarmor.dev/">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Agent Armor",
+    "description": "Open-source security framework that detects and defends against AI Agent Traps. Content injection, jailbreaks, RAG poisoning, exfiltration, and more.",
+    "applicationCategory": "SecurityApplication",
+    "operatingSystem": "Node.js",
+    "url": "https://agentarmor.dev",
+    "downloadUrl": "https://www.npmjs.com/package/@stylusnexus/agentarmor",
+    "codeRepository": "https://github.com/stylusnexus/agent-armor",
+    "license": "https://opensource.org/licenses/MIT",
+    "programmingLanguage": "TypeScript",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "author": {
+      "@type": "Organization",
+      "name": "StylusNexus",
+      "url": "https://github.com/stylusnexus"
+    },
+    "softwareVersion": "0.2.3",
+    "citation": {
+      "@type": "ScholarlyArticle",
+      "name": "On the Viability of AI Agent Traps",
+      "url": "https://arxiv.org/abs/2502.06635",
+      "author": "Franklin et al.",
+      "publisher": "Google DeepMind"
+    }
+  }
+  </script>
   <style>
     :root {
       --bg: #0a0a0f;
@@ -57,6 +94,18 @@
       color: var(--text);
       text-decoration: none;
       letter-spacing: -0.02em;
+    }
+
+    .alpha-badge {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent);
+      background: rgba(99, 102, 241, 0.12);
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 8px;
+      vertical-align: middle;
+      letter-spacing: 0.04em;
     }
 
     .header-links {
@@ -274,7 +323,7 @@
 
   <header>
     <div class="container">
-      <a href="/" class="logo">Agent Armor</a>
+      <a href="/" class="logo">Agent Armor <span class="alpha-badge">alpha</span></a>
       <div class="header-links">
         <a href="https://github.com/stylusnexus/agent-armor">GitHub</a>
         <a href="https://www.npmjs.com/package/@stylusnexus/agentarmor">npm</a>

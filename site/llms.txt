@@ -1,0 +1,68 @@
+# Agent Armor
+
+> Open-source security framework for AI agents. Detects and defends against AI Agent Traps.
+
+## What is Agent Armor?
+
+Agent Armor is a TypeScript middleware library that scans text content for adversarial attacks targeting AI agents. It sits in your agent pipeline at three interception points: pre-ingestion (user input), post-retrieval (RAG chunks), and pre-execution (LLM output).
+
+It detects threats based on the Google DeepMind Agent Trap taxonomy (Franklin et al., 2025).
+
+## Install
+
+```
+npm install @stylusnexus/agentarmor
+```
+
+## What it detects
+
+- Content Injection: hidden HTML instructions, metadata injection, dynamic cloaking, syntactic masking
+- Behavioural Control: jailbreak patterns, data exfiltration attempts, unauthorized sub-agent spawning
+- Cognitive State: RAG poisoning, memory poisoning, contextual learning manipulation
+- Semantic Manipulation: biased framing, oversight evasion, persona hyperstition
+- ML Classification: DeBERTa-v3-small multi-label classifier via ONNX (optional, async)
+
+## How it works
+
+Pattern-based detection using a two-pass approach:
+1. Structural pattern match (regex from a versioned pattern database)
+2. Instruction signal check (context-sensitive validation to reduce false positives)
+
+Three strictness levels: permissive, balanced, strict.
+
+Optional ML classifier (`@stylusnexus/agentarmor-ml`) runs ONNX inference for deeper detection.
+
+## Quick start
+
+```typescript
+import { AgentArmor } from '@stylusnexus/agentarmor';
+
+const armor = new AgentArmor();
+const result = armor.scanSync(userInput);
+
+if (result.threats.length > 0) {
+  const safe = armor.sanitize(userInput, result);
+}
+
+// Filter RAG chunks
+const clean = armor.scanRAGChunksSync(chunks)
+  .filter(r => r.threats.length === 0);
+```
+
+## Eval results (v0.4.0 patterns, 72 samples)
+
+- Permissive: 96.4% detection, 0.0% false positives
+- Balanced: 100% detection, 0.0% false positives
+- Strict: 100% detection, 0.0% false positives
+
+## Links
+
+- Website: https://agentarmor.dev
+- GitHub: https://github.com/stylusnexus/agent-armor
+- npm: https://www.npmjs.com/package/@stylusnexus/agentarmor
+- ML package: https://www.npmjs.com/package/@stylusnexus/agentarmor-ml
+- Taxonomy paper: https://arxiv.org/abs/2502.06635
+
+## License
+
+MIT
