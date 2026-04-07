@@ -49,13 +49,15 @@ const clean = armor.scanRAGChunksSync(chunks)
   .filter(r => r.threats.length === 0);
 ```
 
-## Eval results (v0.4.0 patterns, 71 samples)
+## Eval results (v0.4.0 patterns, 86 samples)
 
 Strictness controls the confidence threshold for reporting threats:
 
-- Permissive (threshold 0.7): 87.8% detection, 0.0% false positives — only high-confidence threats, fewer alerts
-- Balanced (threshold 0.5): 100% detection, 0.0% false positives — recommended default
-- Strict (threshold 0.3): 100% detection, 0.0% false positives — maximum coverage, catches subtle attacks
+- Permissive (threshold 0.7): 72.9% detection, 0.0% false positives — only high-confidence threats, fewer alerts
+- Balanced (threshold 0.5): 83.1% detection, 0.0% false positives — recommended default
+- Strict (threshold 0.3): 83.1% detection, 0.0% false positives — maximum coverage, catches subtle attacks
+
+Includes 10 adversarial samples from 2025-2026 real-world incidents (MCP tool poisoning, RAG saturation, covert exfil, supply chain injection) that regex patterns do not yet catch. These measure the gap the ML classifier closes. On the original 49 adversarial samples, regex detection is 100% at balanced.
 
 ## Links
 

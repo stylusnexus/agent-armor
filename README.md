@@ -19,6 +19,9 @@ This isn't theoretical. It's happening now:
 - **[EchoLeak / Microsoft 365 Copilot](https://www.exploitone.com/cyber-security/the-invisible-breach-how-ai-agents-became-the-most-dangerous-attack-surface-of-2025-2026/)**: A zero-click attack where a single email with hidden instructions made Copilot exfiltrate data from OneDrive, SharePoint, and Teams, routed through trusted Microsoft URLs so it looked like internal links.
 - **[Devin AI pentest](https://adversa.ai/blog/adversa-ai-unveils-explosive-2025-ai-security-incidents-report-revealing-how-generative-and-agentic-ai-are-already-under-attack/)** (2025): A $500 security test found the coding agent completely defenseless against prompt injection. It exposed ports, leaked access tokens, and installed command-and-control malware.
 - **[SSH key exfiltration via GPT-4o](https://swarmsignal.net/ai-agent-security-2026/)** (Jan 2026): A single poisoned email coerced GPT-4o into executing Python that exfiltrated SSH keys in 80% of trials.
+- **[CamoLeak / GitHub Copilot](https://www.legitsecurity.com/blog/camoleak)** (2025, CVE-2025-59145): Hidden markdown comments in PRs caused Copilot Chat to exfiltrate secrets via image proxy ordering. No network traffic from the user's browser. CVSS 9.6.
+- **[Clinejection](https://adnanthekhan.com/posts/clinejection/)** (Jan-Feb 2026): A single GitHub issue title with prompt injection hijacked Cline's AI triage bot, leading to unauthorized `cline@2.3.0` on npm (4,000 downloads in 8 hours).
+- **[MCP tool poisoning](https://invariantlabs.ai/blog/whatsapp-mcp-exploited)** (2025): MCP servers silently changed tool descriptions after approval, rerouting WhatsApp messages and exfiltrating data. Invariant Labs found 5.5% of MCP servers exhibit tool poisoning.
 
 Google DeepMind's [AI Agent Traps](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438) taxonomy (Franklin et al., 2026) catalogs 14 attack types across 6 categories. [OpenAI has stated](https://techcrunch.com/2025/12/22/openai-says-ai-browsers-may-always-be-vulnerable-to-prompt-injection-attacks/) that AI browsers "may always be vulnerable" to prompt injection.
 
@@ -79,15 +82,17 @@ npm install @stylusnexus/agentarmor-ml
 
 ### Eval Suite
 
-71 curated samples (49 adversarial, 22 benign) covering all 10 shipped detector types across 4 attack categories:
+86 curated samples (59 adversarial, 27 benign) covering all 10 shipped detector types across 4 attack categories:
 
-| Strictness | Detection Rate | False Positive Rate |
+| Strictness | Detection Rate (regex) | False Positive Rate |
 |---|---|---|
-| Permissive | 87.8% | 0.0% |
-| **Balanced** | **100%** | **0.0%** |
-| Strict | 100% | 0.0% |
+| Permissive | 72.9% | 0.0% |
+| **Balanced** | **83.1%** | **0.0%** |
+| Strict | 83.1% | 0.0% |
 
-Adversarial samples are sourced from or inspired by: [WASP benchmark](https://arxiv.org/abs/2312.02119) (Evtimov et al.), [HackAPrompt](https://arxiv.org/abs/2311.16119) (Schulhoff et al., 2023), [Greshake et al. (2023)](https://arxiv.org/abs/2302.12173), real-world incident reports, and the [DeepMind paper](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438) examples. Benign samples include security blog posts, legitimate HTML with `display:none` elements, CI/CD documentation, AI safety textbook excerpts, and normal emails.
+The eval suite includes 10 adversarial samples drawn from real-world incidents (2025-2026) that current regex patterns do not catch: MCP tool poisoning, RAG vector DB saturation, covert exfiltration via image proxies, supply chain prompt injection, memory poisoning, and HITL dialog forgery. These samples are intentionally included to measure the gap that the [ML classifier](#ml-classifier-optional) closes. On the original 49 adversarial samples, regex detection is 100% at balanced strictness.
+
+Sources: [WASP benchmark](https://arxiv.org/abs/2312.02119) (Evtimov et al.), [HackAPrompt](https://arxiv.org/abs/2311.16119) (Schulhoff et al., 2023), [Greshake et al. (2023)](https://arxiv.org/abs/2302.12173), the [DeepMind paper](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438), and incident reports from [Invariant Labs](https://invariantlabs.ai/blog), [Unit 42](https://unit42.paloaltonetworks.com), [Snyk Labs](https://labs.snyk.io), [Legit Security](https://www.legitsecurity.com/blog/camoleak), and [Socket Research](https://socket.dev/blog). Benign samples include security blog posts, legitimate HTML, CI/CD docs, MCP tool descriptions, agent interaction logs, and procurement policy emails.
 
 Run it yourself: `npx tsx scripts/eval/run-eval.ts`
 

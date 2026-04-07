@@ -412,13 +412,13 @@
             <tr><th>Strictness</th><th>Detection Rate</th><th>False Positive Rate</th></tr>
           </thead>
           <tbody>
-            <tr><td>Permissive</td><td>87.8%</td><td>0.0%</td></tr>
-            <tr><td>Balanced</td><td>100%</td><td>0.0%</td></tr>
-            <tr><td>Strict</td><td>100%</td><td>0.0%</td></tr>
+            <tr><td>Permissive</td><td>72.9%</td><td>0.0%</td></tr>
+            <tr><td>Balanced</td><td>83.1%</td><td>0.0%</td></tr>
+            <tr><td>Strict</td><td>83.1%</td><td>0.0%</td></tr>
           </tbody>
         </table>
-        <p style="color: var(--text-muted); font-size: 13px; margin-top: 12px;">71 curated samples (49 adversarial, 22 benign) from WASP, HackAPrompt, Greshake et al., and real-world incidents.</p>
-        <p style="color: var(--text-muted); font-size: 13px; margin-top: 8px;"><strong>Permissive</strong> reports only high-confidence threats (fewer alerts). <strong>Balanced</strong> is the recommended default. <strong>Strict</strong> catches subtle attacks at lower confidence thresholds.</p>
+        <p style="color: var(--text-muted); font-size: 13px; margin-top: 12px;">86 curated samples (59 adversarial, 27 benign) from WASP, HackAPrompt, Greshake et al., and 2025-2026 real-world incidents.</p>
+        <p style="color: var(--text-muted); font-size: 13px; margin-top: 8px;">Includes 10 samples from real-world attacks (MCP poisoning, RAG saturation, supply chain injection) that regex does not yet catch, measuring the gap the ML classifier closes. On the original 49 adversarial samples, regex detection is 100% at balanced.</p>
       </div>
     </section>
   </main>
