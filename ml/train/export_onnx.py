@@ -36,6 +36,12 @@ LABELS = [
     "embedded-jailbreak",
     "data-exfiltration",
     "sub-agent-spawning",
+    "rag-knowledge-poisoning",
+    "latent-memory-poisoning",
+    "contextual-learning-trap",
+    "biased-framing",
+    "oversight-evasion",
+    "persona-hyperstition",
     "benign",
 ]
 
