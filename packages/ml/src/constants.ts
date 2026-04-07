@@ -16,7 +16,7 @@ export const OPTIONAL_MODEL_FILES = [
   'special_tokens_map.json',
 ] as const;
 
-export const MODEL_CHECKSUM = 'PLACEHOLDER_UPDATE_AFTER_FIRST_PUBLISH';
+export const MODEL_CHECKSUM = '5d4c8551c958f398181c60239aebedbaa4ed5b641d1645904d2de9c2d02bd41f';
 
 export const LABELS = [
   'hidden-html',

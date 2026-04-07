@@ -65,7 +65,11 @@ def load_dataset_samples(max_rows: int = 50000) -> list[dict]:
         raise SystemExit(1)
 
     print("Downloading LLMail-Inject from HuggingFace...")
-    ds = load_dataset("microsoft/llmail-inject-challenge", split="train", streaming=True)
+    # Dataset has Phase1/Phase2 splits, not train/test
+    from itertools import chain
+    ds1 = load_dataset("microsoft/llmail-inject-challenge", split="Phase1", streaming=True)
+    ds2 = load_dataset("microsoft/llmail-inject-challenge", split="Phase2", streaming=True)
+    ds = chain(ds1, ds2)
 
     rows = []
     for i, row in enumerate(ds):
@@ -81,49 +85,49 @@ def load_dataset_samples(max_rows: int = 50000) -> list[dict]:
 
 def map_row(row: dict) -> TrainingSample | None:
     """Map a single LLMail-Inject row to a TrainingSample, or None if unmappable."""
+    import json as _json
+
     body = row.get("body", "").strip()
     if not body or len(body) < 20:
         return None
 
-    # Get objectives — may be a string or list
-    objectives = row.get("objectives", "")
-    if isinstance(objectives, str):
-        objectives = [objectives]
-    elif isinstance(objectives, list):
-        pass
-    else:
+    # Parse objectives JSON string: {"email.retrieved": true, "exfil.sent": false, ...}
+    objectives_raw = row.get("objectives", "{}")
+    try:
+        if isinstance(objectives_raw, str):
+            obj_flags = _json.loads(objectives_raw)
+        elif isinstance(objectives_raw, dict):
+            obj_flags = objectives_raw
+        else:
+            return None
+    except _json.JSONDecodeError:
         return None
 
-    # Map objectives to our labels
-    all_labels: set[str] = set()
-    for obj in objectives:
-        obj_lower = obj.lower().strip()
-        if obj_lower in SKIP_OBJECTIVES:
-            continue
-        for key, labels in OBJECTIVE_MAP.items():
-            if key in obj_lower or obj_lower in key:
-                all_labels.update(labels)
+    # Map outcome flags to our labels
+    labels: set[str] = set()
 
-    if not all_labels:
-        return None
+    # All samples are adversarial email injection attempts → embedded-jailbreak
+    labels.add("embedded-jailbreak")
 
-    # Only keep samples where the attack succeeded (stronger signal)
-    exfil_sent = row.get("exfil.sent", row.get("exfil_sent", None))
-    defense_undetected = row.get("defense.undetected", row.get("defense_undetected", None))
+    # Exfiltration flags
+    if obj_flags.get("exfil.sent") or obj_flags.get("exfil.destination") or obj_flags.get("exfil.content"):
+        labels.add("data-exfiltration")
 
-    # Prefer successful attacks for cleaner training signal
-    # But don't filter too aggressively — failed attacks are still adversarial text
-    is_successful = (exfil_sent is True) or (defense_undetected is True)
+    # If exfil succeeded, the attack bypassed defenses → also oversight-evasion
+    if obj_flags.get("exfil.sent") and obj_flags.get("defense.undetected"):
+        labels.add("oversight-evasion")
+
+    is_successful = bool(obj_flags.get("exfil.sent")) or bool(obj_flags.get("defense.undetected"))
 
     return TrainingSample(
         text=body,
-        labels=sorted(all_labels),
+        labels=sorted(labels),
         source="benchmark-llmail",
         difficulty="moderate" if is_successful else "hard",
-        id="",  # Will be assigned during sampling
+        id="",
         metadata={
             "generator": "ingest_llmail",
-            "objectives": objectives,
+            "scenario": row.get("scenario", ""),
             "successful": is_successful,
         },
     )
