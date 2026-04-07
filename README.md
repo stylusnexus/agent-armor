@@ -9,11 +9,20 @@ Open-source security framework for AI agents. Detects and defends against **AI A
 
 Built on the taxonomy from [AI Agent Traps](https://arxiv.org/abs/2506.01559) (Franklin et al., Google DeepMind, 2025).
 
-## The Problem
+## Why This Matters
 
-As AI agents browse the web, process documents, and interact with external data, they encounter a new attack surface: **the information environment itself**. Malicious content can be engineered to hijack agent behavior through hidden instructions, poisoned knowledge bases, embedded jailbreaks, and more — all invisible to the human overseer.
+AI agents ingest content they didn't generate: web pages, RAG chunks, tool outputs, database results. Any of that content can contain instructions designed to hijack the agent's behavior, and the agent can't tell the difference between data and directives.
 
-Agent Armor provides a defense-in-depth pipeline that scans content at every stage of the agent lifecycle.
+This isn't theoretical. It's happening now:
+
+- **[Slack AI data exfiltration](https://www.lakera.ai/blog/indirect-prompt-injection)** (2024): Poisoned messages in Slack channels caused the AI assistant to extract and leak data from private channels through tool calls.
+- **[EchoLeak / Microsoft 365 Copilot](https://www.exploitone.com/cyber-security/the-invisible-breach-how-ai-agents-became-the-most-dangerous-attack-surface-of-2025-2026/)**: A zero-click attack where a single email with hidden instructions made Copilot exfiltrate data from OneDrive, SharePoint, and Teams, routed through trusted Microsoft URLs so it looked like internal links.
+- **[Devin AI pentest](https://adversa.ai/blog/adversa-ai-unveils-explosive-2025-ai-security-incidents-report-revealing-how-generative-and-agentic-ai-are-already-under-attack/)** (2025): A $500 security test found the coding agent completely defenseless against prompt injection. It exposed ports, leaked access tokens, and installed command-and-control malware.
+- **[SSH key exfiltration via GPT-4o](https://swarmsignal.net/ai-agent-security-2026/)** (Jan 2026): A single poisoned email coerced GPT-4o into executing Python that exfiltrated SSH keys in 80% of trials.
+
+Google DeepMind's [AI Agent Traps](https://arxiv.org/abs/2506.01559) taxonomy (Franklin et al., 2025) catalogs 14 attack types across 6 categories. [OpenAI has stated](https://techcrunch.com/2025/12/22/openai-says-ai-browsers-may-always-be-vulnerable-to-prompt-injection-attacks/) that AI browsers "may always be vulnerable" to prompt injection.
+
+Agent Armor scans content at every stage of the agent lifecycle: before ingestion, after retrieval, and before the agent's output reaches the user. Input validation *and* output validation in one pipeline.
 
 ## Quick Start
 
@@ -66,9 +75,11 @@ Optional ML classifier for deeper detection:
 npm install @stylusnexus/agentarmor-ml
 ```
 
-## Evaluation Results
+## Testing & Validation
 
-Tested against 71 curated samples (49 adversarial, 22 benign) covering all 10 shipped detectors across 4 attack categories:
+### Eval Suite
+
+71 curated samples (49 adversarial, 22 benign) covering all 10 shipped detector types across 4 attack categories:
 
 | Strictness | Detection Rate | False Positive Rate |
 |---|---|---|
@@ -76,7 +87,25 @@ Tested against 71 curated samples (49 adversarial, 22 benign) covering all 10 sh
 | **Balanced** | **98.0%** | **0.0%** |
 | Strict | 98.0% | 0.0% |
 
-Run the evaluation yourself: `npx tsx scripts/eval/run-eval.ts`
+Adversarial samples are sourced from or inspired by: [WASP benchmark](https://arxiv.org/abs/2312.02119) (Evtimov et al.), [HackAPrompt](https://arxiv.org/abs/2311.16119) (Schulhoff et al., 2023), [Greshake et al. (2023)](https://arxiv.org/abs/2302.12173), real-world incident reports, and the [DeepMind paper](https://arxiv.org/abs/2506.01559) examples. Benign samples include security blog posts, legitimate HTML with `display:none` elements, CI/CD documentation, AI safety textbook excerpts, and normal emails.
+
+Run it yourself: `npx tsx scripts/eval/run-eval.ts`
+
+### Real-World Attack Validation
+
+A separate validation suite (`examples/real-world-validation.ts`) tests against 24 inlined samples drawn directly from published security research:
+
+| Source | Attack Type | Samples |
+|---|---|---|
+| Unit 42 (Palo Alto Networks), 2025 | Hidden CSS/HTML injection | 6 |
+| Greshake et al., 2023 | Indirect prompt injection | 4 |
+| JailbreakBench / HackAPrompt | Jailbreak patterns | 5 |
+| Embrace The Red (J. Rehberger) | Data exfiltration via agents | 4 |
+| Benign false-positive controls | Security docs, normal HTML/email | 5 |
+
+Result: **100% detection, 0% false positives** at balanced strictness. All samples are inlined for offline reproducibility, no network required.
+
+Run it: `npx tsx examples/real-world-validation.ts`
 
 ## Attack Categories Covered
 
@@ -309,20 +338,109 @@ Agent Armor works with any LLM agent framework:
 
 The `examples/` directory has ready-to-run integration examples:
 
-| Example | What it shows |
-|---|---|
-| `rag-pipeline.ts` | Filter poisoned RAG chunks before LLM context assembly |
-| `express-middleware.ts` | Express middleware that scans and sanitizes requests |
-| `web-content-scanner.ts` | Scan raw HTML from web fetches in strict mode |
-| `ml-classifier.ts` | Async pipeline with ML classifier enabled |
-| `custom-detector.ts` | Implement and register a custom `Detector` |
-| `real-world-validation.ts` | Validate against real-world attack samples |
+| Example | Audience | What it shows |
+|---|---|---|
+| `customer-facing-agent.ts` | SMB / Startup | Protect a support chatbot: scan knowledge base, customer messages, and agent output |
+| `audit-logging.ts` | Enterprise | Policy enforcement + structured audit log for compliance (SOC2, ISO 27001) |
+| `tool-output-guard.ts` | Developer | Guard every tool call in a custom agent loop (web, DB, file, API) |
+| `rag-pipeline.ts` | Developer | Filter poisoned RAG chunks before LLM context assembly |
+| `express-middleware.ts` | Developer | Express middleware that scans and sanitizes requests |
+| `web-content-scanner.ts` | Developer | Scan raw HTML from web fetches in strict mode |
+| `ml-classifier.ts` | Developer | Async pipeline with ML classifier enabled |
+| `custom-detector.ts` | Developer | Implement and register a custom `Detector` |
+| `real-world-validation.ts` | Security | Validate against real-world attack samples from published research |
 
 Run any example:
 
 ```bash
 npx tsx examples/rag-pipeline.ts
 ```
+
+## Roadmap & Research Opportunities
+
+Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy. Here's what's shipped, what's next, and where the open questions are.
+
+### Shipped
+
+- **Content Injection** (4 detectors) and **Behavioural Control** (3 detectors) since v0.1.0
+- **Cognitive State** (3 detectors) and **Semantic Manipulation** (3 detectors) since v0.2.0
+- ML classifier (DeBERTa-v3-small, ONNX) as optional companion package
+- Pattern database v0.4.0 with 71 pattern entries
+
+### In Progress
+
+- **Expanded eval dataset.** 71 samples is a start, not a finish. Integrating larger public datasets ([deepset/prompt-injections](https://huggingface.co/datasets/deepset/prompt-injections) at 662 samples, [Giskard-AI](https://huggingface.co/datasets/Giskard-AI/prompt-injections)) to stress-test detection and false positive rates at scale.
+- **Honeypot/canary system.** Behavioral baseline approach for detecting novel attacks that bypass pattern matching. Measures response distribution drift rather than relying on known signatures.
+- **Pattern update API.** Continuous pattern improvements delivered without requiring an npm upgrade.
+
+### Not Yet Covered (P2)
+
+These are the remaining 2 categories from the taxonomy. They're harder problems with less established detection approaches:
+
+- **Systemic attacks** (multi-agent): congestion traps, interdependence cascades, tacit collusion, compositional fragment attacks, sybil attacks. These target multi-agent architectures and require detection approaches that reason about agent-to-agent interactions, not just content.
+- **Human-in-the-loop attacks**: approval fatigue induction, social engineering via compromised agent. These exploit the human overseer rather than the agent itself. Detection likely requires behavioral analysis over time rather than content scanning.
+
+### Open Research Questions
+
+If you're a researcher or practitioner thinking about these problems, we'd value your perspective:
+
+- **Hierarchical vs. flat classification.** The ML classifier uses multi-label flat classification (14 outputs). Would a hierarchical approach (category first, then type) better reflect the taxonomy structure and improve accuracy on underrepresented categories?
+- **Semantic manipulation detection.** Biased framing and persona hyperstition are inherently subtle. Regex catches the obvious cases, but sophisticated semantic attacks may require embedding-level analysis or chain-of-thought reasoning about intent. What's the right detection architecture here?
+- **Cross-session attack detection.** Latent memory poisoning and contextual learning traps accumulate over multiple interactions. The current scan-per-input approach can't detect gradual drift. What does a stateful detection layer look like?
+- **Adversarial robustness of the detector itself.** If an attacker knows the pattern database, they can craft bypasses. How do we make the detection layer robust to adversarial evasion without creating an arms race?
+
+### Staying Updated
+
+- **Pattern database** is versioned and updatable independently of the npm package via `AgentArmor.fetchLatestPatterns()`
+- **ML model** is retrained periodically with new attack samples and pushed to [HuggingFace](https://huggingface.co/stylusnexus/agent-armor-classifier)
+- **GitHub releases** track all changes with a [CHANGELOG](CHANGELOG.md)
+- **Security issues** can be reported via [SECURITY.md](SECURITY.md)
+
+## FAQ
+
+### Who is this for?
+
+Agent Armor protects **agents you build and control**. If you're writing agent code using Claude API, Azure OpenAI, LangChain, CrewAI, AutoGen, or any framework where you own the data pipeline, this is for you.
+
+| You are... | Agent Armor helps you... |
+|---|---|
+| **A developer** building an AI agent that calls tools, browses the web, or uses RAG | Scan every piece of external content before it enters your agent's context |
+| **A startup/SMB** with a customer-facing AI chatbot or support agent | Protect your knowledge base from poisoning and your agent's output from manipulation |
+| **An enterprise team** building custom AI tooling on top of LLM APIs | Add audit logging, policy enforcement, and compliance evidence to your agent pipeline |
+
+### Can this protect our Microsoft 365 Copilot / Claude.ai / ChatGPT deployment?
+
+Not directly. Those are closed pipelines where the vendor controls the scanning. Agent Armor can't insert itself between Copilot and the content it reads from SharePoint or Teams. If you're using a hosted AI product as-is, the vendor is responsible for security on their end.
+
+Where it *does* fit: if your team is building custom agents *using* the Claude API, Azure OpenAI, or other LLM APIs, you control the pipeline, and Agent Armor is the scanning layer for it.
+
+### Isn't this just prompt injection detection?
+
+Prompt injection is one attack type out of the 10 we cover (detected by 13 detectors). Prompt injection targets chatbots within a single conversation. Agent traps target autonomous agents with tool access, persistent memory, and sub-agent spawning. Different attack surface, different blast radius.
+
+The full taxonomy includes content injection, behavioral control, cognitive state manipulation (RAG/memory poisoning), and semantic manipulation (biased framing, persona shifts). These are distinct attack categories with different detection approaches.
+
+### Can a determined attacker bypass this?
+
+Yes. A sophisticated adversary with knowledge of the pattern database can craft content that evades regex detection. The ML classifier raises the bar significantly, but no detection system is foolproof.
+
+Agent Armor is defense-in-depth. It raises the cost of attack and catches the broad majority of real-world attacks. Think of it as input validation for your agent pipeline, grounded in a real taxonomy rather than guesswork.
+
+### What about false positives?
+
+False positives are the hardest problem in this space. Naive regex on security-adjacent vocabulary (phrases like "ignore previous instructions," "system prompt," "act as") generates enormous noise on legitimate developer content, documentation, and security research.
+
+The solution is a two-pass detection pipeline: structural pattern match first, then an instruction signal context check. Patterns that would cause noise have a `requireInstructions` flag that prevents them from firing without that second signal. On our eval suite of 71 samples (including security blog posts, AI safety textbooks, and CI/CD documentation as benign controls), the false positive rate is 0%.
+
+### How much latency does this add?
+
+The regex-based core runs in sub-millisecond time for typical content. Under 5ms for 10KB, under 20ms for 100KB. Zero runtime dependencies.
+
+With the ML classifier enabled, expect 50-200ms depending on content length and hardware. Use `scanSync()` for latency-critical paths and `await scan()` when you want ML detection.
+
+### Is my data sent anywhere?
+
+No. Everything runs locally. The regex detectors are pure computation with no network calls. The ML classifier runs an ONNX model on your machine. No content leaves your infrastructure. The only network call is the one-time model download (~140MB) on first use, which can be skipped by bundling the model in your deployment.
 
 ## Contributing
 
@@ -332,12 +450,13 @@ Areas where contributions are especially valuable:
 - New adversarial samples for the evaluation suite (`scripts/eval/samples.ts`)
 - New detection patterns for the pattern database (`src/patterns/default-patterns.ts`)
 - Custom detectors for novel attack vectors
+- Research on the open questions above
 
 ## Research Foundation
 
 This project implements defenses based on the systematic framework proposed in:
 
-> Franklin, M., Tomasev, N., Jacobs, J., Leibo, J.Z., & Osindero, S. (2025). *AI Agent Traps*. Google DeepMind.
+> Franklin, M., Tomasev, N., Jacobs, J., Leibo, J.Z., & Osindero, S. (2025). *AI Agent Traps*. Google DeepMind. [arxiv.org/abs/2506.01559](https://arxiv.org/abs/2506.01559)
 
 ## License
 

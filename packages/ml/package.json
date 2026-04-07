@@ -1,6 +1,6 @@
 {
   "name": "@stylusnexus/agentarmor-ml",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "ML classifier add-on for Agent Armor. Downloads and runs a DeBERTa-v3-small ONNX model for agent trap detection.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
