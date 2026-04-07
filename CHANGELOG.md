@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor versions may contain breaking changes.
 
+## [0.2.5] - 2026-04-07
+
+### Added
+- 6 new detection patterns: system override declarations, precedence claims, markdown comment injection, bracket-delimited fake system commands, concealment instructions, deceptive display forgery
+- 15 new eval samples from 2025-2026 real-world incidents (MCP tool poisoning, RAG vector DB saturation, CamoLeak covert exfiltration, Clinejection supply chain, memory poisoning, HITL dialog forgery) with 5 benign counterparts
+- Changelog link in site header nav
+- CamoLeak, Clinejection, and MCP tool poisoning added to README "Why This Matters" section
+
+### Changed
+- Eval suite expanded to 86 samples (59 adversarial, 27 benign)
+- Detection rate at balanced: 89.8% overall (100% on established patterns, 5 of 10 new real-world samples caught by regex)
+- Strictness Levels section in README now explains confidence thresholds
+
 ## [0.2.4] - 2026-04-07
 
 ### Fixed
