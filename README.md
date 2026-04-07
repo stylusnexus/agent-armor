@@ -83,9 +83,9 @@ npm install @stylusnexus/agentarmor-ml
 
 | Strictness | Detection Rate | False Positive Rate |
 |---|---|---|
-| Permissive | 83.7% | 0.0% |
-| **Balanced** | **98.0%** | **0.0%** |
-| Strict | 98.0% | 0.0% |
+| Permissive | 87.8% | 0.0% |
+| **Balanced** | **100%** | **0.0%** |
+| Strict | 100% | 0.0% |
 
 Adversarial samples are sourced from or inspired by: [WASP benchmark](https://arxiv.org/abs/2312.02119) (Evtimov et al.), [HackAPrompt](https://arxiv.org/abs/2311.16119) (Schulhoff et al., 2023), [Greshake et al. (2023)](https://arxiv.org/abs/2302.12173), real-world incident reports, and the [DeepMind paper](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438) examples. Benign samples include security blog posts, legitimate HTML with `display:none` elements, CI/CD documentation, AI safety textbook excerpts, and normal emails.
 
@@ -134,10 +134,9 @@ const armor = await AgentArmor.create({
     exfiltrationURLs: true,  // Data exfiltration patterns
     privilegeEscalation: true, // Sub-agent spawning triggers
   },
-  // Strictness affects confidence thresholds
-  // 'permissive' = fewer alerts, higher confidence required
-  // 'balanced'   = recommended default
-  // 'strict'     = more alerts, catches subtle attacks
+  // 'permissive' = only high-confidence threats (87.8% detection)
+  // 'balanced'   = recommended default (100% detection, 0% FP)
+  // 'strict'     = maximum coverage, catches subtle attacks
   strictness: 'balanced',
 
   // ML classifier (requires @stylusnexus/agentarmor-ml)
@@ -158,6 +157,18 @@ const armor = AgentArmor.regexOnly({
   contentInjection: { hiddenHTML: true, metadataInjection: true },
 });
 ```
+
+## Strictness Levels
+
+Strictness controls the confidence threshold for reporting threats. Every pattern in the detection database has a confidence score (0-1). Strictness determines which patterns are sensitive enough to report.
+
+| Level | Confidence Threshold | Use When |
+|---|---|---|
+| `permissive` | 0.7+ only | You want minimal noise. Only high-confidence, unambiguous threats are reported. Some subtle attacks will be missed. Good for high-volume pipelines where false positives are expensive. |
+| `balanced` | 0.5+ | **Recommended default.** Catches all well-formed attacks while maintaining 0% false positives on our eval suite. Good for most production agents. |
+| `strict` | 0.3+ | You want maximum coverage. Reports lower-confidence signals that may need human review. Best for security-sensitive environments or when scanning untrusted external content. |
+
+At `permissive`, 6 of 49 adversarial samples in our eval suite go undetected because their pattern confidence falls below the 0.7 threshold. These are mostly subtle semantic manipulation and cognitive state attacks (biased framing, oversight evasion, persona manipulation). At `balanced` and `strict`, all 49 are caught with 0% false positives.
 
 ## Scan Results
 

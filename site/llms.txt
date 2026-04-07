@@ -49,11 +49,13 @@ const clean = armor.scanRAGChunksSync(chunks)
   .filter(r => r.threats.length === 0);
 ```
 
-## Eval results (v0.4.0 patterns, 72 samples)
+## Eval results (v0.4.0 patterns, 71 samples)
 
-- Permissive: 96.4% detection, 0.0% false positives
-- Balanced: 100% detection, 0.0% false positives
-- Strict: 100% detection, 0.0% false positives
+Strictness controls the confidence threshold for reporting threats:
+
+- Permissive (threshold 0.7): 87.8% detection, 0.0% false positives — only high-confidence threats, fewer alerts
+- Balanced (threshold 0.5): 100% detection, 0.0% false positives — recommended default
+- Strict (threshold 0.3): 100% detection, 0.0% false positives — maximum coverage, catches subtle attacks
 
 ## Links
 

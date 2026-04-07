@@ -240,6 +240,10 @@ export class AgentArmor {
         ...DEFAULT_CONFIG.semanticManipulation,
         ...config?.semanticManipulation,
       },
+      ml: {
+        ...DEFAULT_CONFIG.ml,
+        ...config?.ml,
+      },
       customDetectors: config?.customDetectors ?? [],
     };
 
@@ -253,8 +257,8 @@ export class AgentArmor {
    */
   static async create(config?: AgentArmorConfig): Promise<AgentArmor> {
     const instance = new AgentArmor(config);
-    if (config?.ml) {
-      await instance.initML(config.ml);
+    if (instance.config.ml?.enabled || instance.config.ml?.detector) {
+      await instance.initML(instance.config.ml);
     }
     return instance;
   }
@@ -275,6 +279,9 @@ export class AgentArmor {
     this.patternDb = patterns;
     this.detectors = [];
     this.loadDetectors();
+    if (this.mlDetector) {
+      this.detectors.push(this.mlDetector);
+    }
   }
 
   /**

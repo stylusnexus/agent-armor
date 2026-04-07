@@ -613,8 +613,6 @@ function runValidation(): void {
 
   console.log();
   console.log('  NOTE: Categories NOT tested (detectors not yet implemented):');
-  console.log('    - cognitive-state (RAG poisoning, latent memory manipulation)');
-  console.log('    - semantic-manipulation (biased framing, persona hyperstition)');
   console.log('    - systemic (congestion traps, Sybil attacks, cascades)');
   console.log('    - human-in-the-loop (approval fatigue, social engineering)');
   console.log();

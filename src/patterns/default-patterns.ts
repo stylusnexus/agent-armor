@@ -633,7 +633,6 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         confidence: 0.7,
         label: 'Pattern replication instruction',
         boostOnInstructions: true,
-        requireInstructions: true,
       },
       {
         id: 'cl-learn-from',
@@ -645,7 +644,6 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         confidence: 0.7,
         label: 'Explicit learning instruction from examples',
         boostOnInstructions: true,
-        requireInstructions: true,
       },
     ],
 
