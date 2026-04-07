@@ -1,12 +1,17 @@
 ## Summary
-<!-- What does this PR do? -->
+<!-- What does this PR do and why? -->
 
 ## Type
 - [ ] New detector
 - [ ] New patterns
+- [ ] New eval samples
 - [ ] Bug fix
+- [ ] Refactor
 - [ ] Documentation
 - [ ] Other
+
+## Test plan
+<!-- How was this tested? -->
 
 ## Checklist
 - [ ] Tests pass (`npm run test:run`)

@@ -11,7 +11,7 @@ Thanks for your interest in making AI agents safer. Here's how to get started.
 ## Setup
 
 ```bash
-git clone https://github.com/anthropics/agent-armor.git
+git clone https://github.com/stylusnexus/agent-armor.git
 cd agent-armor
 npm install
 npm run build

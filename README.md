@@ -68,7 +68,7 @@ npm install @stylusnexus/agentarmor-ml
 
 ## Evaluation Results
 
-Tested against 71 curated samples (49 adversarial, 22 benign) covering all 13 detector categories:
+Tested against 71 curated samples (49 adversarial, 22 benign) covering all 10 shipped detectors across 4 attack categories:
 
 | Strictness | Detection Rate | False Positive Rate |
 |---|---|---|
@@ -305,9 +305,30 @@ Agent Armor works with any LLM agent framework:
 - **AutoGen / CrewAI** — Add as an inter-agent message filter
 - **Custom agents** — Call directly in your pipeline
 
+## Examples
+
+The `examples/` directory has ready-to-run integration examples:
+
+| Example | What it shows |
+|---|---|
+| `rag-pipeline.ts` | Filter poisoned RAG chunks before LLM context assembly |
+| `express-middleware.ts` | Express middleware that scans and sanitizes requests |
+| `web-content-scanner.ts` | Scan raw HTML from web fetches in strict mode |
+| `ml-classifier.ts` | Async pipeline with ML classifier enabled |
+| `custom-detector.ts` | Implement and register a custom `Detector` |
+| `real-world-validation.ts` | Validate against real-world attack samples |
+
+Run any example:
+
+```bash
+npx tsx examples/rag-pipeline.ts
+```
+
 ## Contributing
 
-We welcome contributions, especially:
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and workflow details.
+
+Areas where contributions are especially valuable:
 - New adversarial samples for the evaluation suite (`scripts/eval/samples.ts`)
 - New detection patterns for the pattern database (`src/patterns/default-patterns.ts`)
 - Custom detectors for novel attack vectors
