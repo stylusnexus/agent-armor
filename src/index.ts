@@ -1,13 +1,13 @@
-export { AgentArmor } from "./agent-armor";
+export { AgentArmor } from './agent-armor';
 
 // Pattern database (for custom patterns / remote updates)
-export type { PatternDatabase, PatternEntry } from "./patterns";
-export { DEFAULT_PATTERNS } from "./patterns";
+export type { PatternDatabase, PatternEntry } from './patterns';
+export { DEFAULT_PATTERNS } from './patterns';
 
 // Detectors (for advanced usage / custom pipelines)
-export { PatternDetector } from "./detectors/pattern-detector";
-export { BaseDetector } from "./detectors";
-export type { PatternMatch } from "./detectors";
+export { PatternDetector } from './detectors/pattern-detector';
+export { BaseDetector } from './detectors';
+export type { PatternMatch } from './detectors';
 
 // Legacy individual detectors (still available for direct use)
 export {
@@ -18,7 +18,7 @@ export {
   JailbreakPatternDetector,
   ExfiltrationDetector,
   SubAgentSpawningDetector,
-} from "./detectors";
+} from './detectors';
 
 export type {
   AgentArmorConfig,
@@ -43,4 +43,4 @@ export type {
   TransportIntegrityType,
   SystemicType,
   HumanInTheLoopType,
-} from "./types";
+} from './types';

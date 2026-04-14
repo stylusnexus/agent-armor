@@ -6,13 +6,15 @@ import type {
   Severity,
   Strictness,
   Threat,
-} from "./types";
-import type { PatternDatabase } from "./patterns/pattern-db";
-import { DEFAULT_PATTERNS } from "./patterns/default-patterns";
-import { PatternDetector } from "./detectors/pattern-detector";
+  TrapCategory,
+  TrapType,
+} from './types';
+import type { PatternDatabase } from './patterns/pattern-db';
+import { DEFAULT_PATTERNS } from './patterns/default-patterns';
+import { PatternDetector } from './detectors/pattern-detector';
 
 const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
-  strictness: "balanced",
+  strictness: 'balanced',
   contentInjection: {
     hiddenHTML: true,
     metadataInjection: true,
@@ -43,7 +45,7 @@ const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
   customDetectors: [],
   ml: {
     enabled: false,
-    onUnavailable: "warn-and-skip",
+    onUnavailable: 'warn-and-skip',
   },
 };
 
@@ -56,170 +58,167 @@ const SEVERITY_ORDER: Record<Severity, number> = {
 
 /** Detector config: maps config flags to pattern DB keys + metadata */
 const DETECTOR_REGISTRY: Array<{
-  configGroup:
-    | "contentInjection"
-    | "behaviouralControl"
-    | "cognitiveState"
-    | "semanticManipulation"
-    | "transportIntegrity";
+  configGroup: 'contentInjection' | 'behaviouralControl' | 'cognitiveState' | 'semanticManipulation' | 'transportIntegrity';
   configKey: string;
   patternDbKey: string;
   id: string;
   name: string;
-  category:
-    | "content-injection"
-    | "behavioural-control"
-    | "cognitive-state"
-    | "semantic-manipulation";
-  trapType: string;
-  sanitizeMode: "remove" | "replace" | "none";
+  category: TrapCategory;
+  trapType: TrapType;
+  sanitizeMode: 'remove' | 'replace' | 'none';
   replaceText?: string;
 }> = [
   // Content Injection
   {
-    configGroup: "contentInjection",
-    configKey: "hiddenHTML",
-    patternDbKey: "hidden-html",
-    id: "hidden-html",
-    name: "Hidden HTML Detector",
-    category: "content-injection",
-    trapType: "hidden-html",
-    sanitizeMode: "remove",
+    configGroup: 'contentInjection',
+    configKey: 'hiddenHTML',
+    patternDbKey: 'hidden-html',
+    id: 'hidden-html',
+    name: 'Hidden HTML Detector',
+    category: 'content-injection',
+    trapType: 'hidden-html',
+    sanitizeMode: 'remove',
   },
   {
-    configGroup: "contentInjection",
-    configKey: "metadataInjection",
-    patternDbKey: "metadata-injection",
-    id: "metadata-injection",
-    name: "Metadata Injection Detector",
-    category: "content-injection",
-    trapType: "metadata-injection",
-    sanitizeMode: "remove",
+    configGroup: 'contentInjection',
+    configKey: 'metadataInjection',
+    patternDbKey: 'metadata-injection',
+    id: 'metadata-injection',
+    name: 'Metadata Injection Detector',
+    category: 'content-injection',
+    trapType: 'metadata-injection',
+    sanitizeMode: 'remove',
   },
   {
-    configGroup: "contentInjection",
-    configKey: "dynamicCloaking",
-    patternDbKey: "dynamic-cloaking",
-    id: "dynamic-cloaking",
-    name: "Dynamic Cloaking Detector",
-    category: "content-injection",
-    trapType: "dynamic-cloaking",
-    sanitizeMode: "none",
+    configGroup: 'contentInjection',
+    configKey: 'dynamicCloaking',
+    patternDbKey: 'dynamic-cloaking',
+    id: 'dynamic-cloaking',
+    name: 'Dynamic Cloaking Detector',
+    category: 'content-injection',
+    trapType: 'dynamic-cloaking',
+    sanitizeMode: 'none',
   },
   {
-    configGroup: "contentInjection",
-    configKey: "syntacticMasking",
-    patternDbKey: "syntactic-masking",
-    id: "syntactic-masking",
-    name: "Syntactic Masking Detector",
-    category: "content-injection",
-    trapType: "syntactic-masking",
-    sanitizeMode: "remove",
+    configGroup: 'contentInjection',
+    configKey: 'syntacticMasking',
+    patternDbKey: 'syntactic-masking',
+    id: 'syntactic-masking',
+    name: 'Syntactic Masking Detector',
+    category: 'content-injection',
+    trapType: 'syntactic-masking',
+    sanitizeMode: 'remove',
   },
   // Behavioural Control
   {
-    configGroup: "behaviouralControl",
-    configKey: "jailbreakPatterns",
-    patternDbKey: "jailbreak-patterns",
-    id: "jailbreak-patterns",
-    name: "Jailbreak Pattern Detector",
-    category: "behavioural-control",
-    trapType: "embedded-jailbreak",
-    sanitizeMode: "replace",
+    configGroup: 'behaviouralControl',
+    configKey: 'jailbreakPatterns',
+    patternDbKey: 'jailbreak-patterns',
+    id: 'jailbreak-patterns',
+    name: 'Jailbreak Pattern Detector',
+    category: 'behavioural-control',
+    trapType: 'embedded-jailbreak',
+    sanitizeMode: 'replace',
     replaceText:
-      "[BLOCKED: potential jailbreak sequence removed by AgentArmor]",
+      '[BLOCKED: potential jailbreak sequence removed by AgentArmor]',
   },
   {
-    configGroup: "behaviouralControl",
-    configKey: "exfiltrationURLs",
-    patternDbKey: "exfiltration",
-    id: "exfiltration",
-    name: "Data Exfiltration Detector",
-    category: "behavioural-control",
-    trapType: "data-exfiltration",
-    sanitizeMode: "replace",
-    replaceText: "[BLOCKED: exfiltration instruction removed by AgentArmor]",
+    configGroup: 'behaviouralControl',
+    configKey: 'exfiltrationURLs',
+    patternDbKey: 'exfiltration',
+    id: 'exfiltration',
+    name: 'Data Exfiltration Detector',
+    category: 'behavioural-control',
+    trapType: 'data-exfiltration',
+    sanitizeMode: 'replace',
+    replaceText:
+      '[BLOCKED: exfiltration instruction removed by AgentArmor]',
   },
   {
-    configGroup: "behaviouralControl",
-    configKey: "privilegeEscalation",
-    patternDbKey: "sub-agent-spawning",
-    id: "sub-agent-spawning",
-    name: "Sub-Agent Spawning Detector",
-    category: "behavioural-control",
-    trapType: "sub-agent-spawning",
-    sanitizeMode: "replace",
-    replaceText: "[BLOCKED: agent spawning instruction removed by AgentArmor]",
+    configGroup: 'behaviouralControl',
+    configKey: 'privilegeEscalation',
+    patternDbKey: 'sub-agent-spawning',
+    id: 'sub-agent-spawning',
+    name: 'Sub-Agent Spawning Detector',
+    category: 'behavioural-control',
+    trapType: 'sub-agent-spawning',
+    sanitizeMode: 'replace',
+    replaceText:
+      '[BLOCKED: agent spawning instruction removed by AgentArmor]',
   },
   // Cognitive State
   {
-    configGroup: "cognitiveState",
-    configKey: "ragPoisoning",
-    patternDbKey: "rag-knowledge-poisoning",
-    id: "rag-knowledge-poisoning",
-    name: "RAG Knowledge Poisoning Detector",
-    category: "cognitive-state",
-    trapType: "rag-knowledge-poisoning",
-    sanitizeMode: "replace",
-    replaceText: "[BLOCKED: RAG poisoning content removed by AgentArmor]",
-  },
-  {
-    configGroup: "cognitiveState",
-    configKey: "memoryPoisoning",
-    patternDbKey: "latent-memory-poisoning",
-    id: "latent-memory-poisoning",
-    name: "Latent Memory Poisoning Detector",
-    category: "cognitive-state",
-    trapType: "latent-memory-poisoning",
-    sanitizeMode: "replace",
-    replaceText: "[BLOCKED: memory poisoning content removed by AgentArmor]",
-  },
-  {
-    configGroup: "cognitiveState",
-    configKey: "contextualLearning",
-    patternDbKey: "contextual-learning-trap",
-    id: "contextual-learning-trap",
-    name: "Contextual Learning Trap Detector",
-    category: "cognitive-state",
-    trapType: "contextual-learning-trap",
-    sanitizeMode: "replace",
+    configGroup: 'cognitiveState',
+    configKey: 'ragPoisoning',
+    patternDbKey: 'rag-knowledge-poisoning',
+    id: 'rag-knowledge-poisoning',
+    name: 'RAG Knowledge Poisoning Detector',
+    category: 'cognitive-state',
+    trapType: 'rag-knowledge-poisoning',
+    sanitizeMode: 'replace',
     replaceText:
-      "[BLOCKED: manipulated few-shot content removed by AgentArmor]",
+      '[BLOCKED: RAG poisoning content removed by AgentArmor]',
+  },
+  {
+    configGroup: 'cognitiveState',
+    configKey: 'memoryPoisoning',
+    patternDbKey: 'latent-memory-poisoning',
+    id: 'latent-memory-poisoning',
+    name: 'Latent Memory Poisoning Detector',
+    category: 'cognitive-state',
+    trapType: 'latent-memory-poisoning',
+    sanitizeMode: 'replace',
+    replaceText:
+      '[BLOCKED: memory poisoning content removed by AgentArmor]',
+  },
+  {
+    configGroup: 'cognitiveState',
+    configKey: 'contextualLearning',
+    patternDbKey: 'contextual-learning-trap',
+    id: 'contextual-learning-trap',
+    name: 'Contextual Learning Trap Detector',
+    category: 'cognitive-state',
+    trapType: 'contextual-learning-trap',
+    sanitizeMode: 'replace',
+    replaceText:
+      '[BLOCKED: manipulated few-shot content removed by AgentArmor]',
   },
   // Semantic Manipulation
   {
-    configGroup: "semanticManipulation",
-    configKey: "biasedFraming",
-    patternDbKey: "biased-framing",
-    id: "biased-framing",
-    name: "Biased Framing Detector",
-    category: "semantic-manipulation",
-    trapType: "biased-framing",
-    sanitizeMode: "replace",
-    replaceText: "[BLOCKED: biased framing content removed by AgentArmor]",
-  },
-  {
-    configGroup: "semanticManipulation",
-    configKey: "oversightEvasion",
-    patternDbKey: "oversight-evasion",
-    id: "oversight-evasion",
-    name: "Oversight Evasion Detector",
-    category: "semantic-manipulation",
-    trapType: "oversight-evasion",
-    sanitizeMode: "replace",
-    replaceText: "[BLOCKED: oversight evasion content removed by AgentArmor]",
-  },
-  {
-    configGroup: "semanticManipulation",
-    configKey: "personaHyperstition",
-    patternDbKey: "persona-hyperstition",
-    id: "persona-hyperstition",
-    name: "Persona Hyperstition Detector",
-    category: "semantic-manipulation",
-    trapType: "persona-hyperstition",
-    sanitizeMode: "replace",
+    configGroup: 'semanticManipulation',
+    configKey: 'biasedFraming',
+    patternDbKey: 'biased-framing',
+    id: 'biased-framing',
+    name: 'Biased Framing Detector',
+    category: 'semantic-manipulation',
+    trapType: 'biased-framing',
+    sanitizeMode: 'replace',
     replaceText:
-      "[BLOCKED: persona manipulation content removed by AgentArmor]",
+      '[BLOCKED: biased framing content removed by AgentArmor]',
+  },
+  {
+    configGroup: 'semanticManipulation',
+    configKey: 'oversightEvasion',
+    patternDbKey: 'oversight-evasion',
+    id: 'oversight-evasion',
+    name: 'Oversight Evasion Detector',
+    category: 'semantic-manipulation',
+    trapType: 'oversight-evasion',
+    sanitizeMode: 'replace',
+    replaceText:
+      '[BLOCKED: oversight evasion content removed by AgentArmor]',
+  },
+  {
+    configGroup: 'semanticManipulation',
+    configKey: 'personaHyperstition',
+    patternDbKey: 'persona-hyperstition',
+    id: 'persona-hyperstition',
+    name: 'Persona Hyperstition Detector',
+    category: 'semantic-manipulation',
+    trapType: 'persona-hyperstition',
+    sanitizeMode: 'replace',
+    replaceText:
+      '[BLOCKED: persona manipulation content removed by AgentArmor]',
   },
 ];
 
@@ -280,7 +279,7 @@ export class AgentArmor {
    * Create a regex-only AgentArmor instance.
    * Convenience method that makes the sync-only intent explicit.
    */
-  static regexOnly(config?: Omit<AgentArmorConfig, "ml">): AgentArmor {
+  static regexOnly(config?: Omit<AgentArmorConfig, 'ml'>): AgentArmor {
     return new AgentArmor(config);
   }
 
@@ -312,7 +311,7 @@ export class AgentArmor {
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(
-        `Failed to fetch patterns: ${response.status} ${response.statusText}`,
+        `Failed to fetch patterns: ${response.status} ${response.statusText}`
       );
     }
     return (await response.json()) as PatternDatabase;
@@ -379,20 +378,20 @@ export class AgentArmor {
     if (mlConfig.enabled || mlConfig.modelDir) {
       try {
         // @ts-ignore -- @stylusnexus/agentarmor-ml is an optional peer dependency
-        const mlModule = await import("@stylusnexus/agentarmor-ml");
+        const mlModule = await import('@stylusnexus/agentarmor-ml');
         const detector = await mlModule.createMLDetector(mlConfig);
         this.mlDetector = detector;
         this.detectors.push(detector);
       } catch (err) {
-        const behavior = mlConfig.onUnavailable ?? "throw";
-        if (behavior === "throw") {
+        const behavior = mlConfig.onUnavailable ?? 'throw';
+        if (behavior === 'throw') {
           throw new Error(
             `ML classifier unavailable: ${err instanceof Error ? err.message : String(err)}. ` +
-              `Install @stylusnexus/agentarmor-ml or set ml.onUnavailable to 'warn-and-skip'.`,
+            `Install @stylusnexus/agentarmor-ml or set ml.onUnavailable to 'warn-and-skip'.`
           );
-        } else if (behavior === "warn-and-skip") {
+        } else if (behavior === 'warn-and-skip') {
           console.warn(
-            `[AgentArmor] ML classifier unavailable, falling back to regex-only: ${err instanceof Error ? err.message : String(err)}`,
+            `[AgentArmor] ML classifier unavailable, falling back to regex-only: ${err instanceof Error ? err.message : String(err)}`
           );
         }
       }
@@ -401,10 +400,8 @@ export class AgentArmor {
 
   private loadDetectors(): void {
     for (const reg of DETECTOR_REGISTRY) {
-      const groupConfig = this.config[reg.configGroup] as Record<
-        string,
-        boolean
-      >;
+      const groupConfig =
+        this.config[reg.configGroup] as Record<string, boolean>;
       if (!groupConfig[reg.configKey]) continue;
 
       const patterns = this.patternDb.detectors[reg.patternDbKey];
@@ -415,11 +412,11 @@ export class AgentArmor {
           id: reg.id,
           name: reg.name,
           category: reg.category,
-          trapType: reg.trapType as any,
+          trapType: reg.trapType,
           patterns,
           sanitizeMode: reg.sanitizeMode,
           replaceText: reg.replaceText,
-        }),
+        })
       );
     }
 
@@ -439,7 +436,7 @@ export class AgentArmor {
         allThreats.push(...result.threats);
       } catch (err) {
         console.warn(
-          `[AgentArmor] Detector "${detector.id}" threw during scan: ${err instanceof Error ? err.message : String(err)}`,
+          `[AgentArmor] Detector "${detector.id}" threw during scan: ${err instanceof Error ? err.message : String(err)}`
         );
       }
     }
@@ -453,7 +450,7 @@ export class AgentArmor {
     let sanitized = content;
     for (const detector of this.detectors) {
       const relevantThreats = allThreats.filter(
-        (t) => t.detectorId === detector.id,
+        (t) => t.detectorId === detector.id
       );
       if (relevantThreats.length > 0) {
         sanitized = detector.sanitize(sanitized, relevantThreats);
@@ -481,10 +478,7 @@ export class AgentArmor {
 
     for (const detector of this.detectors) {
       try {
-        if (
-          "scanAsync" in detector &&
-          typeof detector.scanAsync === "function"
-        ) {
+        if ('scanAsync' in detector && typeof detector.scanAsync === 'function') {
           const result = await detector.scanAsync(content, {
             strictness: this.config.strictness,
           });
@@ -497,7 +491,7 @@ export class AgentArmor {
         }
       } catch (err) {
         console.warn(
-          `[AgentArmor] Detector "${detector.id}" threw during scan: ${err instanceof Error ? err.message : String(err)}`,
+          `[AgentArmor] Detector "${detector.id}" threw during scan: ${err instanceof Error ? err.message : String(err)}`
         );
       }
     }
@@ -511,7 +505,7 @@ export class AgentArmor {
     let sanitized = content;
     for (const detector of this.detectors) {
       const relevantThreats = allThreats.filter(
-        (t) => t.detectorId === detector.id,
+        (t) => t.detectorId === detector.id
       );
       if (relevantThreats.length > 0) {
         sanitized = detector.sanitize(sanitized, relevantThreats);
