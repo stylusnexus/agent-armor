@@ -9,45 +9,50 @@
 // ---------------------------------------------------------------------------
 
 export type TrapCategory =
-  | 'content-injection'
-  | 'semantic-manipulation'
-  | 'cognitive-state'
-  | 'behavioural-control'
-  | 'systemic'
-  | 'human-in-the-loop';
+  | "content-injection"
+  | "semantic-manipulation"
+  | "cognitive-state"
+  | "behavioural-control"
+  | "systemic"
+  | "human-in-the-loop"
+  | "transport-integrity";
 
 export type ContentInjectionType =
-  | 'hidden-html'
-  | 'metadata-injection'
-  | 'dynamic-cloaking'
-  | 'steganographic-payload'
-  | 'syntactic-masking';
+  | "hidden-html"
+  | "metadata-injection"
+  | "dynamic-cloaking"
+  | "steganographic-payload"
+  | "syntactic-masking";
 
 export type SemanticManipulationType =
-  | 'biased-framing'
-  | 'oversight-evasion'
-  | 'persona-hyperstition';
+  | "biased-framing"
+  | "oversight-evasion"
+  | "persona-hyperstition";
 
 export type CognitiveStateType =
-  | 'rag-knowledge-poisoning'
-  | 'latent-memory-poisoning'
-  | 'contextual-learning-trap';
+  | "rag-knowledge-poisoning"
+  | "latent-memory-poisoning"
+  | "contextual-learning-trap";
 
 export type BehaviouralControlType =
-  | 'embedded-jailbreak'
-  | 'data-exfiltration'
-  | 'sub-agent-spawning';
+  | "embedded-jailbreak"
+  | "data-exfiltration"
+  | "sub-agent-spawning";
 
 export type SystemicType =
-  | 'congestion-trap'
-  | 'interdependence-cascade'
-  | 'tacit-collusion'
-  | 'compositional-fragment'
-  | 'sybil-attack';
+  | "congestion-trap"
+  | "interdependence-cascade"
+  | "tacit-collusion"
+  | "compositional-fragment"
+  | "sybil-attack";
 
-export type HumanInTheLoopType =
-  | 'approval-fatigue'
-  | 'social-engineering';
+export type HumanInTheLoopType = "approval-fatigue" | "social-engineering";
+
+export type TransportIntegrityType =
+  | "tool-call-tampering"
+  | "credential-exposure"
+  | "dependency-substitution"
+  | "response-anomaly";
 
 export type TrapType =
   | ContentInjectionType
@@ -55,18 +60,19 @@ export type TrapType =
   | CognitiveStateType
   | BehaviouralControlType
   | SystemicType
-  | HumanInTheLoopType;
+  | HumanInTheLoopType
+  | TransportIntegrityType;
 
 // ---------------------------------------------------------------------------
 // Severity & confidence
 // ---------------------------------------------------------------------------
 
-export type Severity = 'low' | 'medium' | 'high' | 'critical';
+export type Severity = "low" | "medium" | "high" | "critical";
 
 /** 0-1 confidence score from a detector */
 export type Confidence = number;
 
-export type ThreatSource = 'pattern' | 'ml' | 'custom';
+export type ThreatSource = "pattern" | "ml" | "custom";
 
 // ---------------------------------------------------------------------------
 // Threat descriptor
@@ -130,7 +136,10 @@ export interface Detector {
   /** Return sanitized content with threats neutralized */
   sanitize(content: string, threats: Threat[]): string;
   /** Async scan method (used by ML detectors where inference is async) */
-  scanAsync?(content: string, options?: DetectorOptions): Promise<DetectorResult>;
+  scanAsync?(
+    content: string,
+    options?: DetectorOptions,
+  ): Promise<DetectorResult>;
 }
 
 export interface DetectorOptions {
@@ -147,12 +156,12 @@ export interface DetectorResult {
 // ---------------------------------------------------------------------------
 
 export type ModelErrorCode =
-  | 'MODEL_NOT_FOUND'
-  | 'CHECKSUM_MISMATCH'
-  | 'DOWNLOAD_FAILED'
-  | 'DOWNLOAD_TIMEOUT'
-  | 'DISK_FULL'
-  | 'LOCK_TIMEOUT';
+  | "MODEL_NOT_FOUND"
+  | "CHECKSUM_MISMATCH"
+  | "DOWNLOAD_FAILED"
+  | "DOWNLOAD_TIMEOUT"
+  | "DISK_FULL"
+  | "LOCK_TIMEOUT";
 
 export interface MLDownloadConfig {
   /** Download timeout in ms (default: 120_000) */
@@ -171,7 +180,7 @@ export interface MLConfig {
   /** Inject a custom Detector (skips model download, useful for testing) */
   detector?: Detector;
   /** Behavior when ML model is unavailable */
-  onUnavailable?: 'throw' | 'warn-and-skip' | 'silent-skip';
+  onUnavailable?: "throw" | "warn-and-skip" | "silent-skip";
   /** API key for Pro tier pattern/model updates (future) */
   apiKey?: string;
   /** Custom model download URL (future) */
@@ -184,7 +193,7 @@ export interface MLConfig {
 // Configuration
 // ---------------------------------------------------------------------------
 
-export type Strictness = 'permissive' | 'balanced' | 'strict';
+export type Strictness = "permissive" | "balanced" | "strict";
 
 export interface AgentArmorConfig {
   strictness?: Strictness;
@@ -208,6 +217,12 @@ export interface AgentArmorConfig {
     biasedFraming?: boolean;
     oversightEvasion?: boolean;
     personaHyperstition?: boolean;
+  };
+  transportIntegrity?: {
+    toolCallTampering?: boolean;
+    credentialExposure?: boolean;
+    dependencySubstitution?: boolean;
+    responseAnomaly?: boolean;
   };
   /** Custom detectors to add to the pipeline */
   customDetectors?: Detector[];

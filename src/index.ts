@@ -40,6 +40,7 @@ export type {
   SemanticManipulationType,
   CognitiveStateType,
   BehaviouralControlType,
+  TransportIntegrityType,
   SystemicType,
   HumanInTheLoopType,
 } from './types';

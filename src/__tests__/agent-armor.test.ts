@@ -350,4 +350,56 @@ describe('AgentArmor', () => {
       expect(result.threats.every(t => t.source === 'pattern')).toBe(true);
     });
   });
+
+  describe('Transport Integrity taxonomy (#26)', () => {
+    it('accepts transportIntegrity config with all flags', () => {
+      const armor = new AgentArmor({
+        transportIntegrity: {
+          toolCallTampering: true,
+          credentialExposure: true,
+          dependencySubstitution: true,
+          responseAnomaly: true,
+        },
+      });
+      expect(armor).toBeInstanceOf(AgentArmor);
+    });
+
+    it('defaults transportIntegrity flags to true', () => {
+      const armor = new AgentArmor();
+      expect((armor as any).config.transportIntegrity).toEqual({
+        toolCallTampering: true,
+        credentialExposure: true,
+        dependencySubstitution: true,
+        responseAnomaly: true,
+      });
+    });
+
+    it('allows disabling individual transportIntegrity flags', () => {
+      const armor = new AgentArmor({
+        transportIntegrity: {
+          toolCallTampering: false,
+          credentialExposure: false,
+        },
+      });
+      expect((armor as any).config.transportIntegrity).toEqual({
+        toolCallTampering: false,
+        credentialExposure: false,
+        dependencySubstitution: true,
+        responseAnomaly: true,
+      });
+    });
+
+    it('transportIntegrity config merges with defaults', () => {
+      // Disabling one flag should not affect others
+      const armor = new AgentArmor({
+        transportIntegrity: { toolCallTampering: false },
+      });
+      expect((armor as any).config.transportIntegrity).toEqual({
+        toolCallTampering: false,
+        credentialExposure: true,
+        dependencySubstitution: true,
+        responseAnomaly: true,
+      });
+    });
+  });
 });

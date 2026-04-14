@@ -6,6 +6,8 @@ import type {
   Severity,
   Strictness,
   Threat,
+  TrapCategory,
+  TrapType,
 } from './types';
 import type { PatternDatabase } from './patterns/pattern-db';
 import { DEFAULT_PATTERNS } from './patterns/default-patterns';
@@ -34,6 +36,12 @@ const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
     oversightEvasion: true,
     personaHyperstition: true,
   },
+  transportIntegrity: {
+    toolCallTampering: true,
+    credentialExposure: true,
+    dependencySubstitution: true,
+    responseAnomaly: true,
+  },
   customDetectors: [],
   ml: {
     enabled: false,
@@ -50,13 +58,13 @@ const SEVERITY_ORDER: Record<Severity, number> = {
 
 /** Detector config: maps config flags to pattern DB keys + metadata */
 const DETECTOR_REGISTRY: Array<{
-  configGroup: 'contentInjection' | 'behaviouralControl' | 'cognitiveState' | 'semanticManipulation';
+  configGroup: 'contentInjection' | 'behaviouralControl' | 'cognitiveState' | 'semanticManipulation' | 'transportIntegrity';
   configKey: string;
   patternDbKey: string;
   id: string;
   name: string;
-  category: 'content-injection' | 'behavioural-control' | 'cognitive-state' | 'semantic-manipulation';
-  trapType: string;
+  category: TrapCategory;
+  trapType: TrapType;
   sanitizeMode: 'remove' | 'replace' | 'none';
   replaceText?: string;
 }> = [
@@ -240,6 +248,10 @@ export class AgentArmor {
         ...DEFAULT_CONFIG.semanticManipulation,
         ...config?.semanticManipulation,
       },
+      transportIntegrity: {
+        ...DEFAULT_CONFIG.transportIntegrity,
+        ...config?.transportIntegrity,
+      },
       ml: {
         ...DEFAULT_CONFIG.ml,
         ...config?.ml,
@@ -400,7 +412,7 @@ export class AgentArmor {
           id: reg.id,
           name: reg.name,
           category: reg.category,
-          trapType: reg.trapType as any,
+          trapType: reg.trapType,
           patterns,
           sanitizeMode: reg.sanitizeMode,
           replaceText: reg.replaceText,

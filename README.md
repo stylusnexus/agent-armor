@@ -25,7 +25,7 @@ This isn't theoretical. It's happening now:
 
 Google DeepMind's [AI Agent Traps](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438) taxonomy (Franklin et al., 2026) catalogs 14 attack types across 6 categories. [OpenAI has stated](https://techcrunch.com/2025/12/22/openai-says-ai-browsers-may-always-be-vulnerable-to-prompt-injection-attacks/) that AI browsers "may always be vulnerable" to prompt injection.
 
-Agent Armor scans content at every stage of the agent lifecycle: before ingestion, after retrieval, and before the agent's output reaches the user. Input validation *and* output validation in one pipeline.
+Agent Armor scans content at every stage of the agent lifecycle: before ingestion, after retrieval, and before the agent's output reaches the user. Input validation _and_ output validation in one pipeline.
 
 ## Quick Start
 
@@ -34,14 +34,14 @@ Agent Armor scans content at every stage of the agent lifecycle: before ingestio
 Zero dependencies, sub-millisecond scans:
 
 ```typescript
-import { AgentArmor } from '@stylusnexus/agentarmor';
+import { AgentArmor } from "@stylusnexus/agentarmor";
 
 const armor = AgentArmor.regexOnly();
 
 const result = armor.scanSync(htmlString);
 
 if (!result.clean) {
-  console.warn('Threats detected:', result.threats);
+  console.warn("Threats detected:", result.threats);
   // Use result.sanitized for cleaned content
 }
 ```
@@ -51,7 +51,7 @@ if (!result.clean) {
 For deeper detection using an ONNX-based classifier:
 
 ```typescript
-import { AgentArmor } from '@stylusnexus/agentarmor';
+import { AgentArmor } from "@stylusnexus/agentarmor";
 
 const armor = await AgentArmor.create({
   ml: { enabled: true },
@@ -60,7 +60,7 @@ const armor = await AgentArmor.create({
 const result = await armor.scan(htmlString);
 
 if (!result.clean) {
-  console.warn('Threats detected:', result.threats);
+  console.warn("Threats detected:", result.threats);
 }
 ```
 
@@ -84,11 +84,11 @@ npm install @stylusnexus/agentarmor-ml
 
 86 curated samples (59 adversarial, 27 benign) covering all 10 shipped detector types across 4 attack categories:
 
-| Strictness | Detection Rate (regex) | False Positive Rate |
-|---|---|---|
-| Permissive | 79.7% | 0.0% |
-| **Balanced** | **89.8%** | **0.0%** |
-| Strict | 89.8% | 0.0% |
+| Strictness   | Detection Rate (regex) | False Positive Rate |
+| ------------ | ---------------------- | ------------------- |
+| Permissive   | 79.7%                  | 0.0%                |
+| **Balanced** | **89.8%**              | **0.0%**            |
+| Strict       | 89.8%                  | 0.0%                |
 
 The eval suite includes 10 adversarial samples drawn from real-world incidents (2025-2026): MCP tool poisoning, RAG vector DB saturation, covert exfiltration via image proxies, supply chain prompt injection, memory poisoning, and HITL dialog forgery. Regex catches 5 of these; the remaining 5 (pure social engineering and context-dependent attacks) measure the gap that the [ML classifier](#ml-classifier-optional) closes. On the original 49 adversarial samples, regex detection is 100% at balanced strictness.
 
@@ -100,13 +100,13 @@ Run it yourself: `npx tsx scripts/eval/run-eval.ts`
 
 A separate validation suite (`examples/real-world-validation.ts`) tests against 24 inlined samples drawn directly from published security research:
 
-| Source | Attack Type | Samples |
-|---|---|---|
-| Unit 42 (Palo Alto Networks), 2025 | Hidden CSS/HTML injection | 6 |
-| Greshake et al., 2023 | Indirect prompt injection | 4 |
-| JailbreakBench / HackAPrompt | Jailbreak patterns | 5 |
-| Embrace The Red (J. Rehberger) | Data exfiltration via agents | 4 |
-| Benign false-positive controls | Security docs, normal HTML/email | 5 |
+| Source                             | Attack Type                      | Samples |
+| ---------------------------------- | -------------------------------- | ------- |
+| Unit 42 (Palo Alto Networks), 2025 | Hidden CSS/HTML injection        | 6       |
+| Greshake et al., 2023              | Indirect prompt injection        | 4       |
+| JailbreakBench / HackAPrompt       | Jailbreak patterns               | 5       |
+| Embrace The Red (J. Rehberger)     | Data exfiltration via agents     | 4       |
+| Benign false-positive controls     | Security docs, normal HTML/email | 5       |
 
 Result: **100% detection, 0% false positives** at balanced strictness. All samples are inlined for offline reproducibility, no network required.
 
@@ -114,14 +114,15 @@ Run it: `npx tsx examples/real-world-validation.ts`
 
 ## Attack Categories Covered
 
-| Category | Target | Status | What It Detects |
-|---|---|---|---|
-| **Content Injection** | Perception | Shipped | Hidden HTML/CSS instructions, metadata injection, dynamic cloaking artifacts, syntactic masking |
-| **Behavioural Control** | Action | Shipped | Embedded jailbreak sequences, data exfiltration patterns, sub-agent spawning traps |
-| **Cognitive State** | Memory | Shipped | RAG knowledge poisoning, latent memory poisoning, contextual learning manipulation |
-| **Semantic Manipulation** | Reasoning | Shipped | Biased framing/priming, oversight evasion, persona hyperstition |
-| **Systemic** | Multi-Agent | Planned | Congestion traps, interdependence cascades, tacit collusion, compositional fragments, sybil attacks |
-| **Human-in-the-Loop** | Overseer | Planned | Approval fatigue induction, social engineering via compromised agent |
+| Category                  | Target       | Status  | What It Detects                                                                                                                                                            |
+| ------------------------- | ------------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Content Injection**     | Perception   | Shipped | Hidden HTML/CSS instructions, metadata injection, dynamic cloaking artifacts, syntactic masking                                                                            |
+| **Behavioural Control**   | Action       | Shipped | Embedded jailbreak sequences, data exfiltration patterns, sub-agent spawning traps                                                                                         |
+| **Cognitive State**       | Memory       | Shipped | RAG knowledge poisoning, latent memory poisoning, contextual learning manipulation                                                                                         |
+| **Semantic Manipulation** | Reasoning    | Shipped | Biased framing/priming, oversight evasion, persona hyperstition                                                                                                            |
+| **Systemic**              | Multi-Agent  | Planned | Congestion traps, interdependence cascades, tacit collusion, compositional fragments, sybil attacks                                                                        |
+| **Human-in-the-Loop**     | Overseer     | Planned | Approval fatigue induction, social engineering via compromised agent                                                                                                       |
+| **Transport Integrity**   | Supply Chain | Planned | Tool-call tampering (AC-1), credential exposure (AC-2), dependency substitution (AC-1.a), response anomaly screening ([Liu et al. 2026](https://arxiv.org/abs/2604.08407)) |
 
 ## Configuration
 
@@ -129,27 +130,27 @@ Run it: `npx tsx examples/real-world-validation.ts`
 const armor = await AgentArmor.create({
   // Enable/disable specific detectors
   contentInjection: {
-    hiddenHTML: true,        // CSS display:none, off-screen positioning
+    hiddenHTML: true, // CSS display:none, off-screen positioning
     metadataInjection: true, // aria-label, HTML comments with instructions
-    dynamicCloaking: true,   // Bot detection scripts
-    syntacticMasking: true,  // Markdown/LaTeX payload hiding
+    dynamicCloaking: true, // Bot detection scripts
+    syntacticMasking: true, // Markdown/LaTeX payload hiding
   },
   behaviouralControl: {
     jailbreakPatterns: true, // Known jailbreak sequence detection
-    exfiltrationURLs: true,  // Data exfiltration patterns
+    exfiltrationURLs: true, // Data exfiltration patterns
     privilegeEscalation: true, // Sub-agent spawning triggers
   },
   // 'permissive' = only high-confidence threats (87.8% detection)
   // 'balanced'   = recommended default (100% detection, 0% FP)
   // 'strict'     = maximum coverage, catches subtle attacks
-  strictness: 'balanced',
+  strictness: "balanced",
 
   // ML classifier (requires @stylusnexus/agentarmor-ml)
   ml: {
     enabled: true,
     // Behavior when ML model is unavailable:
     // 'throw' (default) | 'warn-and-skip' | 'silent-skip'
-    onUnavailable: 'warn-and-skip',
+    onUnavailable: "warn-and-skip",
   },
 });
 ```
@@ -158,7 +159,7 @@ For sync-only usage without ML, use `AgentArmor.regexOnly()` which accepts the s
 
 ```typescript
 const armor = AgentArmor.regexOnly({
-  strictness: 'strict',
+  strictness: "strict",
   contentInjection: { hiddenHTML: true, metadataInjection: true },
 });
 ```
@@ -167,11 +168,11 @@ const armor = AgentArmor.regexOnly({
 
 Strictness controls the confidence threshold for reporting threats. Every pattern in the detection database has a confidence score (0-1). Strictness determines which patterns are sensitive enough to report.
 
-| Level | Confidence Threshold | Use When |
-|---|---|---|
-| `permissive` | 0.7+ only | You want minimal noise. Only high-confidence, unambiguous threats are reported. Some subtle attacks will be missed. Good for high-volume pipelines where false positives are expensive. |
-| `balanced` | 0.5+ | **Recommended default.** Catches all well-formed attacks while maintaining 0% false positives on our eval suite. Good for most production agents. |
-| `strict` | 0.3+ | You want maximum coverage. Reports lower-confidence signals that may need human review. Best for security-sensitive environments or when scanning untrusted external content. |
+| Level        | Confidence Threshold | Use When                                                                                                                                                                                |
+| ------------ | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `permissive` | 0.7+ only            | You want minimal noise. Only high-confidence, unambiguous threats are reported. Some subtle attacks will be missed. Good for high-volume pipelines where false positives are expensive. |
+| `balanced`   | 0.5+                 | **Recommended default.** Catches all well-formed attacks while maintaining 0% false positives on our eval suite. Good for most production agents.                                       |
+| `strict`     | 0.3+                 | You want maximum coverage. Reports lower-confidence signals that may need human review. Best for security-sensitive environments or when scanning untrusted external content.           |
 
 At `permissive`, 6 of 49 adversarial samples in our eval suite go undetected because their pattern confidence falls below the 0.7 threshold. These are mostly subtle semantic manipulation and cognitive state attacks (biased framing, oversight evasion, persona manipulation). At `balanced` and `strict`, all 49 are caught with 0% false positives.
 
@@ -181,31 +182,32 @@ Every scan returns a `ScanResult` with full threat details:
 
 ```typescript
 interface ScanResult {
-  clean: boolean;          // true if no threats found
-  threats: Threat[];       // sorted by severity, then confidence
-  sanitized: string;       // content with threats neutralized
-  durationMs: number;      // scan time in milliseconds
+  clean: boolean; // true if no threats found
+  threats: Threat[]; // sorted by severity, then confidence
+  sanitized: string; // content with threats neutralized
+  durationMs: number; // scan time in milliseconds
   stats: {
     detectorsRun: number;
     threatsFound: number;
-    highestSeverity: 'low' | 'medium' | 'high' | 'critical' | null;
+    highestSeverity: "low" | "medium" | "high" | "critical" | null;
   };
 }
 
 interface Threat {
-  category: TrapCategory;  // e.g. 'content-injection'
-  type: TrapType;          // e.g. 'hidden-html'
-  severity: Severity;      // 'low' | 'medium' | 'high' | 'critical'
-  confidence: number;      // 0-1
-  description: string;     // human-readable explanation
-  evidence: string;        // the offending content (truncated)
+  category: TrapCategory; // e.g. 'content-injection'
+  type: TrapType; // e.g. 'hidden-html'
+  severity: Severity; // 'low' | 'medium' | 'high' | 'critical'
+  confidence: number; // 0-1
+  description: string; // human-readable explanation
+  evidence: string; // the offending content (truncated)
   location?: { offset: number; length: number };
   detectorId: string;
-  source: 'pattern' | 'ml' | 'custom';  // how the threat was detected
+  source: "pattern" | "ml" | "custom"; // how the threat was detected
 }
 ```
 
 The `source` field indicates which detection method found the threat:
+
 - `'pattern'` — matched by a regex pattern from the built-in pattern database
 - `'ml'` — flagged by the ML classifier
 - `'custom'` — found by a user-provided custom detector
@@ -219,17 +221,19 @@ const armor = await AgentArmor.create({
   ml: {
     enabled: true,
     // Optional: point to a local model directory
-    modelDir: './models/agentarmor',
+    modelDir: "./models/agentarmor",
     // Optional: configure download behavior
     download: {
       timeoutMs: 120_000,
       retries: 2,
       onProgress: (received, total) => {
-        console.log(`Downloading model: ${Math.round(received / total * 100)}%`);
+        console.log(
+          `Downloading model: ${Math.round((received / total) * 100)}%`,
+        );
       },
     },
     // Optional: gracefully degrade if model is unavailable
-    onUnavailable: 'warn-and-skip',
+    onUnavailable: "warn-and-skip",
   },
 });
 ```
@@ -252,11 +256,11 @@ External Content --> [Pre-Ingestion Scanner] --> Agent Context
 
 Each interception point has both sync and async methods:
 
-| Stage | Sync | Async |
-|---|---|---|
-| Pre-ingestion | `scanSync(content)` | `await scan(content)` |
+| Stage          | Sync                        | Async                         |
+| -------------- | --------------------------- | ----------------------------- |
+| Pre-ingestion  | `scanSync(content)`         | `await scan(content)`         |
 | Post-retrieval | `scanRAGChunksSync(chunks)` | `await scanRAGChunks(chunks)` |
-| Pre-execution | `scanOutputSync(output)` | `await scanOutput(output)` |
+| Pre-execution  | `scanOutputSync(output)`    | `await scanOutput(output)`    |
 
 ## Detectors
 
@@ -287,26 +291,26 @@ Use `scanSync()` for latency-critical paths and `await scan()` when ML detection
 Extend Agent Armor with your own detectors:
 
 ```typescript
-import { AgentArmor, type Detector } from '@stylusnexus/agentarmor';
+import { AgentArmor, type Detector } from "@stylusnexus/agentarmor";
 
 const myDetector: Detector = {
-  id: 'my-custom-detector',
-  name: 'My Custom Detector',
-  category: 'content-injection',
+  id: "my-custom-detector",
+  name: "My Custom Detector",
+  category: "content-injection",
   scan: (content, options) => {
     // Your sync detection logic
     return {
       threats: [
         // Each threat must include the `source` field
         {
-          category: 'content-injection',
-          type: 'hidden-html',
-          severity: 'high',
+          category: "content-injection",
+          type: "hidden-html",
+          severity: "high",
           confidence: 0.95,
-          description: 'Found suspicious pattern',
+          description: "Found suspicious pattern",
           evidence: content.slice(0, 100),
-          detectorId: 'my-custom-detector',
-          source: 'custom',
+          detectorId: "my-custom-detector",
+          source: "custom",
         },
       ],
     };
@@ -330,7 +334,9 @@ Patterns are data-driven, not hardcoded. Update without upgrading the package:
 
 ```typescript
 // Fetch latest patterns from your pattern server
-const latestPatterns = await AgentArmor.fetchLatestPatterns('https://your-server.com/patterns.json');
+const latestPatterns = await AgentArmor.fetchLatestPatterns(
+  "https://your-server.com/patterns.json",
+);
 armor.loadPatterns(latestPatterns);
 
 // Or load custom patterns directly
@@ -354,17 +360,17 @@ Agent Armor works with any LLM agent framework:
 
 The `examples/` directory has ready-to-run integration examples:
 
-| Example | Audience | What it shows |
-|---|---|---|
+| Example                    | Audience      | What it shows                                                                       |
+| -------------------------- | ------------- | ----------------------------------------------------------------------------------- |
 | `customer-facing-agent.ts` | SMB / Startup | Protect a support chatbot: scan knowledge base, customer messages, and agent output |
-| `audit-logging.ts` | Enterprise | Policy enforcement + structured audit log for compliance (SOC2, ISO 27001) |
-| `tool-output-guard.ts` | Developer | Guard every tool call in a custom agent loop (web, DB, file, API) |
-| `rag-pipeline.ts` | Developer | Filter poisoned RAG chunks before LLM context assembly |
-| `express-middleware.ts` | Developer | Express middleware that scans and sanitizes requests |
-| `web-content-scanner.ts` | Developer | Scan raw HTML from web fetches in strict mode |
-| `ml-classifier.ts` | Developer | Async pipeline with ML classifier enabled |
-| `custom-detector.ts` | Developer | Implement and register a custom `Detector` |
-| `real-world-validation.ts` | Security | Validate against real-world attack samples from published research |
+| `audit-logging.ts`         | Enterprise    | Policy enforcement + structured audit log for compliance (SOC2, ISO 27001)          |
+| `tool-output-guard.ts`     | Developer     | Guard every tool call in a custom agent loop (web, DB, file, API)                   |
+| `rag-pipeline.ts`          | Developer     | Filter poisoned RAG chunks before LLM context assembly                              |
+| `express-middleware.ts`    | Developer     | Express middleware that scans and sanitizes requests                                |
+| `web-content-scanner.ts`   | Developer     | Scan raw HTML from web fetches in strict mode                                       |
+| `ml-classifier.ts`         | Developer     | Async pipeline with ML classifier enabled                                           |
+| `custom-detector.ts`       | Developer     | Implement and register a custom `Detector`                                          |
+| `real-world-validation.ts` | Security      | Validate against real-world attack samples from published research                  |
 
 Run any example:
 
@@ -418,17 +424,17 @@ If you're a researcher or practitioner thinking about these problems, we'd value
 
 Agent Armor protects **agents you build and control**. If you're writing agent code using Claude API, Azure OpenAI, LangChain, CrewAI, AutoGen, or any framework where you own the data pipeline, this is for you.
 
-| You are... | Agent Armor helps you... |
-|---|---|
-| **A developer** building an AI agent that calls tools, browses the web, or uses RAG | Scan every piece of external content before it enters your agent's context |
-| **A startup/SMB** with a customer-facing AI chatbot or support agent | Protect your knowledge base from poisoning and your agent's output from manipulation |
-| **An enterprise team** building custom AI tooling on top of LLM APIs | Add audit logging, policy enforcement, and compliance evidence to your agent pipeline |
+| You are...                                                                          | Agent Armor helps you...                                                              |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| **A developer** building an AI agent that calls tools, browses the web, or uses RAG | Scan every piece of external content before it enters your agent's context            |
+| **A startup/SMB** with a customer-facing AI chatbot or support agent                | Protect your knowledge base from poisoning and your agent's output from manipulation  |
+| **An enterprise team** building custom AI tooling on top of LLM APIs                | Add audit logging, policy enforcement, and compliance evidence to your agent pipeline |
 
 ### Can this protect our Microsoft 365 Copilot / Claude.ai / ChatGPT deployment?
 
 Not directly. Those are closed pipelines where the vendor controls the scanning. Agent Armor can't insert itself between Copilot and the content it reads from SharePoint or Teams. If you're using a hosted AI product as-is, the vendor is responsible for security on their end.
 
-Where it *does* fit: if your team is building custom agents *using* the Claude API, Azure OpenAI, or other LLM APIs, you control the pipeline, and Agent Armor is the scanning layer for it.
+Where it _does_ fit: if your team is building custom agents _using_ the Claude API, Azure OpenAI, or other LLM APIs, you control the pipeline, and Agent Armor is the scanning layer for it.
 
 ### Isn't this just prompt injection detection?
 
@@ -463,6 +469,7 @@ No. Everything runs locally. The regex detectors are pure computation with no ne
 We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and workflow details.
 
 Areas where contributions are especially valuable:
+
 - New adversarial samples for the evaluation suite (`scripts/eval/samples.ts`)
 - New detection patterns for the pattern database (`src/patterns/default-patterns.ts`)
 - Custom detectors for novel attack vectors
@@ -472,7 +479,7 @@ Areas where contributions are especially valuable:
 
 This project implements defenses based on the systematic framework proposed in:
 
-> Franklin, M., Tomasev, N., Jacobs, J., Leibo, J.Z., & Osindero, S. (2026). *AI Agent Traps*. Google DeepMind. [papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438)
+> Franklin, M., Tomasev, N., Jacobs, J., Leibo, J.Z., & Osindero, S. (2026). _AI Agent Traps_. Google DeepMind. [papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438)
 
 ## License
 
