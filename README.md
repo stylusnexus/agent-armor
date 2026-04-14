@@ -122,6 +122,7 @@ Run it: `npx tsx examples/real-world-validation.ts`
 | **Semantic Manipulation** | Reasoning | Shipped | Biased framing/priming, oversight evasion, persona hyperstition |
 | **Systemic** | Multi-Agent | Planned | Congestion traps, interdependence cascades, tacit collusion, compositional fragments, sybil attacks |
 | **Human-in-the-Loop** | Overseer | Planned | Approval fatigue induction, social engineering via compromised agent |
+| **Transport Integrity** | Supply Chain | Planned | Tool-call tampering (AC-1), credential exposure (AC-2), dependency substitution (AC-1.a), response anomaly screening ([Liu et al. 2026](https://arxiv.org/abs/2604.08407)) |
 
 ## Configuration
 

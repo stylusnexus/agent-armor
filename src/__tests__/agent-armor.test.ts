@@ -350,4 +350,46 @@ describe('AgentArmor', () => {
       expect(result.threats.every(t => t.source === 'pattern')).toBe(true);
     });
   });
+
+  describe('Transport Integrity taxonomy (#26)', () => {
+    it('accepts transportIntegrity config with all flags', () => {
+      const armor = new AgentArmor({
+        transportIntegrity: {
+          toolCallTampering: true,
+          credentialExposure: true,
+          dependencySubstitution: true,
+          responseAnomaly: true,
+        },
+      });
+      expect(armor).toBeInstanceOf(AgentArmor);
+    });
+
+    it('defaults transportIntegrity flags to true', () => {
+      const armor = new AgentArmor();
+      // No transportIntegrity detectors registered yet (no patterns),
+      // but config should be accepted without error
+      const result = armor.scanSync('safe content');
+      expect(result.clean).toBe(true);
+    });
+
+    it('allows disabling individual transportIntegrity flags', () => {
+      const armor = new AgentArmor({
+        transportIntegrity: {
+          toolCallTampering: false,
+          credentialExposure: false,
+        },
+      });
+      const result = armor.scanSync('safe content');
+      expect(result.clean).toBe(true);
+    });
+
+    it('transportIntegrity config merges with defaults', () => {
+      // Disabling one flag should not affect others
+      const armor = new AgentArmor({
+        transportIntegrity: { toolCallTampering: false },
+      });
+      const result = armor.scanSync('safe content');
+      expect(result.clean).toBe(true);
+    });
+  });
 });

@@ -14,7 +14,8 @@ export type TrapCategory =
   | 'cognitive-state'
   | 'behavioural-control'
   | 'systemic'
-  | 'human-in-the-loop';
+  | 'human-in-the-loop'
+  | 'transport-integrity';
 
 export type ContentInjectionType =
   | 'hidden-html'
@@ -49,13 +50,20 @@ export type HumanInTheLoopType =
   | 'approval-fatigue'
   | 'social-engineering';
 
+export type TransportIntegrityType =
+  | 'tool-call-tampering'
+  | 'credential-exposure'
+  | 'dependency-substitution'
+  | 'response-anomaly';
+
 export type TrapType =
   | ContentInjectionType
   | SemanticManipulationType
   | CognitiveStateType
   | BehaviouralControlType
   | SystemicType
-  | HumanInTheLoopType;
+  | HumanInTheLoopType
+  | TransportIntegrityType;
 
 // ---------------------------------------------------------------------------
 // Severity & confidence
@@ -208,6 +216,12 @@ export interface AgentArmorConfig {
     biasedFraming?: boolean;
     oversightEvasion?: boolean;
     personaHyperstition?: boolean;
+  };
+  transportIntegrity?: {
+    toolCallTampering?: boolean;
+    credentialExposure?: boolean;
+    dependencySubstitution?: boolean;
+    responseAnomaly?: boolean;
   };
   /** Custom detectors to add to the pipeline */
   customDetectors?: Detector[];

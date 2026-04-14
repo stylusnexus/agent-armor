@@ -34,6 +34,12 @@ const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
     oversightEvasion: true,
     personaHyperstition: true,
   },
+  transportIntegrity: {
+    toolCallTampering: true,
+    credentialExposure: true,
+    dependencySubstitution: true,
+    responseAnomaly: true,
+  },
   customDetectors: [],
   ml: {
     enabled: false,
@@ -50,7 +56,7 @@ const SEVERITY_ORDER: Record<Severity, number> = {
 
 /** Detector config: maps config flags to pattern DB keys + metadata */
 const DETECTOR_REGISTRY: Array<{
-  configGroup: 'contentInjection' | 'behaviouralControl' | 'cognitiveState' | 'semanticManipulation';
+  configGroup: 'contentInjection' | 'behaviouralControl' | 'cognitiveState' | 'semanticManipulation' | 'transportIntegrity';
   configKey: string;
   patternDbKey: string;
   id: string;
@@ -239,6 +245,10 @@ export class AgentArmor {
       semanticManipulation: {
         ...DEFAULT_CONFIG.semanticManipulation,
         ...config?.semanticManipulation,
+      },
+      transportIntegrity: {
+        ...DEFAULT_CONFIG.transportIntegrity,
+        ...config?.transportIntegrity,
       },
       ml: {
         ...DEFAULT_CONFIG.ml,
