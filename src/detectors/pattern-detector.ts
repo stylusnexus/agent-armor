@@ -17,7 +17,8 @@ export class PatternDetector extends BaseDetector {
   readonly name: string;
   readonly category: TrapCategory;
   protected readonly trapType: TrapType;
-  private readonly patterns: PatternEntry[];
+  /** Patterns with their regexes compiled once at construction, not per scan. */
+  private readonly compiled: Array<{ entry: PatternEntry; regex: RegExp }>;
   private readonly sanitizeMode: 'remove' | 'replace' | 'none';
   private readonly replaceText?: string;
 
@@ -35,7 +36,10 @@ export class PatternDetector extends BaseDetector {
     this.name = opts.name;
     this.category = opts.category;
     this.trapType = opts.trapType;
-    this.patterns = opts.patterns;
+    this.compiled = opts.patterns.map((entry) => ({
+      entry,
+      regex: compilePattern(entry),
+    }));
     this.sanitizeMode = opts.sanitizeMode ?? 'remove';
     this.replaceText = opts.replaceText;
   }
@@ -43,8 +47,8 @@ export class PatternDetector extends BaseDetector {
   findPatterns(content: string): PatternMatch[] {
     const matches: PatternMatch[] = [];
 
-    for (const entry of this.patterns) {
-      const regex = compilePattern(entry);
+    for (const { entry, regex } of this.compiled) {
+      regex.lastIndex = 0; // reset stateful /g cursor before reuse
       let match: RegExpExecArray | null;
 
       while ((match = regex.exec(content)) !== null) {

@@ -12,9 +12,15 @@ import type {
 import type { PatternDatabase } from './patterns/pattern-db';
 import { DEFAULT_PATTERNS } from './patterns/default-patterns';
 import { PatternDetector } from './detectors/pattern-detector';
+import {
+  normalizeForScan,
+  mapRangeToOriginal,
+  type NormalizedText,
+} from './normalize/unicode';
 
 const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
   strictness: 'balanced',
+  normalizeUnicode: true,
   contentInjection: {
     hiddenHTML: true,
     metadataInjection: true,
@@ -227,6 +233,8 @@ export class AgentArmor {
   private detectors: Detector[] = [];
   private patternDb: PatternDatabase;
   private mlDetector: Detector | null = null;
+  /** Built-in detector IDs that scan the normalized skeleton, not raw input. */
+  private normalizedDetectorIds = new Set<string>();
 
   constructor(config?: AgentArmorConfig) {
     this.config = {
@@ -399,6 +407,7 @@ export class AgentArmor {
   }
 
   private loadDetectors(): void {
+    this.normalizedDetectorIds.clear();
     for (const reg of DETECTOR_REGISTRY) {
       const groupConfig =
         this.config[reg.configGroup] as Record<string, boolean>;
@@ -418,22 +427,61 @@ export class AgentArmor {
           replaceText: reg.replaceText,
         })
       );
+
+      // Structural detectors (content-injection) must see the raw bytes — they
+      // exist to catch the invisible/obfuscation characters normalization
+      // strips. Everything else scans the normalized skeleton.
+      if (reg.category !== 'content-injection') {
+        this.normalizedDetectorIds.add(reg.id);
+      }
     }
 
     // Custom detectors
     this.detectors.push(...this.config.customDetectors);
   }
 
+  /** Re-map normalized-space threats back onto the original content. */
+  private remapThreats(
+    threats: Threat[],
+    norm: NormalizedText,
+    original: string
+  ): Threat[] {
+    return threats.map((t) => {
+      if (!t.location) return t;
+      const location = mapRangeToOriginal(
+        norm,
+        t.location.offset,
+        t.location.length
+      );
+      const slice = original.slice(
+        location.offset,
+        location.offset + location.length
+      );
+      const evidence = slice.length > 200 ? slice.slice(0, 197) + '...' : slice;
+      return { ...t, location, evidence };
+    });
+  }
+
   private runScanPipeline(content: string): ScanResult {
     const start = performance.now();
     const allThreats: Threat[] = [];
+    const norm = this.config.normalizeUnicode
+      ? normalizeForScan(content)
+      : null;
 
     for (const detector of this.detectors) {
+      const useNorm =
+        norm !== null && norm.changed && this.normalizedDetectorIds.has(detector.id);
+      const scanInput = useNorm ? norm!.normalized : content;
       try {
-        const result = detector.scan(content, {
+        const result = detector.scan(scanInput, {
           strictness: this.config.strictness,
         });
-        allThreats.push(...result.threats);
+        allThreats.push(
+          ...(useNorm
+            ? this.remapThreats(result.threats, norm!, content)
+            : result.threats)
+        );
       } catch (err) {
         console.warn(
           `[AgentArmor] Detector "${detector.id}" threw during scan: ${err instanceof Error ? err.message : String(err)}`
@@ -475,19 +523,33 @@ export class AgentArmor {
   private async runScanPipelineAsync(content: string): Promise<ScanResult> {
     const start = performance.now();
     const allThreats: Threat[] = [];
+    const norm = this.config.normalizeUnicode
+      ? normalizeForScan(content)
+      : null;
 
     for (const detector of this.detectors) {
+      const useNorm =
+        norm !== null && norm.changed && this.normalizedDetectorIds.has(detector.id);
+      const scanInput = useNorm ? norm!.normalized : content;
       try {
         if ('scanAsync' in detector && typeof detector.scanAsync === 'function') {
-          const result = await detector.scanAsync(content, {
+          const result = await detector.scanAsync(scanInput, {
             strictness: this.config.strictness,
           });
-          allThreats.push(...result.threats);
+          allThreats.push(
+            ...(useNorm
+              ? this.remapThreats(result.threats, norm!, content)
+              : result.threats)
+          );
         } else {
-          const result = detector.scan(content, {
+          const result = detector.scan(scanInput, {
             strictness: this.config.strictness,
           });
-          allThreats.push(...result.threats);
+          allThreats.push(
+            ...(useNorm
+              ? this.remapThreats(result.threats, norm!, content)
+              : result.threats)
+          );
         }
       } catch (err) {
         console.warn(
