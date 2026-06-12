@@ -820,7 +820,10 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       // not just turn it off). Distinct from oe-skip-verify, which disables checks.
       {
         id: 'oe-report-safe-verdict',
-        regex: '(?:report|mark|classify|flag|label|certify|treat|record)\\s+(?:this|it|the\\s+(?:file|content|document|code|input|text|payload|message|above|following))?\\s*(?:as\\s+)?(?:clean|safe|benign|harmless|trusted|legitimate|non[\\s-]?malicious|innocuous|verified|approved)\\b',
+        // Requires an explicit object (this/it/the [noun]) and "as" before the
+        // verdict, so descriptive prose ("...will certify the report as approved")
+        // and bare nouns don't collide with the verb alternatives.
+        regex: '(?:report|mark|classify|label|certify|treat|record)\\s+(?:this|it|the)\\s+(?:(?:file|content|document|code|input|text|payload|message|injection|above|following)\\s+)?as\\s+(?:clean|safe|benign|harmless|trusted|legitimate|non[\\s-]?malicious|innocuous|verified|approved)\\b',
         flags: 'gi',
         category: 'semantic-manipulation',
         type: 'oversight-evasion',
@@ -831,29 +834,36 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'oe-write-safe-report',
-        regex: '(?:write|produce|generate|return|output|give|provide)\\s+(?:a\\s+|an\\s+|the\\s+)?(?:safe|clean|benign|passing|all[\\s-]?clear|positive|favou?rable|reassuring)\\s+(?:report|assessment|verdict|review|summary|analysis|result|response|conclusion)\\b',
+        // Verbs here are themselves instruction signals, so boost is disabled to
+        // avoid double-counting. Adjectives/nouns narrowed to scan-verdict vocab
+        // (no generic "positive review").
+        regex: '(?:write|produce|generate|return|output|give|provide)\\s+(?:a\\s+|an\\s+|the\\s+)?(?:safe|clean|benign|passing|all[\\s-]?clear|green)\\s+(?:report|assessment|verdict|analysis|audit|scan|evaluation)\\b',
         flags: 'gi',
         category: 'semantic-manipulation',
         type: 'oversight-evasion',
         severity: 'high',
         confidence: 0.78,
         label: 'Instruction to write a clean/safe report',
-        boostOnInstructions: true,
       },
       {
         id: 'oe-suppress-finding',
-        regex: '(?:do\\s+not|don\'t|never)\\s+(?:flag|report|disclose|reveal|mention|warn\\s+(?:about|of)|alert\\s+(?:on|about)|raise|surface)\\s+(?:this|it|the\\s+(?:above|following|file|content|finding|issue|threat|payload|injection)|any\\s+(?:issue|threat|problem|concern|finding)s?|anything\\s+(?:suspicious|unusual|here))\\b',
+        // Scanner-specific verbs only (flag/report/surface/raise/alert/warn) so
+        // generic "do not disclose this information" stays benign. "do not" is
+        // itself an instruction signal, so boost is disabled.
+        regex: '(?:do\\s+not|don\'?t|never)\\s+(?:flag|report|surface|raise|alert\\s+(?:on|about)|warn\\s+(?:about|of))\\s+(?:this|it|the\\s+(?:above|following|file|content|finding|issue|threat|payload|injection)|any\\s+(?:issue|threat|problem|concern|finding)s?|anything\\s+(?:suspicious|unusual|here))\\b',
         flags: 'gi',
         category: 'semantic-manipulation',
         type: 'oversight-evasion',
         severity: 'high',
         confidence: 0.72,
         label: 'Instruction to suppress reporting a finding',
-        boostOnInstructions: true,
       },
       {
         id: 'oe-clean-proceed',
-        regex: '(?:this|the)\\s+(?:file|content|document|code|input|text|payload|message)\\s+(?:is|has\\s+been)\\s+(?:already\\s+)?(?:clean|safe|verified|trusted|scanned|approved|vetted|whitelisted|checked)\\s*[,.;:\\-]?\\s*(?:so\\s+)?(?:you\\s+(?:can|may|don\'t|should)|no\\s+need\\s+to|skip|proceed|continue|do\\s+not\\s+(?:re[\\s-]?)?(?:scan|check|review|verify|analy[sz]e))',
+        // Trailing clause must direct skipping the scan/check, not a generic
+        // "proceed", so normal workflow prose ("...verified, so you can proceed
+        // to the next step") stays benign.
+        regex: '(?:this|the)\\s+(?:file|content|document|code|input|text|payload|message)\\s+(?:is|has\\s+been)\\s+(?:already\\s+)?(?:clean|safe|verified|trusted|scanned|approved|vetted|whitelisted|checked)\\s*[,.;:\\-]?\\s*(?:so\\s+)?(?:no\\s+need\\s+to\\s+(?:re[\\s-]?)?(?:scan|check|review|verify|analy[sz]e)|skip\\s+(?:the\\s+)?(?:scan|check|review|verification|security)|do\\s+not\\s+(?:re[\\s-]?)?(?:scan|check|review|verify|analy[sz]e)|don\'?t\\s+(?:re[\\s-]?)?(?:scan|check|review|verify))',
         flags: 'gi',
         category: 'semantic-manipulation',
         type: 'oversight-evasion',

@@ -4,7 +4,7 @@
  * Pattern detectors match raw strings, so an attacker can slip past them with
  * visually identical characters (Cyrillic/Greek look-alikes, fullwidth forms,
  * mathematical alphanumerics) or by sprinkling invisible characters between
- * letters. This module produces a normalized "skeleton" of the input that
+ * letters. This module produces a normalized 'skeleton' of the input that
  * semantic detectors scan instead, while keeping an offset map back to the
  * original so evidence and sanitization still operate on the real bytes.
  *
@@ -27,86 +27,86 @@
  */
 const CONFUSABLES: Record<string, string> = {
   // ── Cyrillic (lowercase) ──
-  "а": "a", // а
-  "е": "e", // е
-  "о": "o", // о
-  "р": "p", // р
-  "с": "c", // с
-  "у": "y", // у
-  "х": "x", // х
-  "і": "i", // і
-  "ј": "j", // ј
-  "ѕ": "s", // ѕ
-  "һ": "h", // һ
-  "ԁ": "d", // ԁ
-  "ԛ": "q", // ԛ
-  "ɡ": "g", // ɡ (Latin small script g)
+  'а': 'a', // а
+  'е': 'e', // е
+  'о': 'o', // о
+  'р': 'p', // р
+  'с': 'c', // с
+  'у': 'y', // у
+  'х': 'x', // х
+  'і': 'i', // і
+  'ј': 'j', // ј
+  'ѕ': 's', // ѕ
+  'һ': 'h', // һ
+  'ԁ': 'd', // ԁ
+  'ԛ': 'q', // ԛ
+  'ɡ': 'g', // ɡ (Latin small script g)
   // ── Cyrillic (uppercase) ──
-  "А": "A", // А
-  "В": "B", // В
-  "Е": "E", // Е
-  "К": "K", // К
-  "М": "M", // М
-  "Н": "H", // Н
-  "О": "O", // О
-  "Р": "P", // Р
-  "С": "C", // С
-  "Т": "T", // Т
-  "У": "Y", // У
-  "Х": "X", // Х
-  "І": "I", // І
-  "Ѕ": "S", // Ѕ
-  "Ј": "J", // Ј
+  'А': 'A', // А
+  'В': 'B', // В
+  'Е': 'E', // Е
+  'К': 'K', // К
+  'М': 'M', // М
+  'Н': 'H', // Н
+  'О': 'O', // О
+  'Р': 'P', // Р
+  'С': 'C', // С
+  'Т': 'T', // Т
+  'У': 'Y', // У
+  'Х': 'X', // Х
+  'І': 'I', // І
+  'Ѕ': 'S', // Ѕ
+  'Ј': 'J', // Ј
   // ── Greek (lowercase) ──
-  "α": "a", // α
-  "ο": "o", // ο
-  "ε": "e", // ε
-  "ρ": "p", // ρ
-  "ν": "v", // ν
-  "ι": "i", // ι
-  "κ": "k", // κ
-  "χ": "x", // χ
+  'α': 'a', // α
+  'ο': 'o', // ο
+  'ε': 'e', // ε
+  'ρ': 'p', // ρ
+  'ν': 'v', // ν
+  'ι': 'i', // ι
+  'κ': 'k', // κ
+  'χ': 'x', // χ
   // ── Greek (uppercase) ──
-  "Α": "A", // Α
-  "Β": "B", // Β
-  "Ε": "E", // Ε
-  "Ζ": "Z", // Ζ
-  "Η": "H", // Η
-  "Ι": "I", // Ι
-  "Κ": "K", // Κ
-  "Μ": "M", // Μ
-  "Ν": "N", // Ν
-  "Ο": "O", // Ο
-  "Ρ": "P", // Ρ
-  "Τ": "T", // Τ
-  "Υ": "Y", // Υ
-  "Χ": "X", // Χ
+  'Α': 'A', // Α
+  'Β': 'B', // Β
+  'Ε': 'E', // Ε
+  'Ζ': 'Z', // Ζ
+  'Η': 'H', // Η
+  'Ι': 'I', // Ι
+  'Κ': 'K', // Κ
+  'Μ': 'M', // Μ
+  'Ν': 'N', // Ν
+  'Ο': 'O', // Ο
+  'Ρ': 'P', // Ρ
+  'Τ': 'T', // Τ
+  'Υ': 'Y', // Υ
+  'Χ': 'X', // Χ
 };
 
 /** Codepoints stripped entirely: zero-width, bidi controls, joiners, VS, soft hyphen. */
 const STRIP = new Set<string>([
-  "­", // soft hyphen
-  "᠎", // Mongolian vowel separator
-  "​", // zero-width space
-  "‌", // zero-width non-joiner
-  "‍", // zero-width joiner
-  "‎", // LTR mark
-  "‏", // RTL mark
-  "⁠", // word joiner
-  "⁡", // function application
-  "⁢", // invisible times
-  "⁣", // invisible separator
-  "⁤", // invisible plus
-  "‪", // LRE
-  "‫", // RLE
-  "‬", // PDF
-  "‭", // LRO
-  "‮", // RLO
-  "⁦", // LRI
-  "⁧", // RLI
-  "⁨", // FSI
-  "⁩", // PDI
-  "﻿", // BOM / zero-width no-break space
+  '­', // soft hyphen
+  '᠎', // Mongolian vowel separator
+  '​', // zero-width space
+  '‌', // zero-width non-joiner
+  '‍', // zero-width joiner
+  '‎', // LTR mark
+  '‏', // RTL mark
+  '⁠', // word joiner
+  '⁡', // function application
+  '⁢', // invisible times
+  '⁣', // invisible separator
+  '⁤', // invisible plus
+  '‪', // LRE
+  '‫', // RLE
+  '‬', // PDF
+  '‭', // LRO
+  '‮', // RLO
+  '⁦', // LRI
+  '⁧', // RLI
+  '⁨', // FSI
+  '⁩', // PDI
+  '﻿', // BOM / zero-width no-break space
 ]);
 
 const isVariationSelector = (cp: number): boolean =>
@@ -172,7 +172,7 @@ export function normalizeForScan(content: string): NormalizedText {
       continue;
     }
 
-    const folded = ch.normalize("NFKC");
+    const folded = ch.normalize('NFKC');
     for (const c of folded) {
       const skeleton = CONFUSABLES[c] ?? c;
       for (let k = 0; k < skeleton.length; k++) {
@@ -183,7 +183,7 @@ export function normalizeForScan(content: string): NormalizedText {
     srcIdx += unitLen;
   }
 
-  const normalized = out.join("");
+  const normalized = out.join('');
   return {
     normalized,
     map,
@@ -208,8 +208,18 @@ export function mapRangeToOriginal(
   }
   const startIdx = Math.min(offset, norm.map.length - 1);
   const origStart = norm.map[startIdx];
-  const endUnit = offset + length;
-  const origEnd =
-    endUnit < norm.map.length ? norm.map[endUnit] : norm.originalLength;
+  // End = just past the last source codepoint covered by the range. We find the
+  // next surviving source index after the last covered unit, which correctly
+  // spans multi-unit expansions (one source char -> several normalized units)
+  // and includes any dropped characters that fell inside the span.
+  const lastIdx = Math.min(offset + length - 1, norm.map.length - 1);
+  const lastSrc = norm.map[lastIdx];
+  let origEnd = norm.originalLength;
+  for (let k = lastIdx + 1; k < norm.map.length; k++) {
+    if (norm.map[k] > lastSrc) {
+      origEnd = norm.map[k];
+      break;
+    }
+  }
   return { offset: origStart, length: Math.max(0, origEnd - origStart) };
 }
