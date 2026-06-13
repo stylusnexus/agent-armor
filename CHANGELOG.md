@@ -4,17 +4,8 @@ All notable changes to this project will be documented in this file.
 
 This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor versions may contain breaking changes.
 
-## [Unreleased]
-
-### Added
-- **Scanner-directed verdict-suppression detection** (oversight-evasion): catches content instructing the security layer to emit a clean result ("report this as safe", "write a safe report", "do not flag", pre-cleared "skip the scan", "ignore this in your analysis"). Distinct from disabling checks — these make the guard lie. Motivated by the rules-file backdoor / config-poisoning technique class.
-- **Unicode normalization pre-pass** (`normalizeUnicode` config, default `true`): semantic detectors scan an NFKC + confusable-folded skeleton with invisible characters stripped, so payloads obfuscated with Cyrillic/Greek homoglyphs, fullwidth/math forms, or zero-width characters are detected. Evidence and offsets are remapped back to the original text; structural detectors still scan raw bytes.
-- 11 new eval samples (4 verdict-suppression + 2 homoglyph adversarial, 5 near-miss + 2 non-Latin benign)
-
-### Changed
-- Pattern database bumped 0.4.0 → 0.5.0
-- Eval suite expanded to 103 samples (66 adversarial, 37 benign); balanced detection 90.9%, FP 0.0%
-- Compiled regexes are now cached per detector instead of recompiled on every scan
+<!-- New entries are generated automatically by release-please from Conventional
+Commit messages on merge to main. Do not edit unreleased entries by hand. -->
 
 ## [0.2.5] - 2026-04-07
 
