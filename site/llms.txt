@@ -30,6 +30,8 @@ Pattern-based detection using a two-pass approach:
 
 Three strictness levels: permissive, balanced, strict.
 
+Detection is deterministic by default: the same input always yields the same verdict. Patterns run first (sub-millisecond, zero dependencies); the optional ML classifier is an added layer, not the decision boundary. Inference is probabilistic — the execution gate is not.
+
 Optional ML classifier (`@stylusnexus/agentarmor-ml`) runs ONNX inference for deeper detection.
 
 ## Quick start
