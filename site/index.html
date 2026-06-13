@@ -37,7 +37,7 @@
       "name": "Stylus Nexus Holdings, LLC",
       "url": "https://stylusnexus.com"
     },
-    "softwareVersion": "0.2.5",
+    "softwareVersion": "0.2.7",
     "citation": {
       "@type": "ScholarlyArticle",
       "name": "On the Viability of AI Agent Traps",
@@ -371,6 +371,11 @@
           </div>
           <div class="threat-card">
             <span class="status status-shipped">Shipped</span>
+            <h3>Multi-turn / Session</h3>
+            <p>Cross-turn split-payload detection via scanSession — instructions chopped across conversation turns</p>
+          </div>
+          <div class="threat-card">
+            <span class="status status-shipped">Shipped</span>
             <h3>ML Classifier</h3>
             <p>DeBERTa-v3 multi-label model via ONNX. Optional async detection alongside regex patterns.</p>
           </div>
@@ -406,18 +411,18 @@
 
     <section class="eval">
       <div class="container">
-        <h2>Eval results (v0.4.0 patterns)</h2>
+        <h2>Eval results (v0.6.0 patterns)</h2>
         <table class="eval-table">
           <thead>
             <tr><th>Strictness</th><th>Detection Rate</th><th>False Positive Rate</th></tr>
           </thead>
           <tbody>
-            <tr><td>Permissive</td><td>79.7%</td><td>0.0%</td></tr>
-            <tr><td>Balanced</td><td>89.8%</td><td>0.0%</td></tr>
-            <tr><td>Strict</td><td>89.8%</td><td>0.0%</td></tr>
+            <tr><td>Permissive</td><td>82.1%</td><td>0.0%</td></tr>
+            <tr><td>Balanced</td><td>91.0%</td><td>0.0%</td></tr>
+            <tr><td>Strict</td><td>91.0%</td><td>0.0%</td></tr>
           </tbody>
         </table>
-        <p style="color: var(--text-muted); font-size: 13px; margin-top: 12px;">86 curated samples (59 adversarial, 27 benign) from WASP, HackAPrompt, Greshake et al., and 2025-2026 real-world incidents.</p>
+        <p style="color: var(--text-muted); font-size: 13px; margin-top: 12px;">105 curated samples (67 adversarial, 38 benign) from WASP, HackAPrompt, Greshake et al., and 2025-2026 real-world incidents.</p>
         <p style="color: var(--text-muted); font-size: 13px; margin-top: 8px;">Includes 10 samples from real-world attacks (MCP poisoning, RAG saturation, supply chain injection) that regex does not yet catch, measuring the gap the ML classifier closes. On the original 49 adversarial samples, regex detection is 100% at balanced.</p>
       </div>
     </section>
