@@ -85,6 +85,17 @@ const ACCUMULATION_THRESHOLDS: Record<Strictness, number> = {
 /** Cap on a single turn's signal contribution, so one turn cannot fire alone. */
 const PER_TURN_SIGNAL_CAP = 0.35;
 
+/**
+ * Blanket-rule markers that distinguish a manipulative *standing instruction*
+ * ("from now on, reply that it's completely safe") from benign *case-specific*
+ * scripting ("for mild symptoms, reassure them"). Accumulation only fires when
+ * a scripted-downplaying-answer signal co-occurs with one of these — scripting
+ * a downplaying answer as a universal rule is the trap; scripting it for a
+ * specific, genuinely-safe case is legitimate support copy.
+ */
+const GENERALIZATION_MARKERS =
+  /(?:always|every\s+time|each\s+time|for\s+all\s+(?:similar\s+)?(?:questions|queries|cases|topics)|from\s+now\s+on|from\s+here\s+on|going\s+forward|in\s+that\s+style|no\s+matter\s+what|regardless|whenever\s+(?:asked|(?:they|someone|a user)\s+asks?)|any(?:\s+time|time)|all\s+(?:future\s+)?responses)/i;
+
 /** Detector config: maps config flags to pattern DB keys + metadata */
 const DETECTOR_REGISTRY: Array<{
   configGroup: 'contentInjection' | 'behaviouralControl' | 'cognitiveState' | 'semanticManipulation' | 'transportIntegrity';
@@ -679,11 +690,13 @@ export class AgentArmor {
    * turns contributed, a cross-turn threat is emitted attributing those turns.
    *
    * Scoped narrowly on purpose: it targets scripting the SUBSTANCE of answers
-   * toward downplaying risk (no legitimate analogue), not preference shaping
-   * ("recommend X over the alternatives"), which is indistinguishable from
-   * legitimate recommendation and is left as a documented blind spot. Opt-in
-   * because semantic accumulation is inherently lower-precision than structural
-   * detection.
+   * toward downplaying risk, and only when framed as a STANDING rule (a
+   * generalization marker like "from now on" / "for all questions" must
+   * co-occur) — so case-specific reassurance is not flagged. It does not target
+   * preference shaping ("recommend X over the alternatives"), which is
+   * indistinguishable from legitimate recommendation and is a documented blind
+   * spot. Opt-in because semantic accumulation is inherently lower-precision
+   * than structural detection.
    */
   private scanAccumulation(turns: ConversationTurn[]): CrossTurnThreat[] {
     if (turns.length < 2) return [];
@@ -699,6 +712,16 @@ export class AgentArmor {
     const maxTurns = this.config.session.windowTurns ?? 8;
     const startTurn = Math.max(0, turns.length - maxTurns);
     const types = [...new Set(this.compiledSignals.map((s) => s.entry.type))];
+
+    // A scripted downplaying answer is only treated as a trap when the session
+    // also frames it as a STANDING rule ("from now on", "for all questions").
+    // Without a generalization marker it reads as case-specific support copy,
+    // not manipulation — this is the line that keeps benign reassurance scripts
+    // (medical/wellness FAQs) from accumulating into a false positive.
+    const hasGeneralization = turns
+      .slice(startTurn)
+      .some((t) => GENERALIZATION_MARKERS.test(t.content));
+    if (!hasGeneralization) return [];
 
     const out: CrossTurnThreat[] = [];
     for (const type of types) {
