@@ -1,0 +1,8 @@
+{
+  "_comment": "Committed eval floors enforced by `npm run eval:gate` in CI. Pattern, threshold, and default changes ship through a different door than code review (a config edit, often one approver). This file is that door's gate: a loosened regex that raises the false-positive rate, or a threshold nudge that drops detection, fails CI instead of shipping quietly.",
+  "_policy": "Floors are the CURRENT measured baseline (run `npm run eval`), not an aspirational target — the gate prevents regression from where detection is today. The gap between these floors and 100% is the unshipped-detector surface: the rw-* real-world incident samples target P1/P2 detectors (sub-agent-spawning via tool descriptions, session-scoped memory poisoning, HITL forgery, oversight-evasion) that are not complete yet. maxFalsePositiveRate is 0.0 everywhere: any new false positive on a benign sample fails CI.",
+  "_howToChange": "Adding a hard adversarial sample the detectors miss will lower the measured rate and fail the gate. That is intended: lower the matching floor in THIS file in the same PR, so the trade-off is reviewed alongside the sample. When a new detector raises detection, raise the floor to lock in the gain.",
+  "permissive": { "minDetectionRate": 0.818, "maxFalsePositiveRate": 0.0 },
+  "balanced": { "minDetectionRate": 0.909, "maxFalsePositiveRate": 0.0 },
+  "strict": { "minDetectionRate": 0.909, "maxFalsePositiveRate": 0.0 }
+}

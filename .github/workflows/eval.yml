@@ -1,0 +1,39 @@
+# Eval gate: protects the fast-moving organs (patterns, detector thresholds,
+# defaults) that ship through a different door than feature code. A loosened
+# regex or nudged threshold that drops detection or raises the false-positive
+# rate fails here instead of shipping quietly. Runs on every PR — a regression
+# can originate anywhere, so the gate is not path-filtered.
+#
+# - typecheck:       the Constraint organ (src/, code-review-protected)
+# - typecheck:eval:  type-check the eval scripts themselves (tsx skips this)
+# - test:run:        unit tests (the Verification organ)
+# - eval:gate:       the detection-quality regression gate (thresholds.json)
+# - eval:multi-turn: the stateful blind-spot harness (#35); fails on a benign
+#                    false positive or any sample sliding below its committed
+#                    expectedToday prediction, otherwise informational
+name: eval
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run typecheck:eval
+      - run: npm run test:run
+      - run: npm run eval:gate
+      - run: npm run eval:multi-turn

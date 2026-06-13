@@ -8,6 +8,7 @@
  * Usage: npx tsx scripts/eval/run-eval.ts
  */
 
+import { readFileSync } from 'node:fs';
 import { AgentArmor } from '../../src/agent-armor';
 import {
   ALL_SAMPLES,
@@ -104,7 +105,13 @@ function computeSummary(results: DetectionResult[]): Summary {
   );
   const benign = results.filter((r) => r.sample.category === 'benign');
 
-  // Detection rate: what fraction of adversarial samples had at least 1 TP
+  // Detection rate: what fraction of adversarial samples had at least 1 TP.
+  // KNOWN LIMITATION: a multi-label sample counts as detected the moment ANY
+  // one expected trap type fires, so a single detector regressing to zero on a
+  // multi-label sample would not move this aggregate. This is the existing
+  // definition of the published headline rate; the gate inherits it rather than
+  // silently redefining it. Per-trap-type rates are in `byCategory` below; a
+  // future per-label floor could gate those directly.
   const detected = adversarial.filter((r) => r.truePositives.length > 0);
   const overallDetectionRate = detected.length / adversarial.length;
 
@@ -252,10 +259,158 @@ function printReport(summary: Summary): void {
   console.log('='.repeat(70) + '\n');
 }
 
+// ─── Threshold gate ──────────────────────────────────────────────────────────
+
+interface ThresholdEntry {
+  minDetectionRate: number;
+  maxFalsePositiveRate: number;
+}
+
+type Thresholds = Record<Strictness, ThresholdEntry>;
+
+interface GateFailure {
+  strictness: Strictness;
+  metric: 'detection' | 'falsePositive';
+  actual: number;
+  bound: number;
+}
+
+const STRICTNESS_LEVELS: Strictness[] = ['permissive', 'balanced', 'strict'];
+
+function isRate(v: unknown): v is number {
+  return typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1;
+}
+
+/**
+ * Load and validate thresholds.json. Throws (fails the gate loudly) on any
+ * missing strictness key or out-of-range / non-numeric bound, so a malformed
+ * config cannot silently pass the gate by skipping a comparison.
+ */
+function loadThresholds(): Thresholds {
+  const raw = readFileSync(
+    new URL('./thresholds.json', import.meta.url),
+    'utf-8'
+  );
+  const parsed = JSON.parse(raw) as Record<string, unknown>;
+  const out = {} as Thresholds;
+  for (const level of STRICTNESS_LEVELS) {
+    const entry = parsed[level] as Partial<ThresholdEntry> | undefined;
+    if (!entry || typeof entry !== 'object') {
+      throw new Error(`thresholds.json: missing "${level}" entry`);
+    }
+    if (!isRate(entry.minDetectionRate)) {
+      throw new Error(
+        `thresholds.json: "${level}.minDetectionRate" must be a number in [0,1]`
+      );
+    }
+    if (!isRate(entry.maxFalsePositiveRate)) {
+      throw new Error(
+        `thresholds.json: "${level}.maxFalsePositiveRate" must be a number in [0,1]`
+      );
+    }
+    out[level] = {
+      minDetectionRate: entry.minDetectionRate,
+      maxFalsePositiveRate: entry.maxFalsePositiveRate,
+    };
+  }
+  return out;
+}
+
+/**
+ * Compare summaries against the committed floors in thresholds.json.
+ * Returns the list of violations (empty = pass). Float comparisons use a
+ * small epsilon so deterministic 1.0 / 0.0 results are not tripped by
+ * representation error.
+ */
+function checkGate(
+  summaries: Summary[],
+  thresholds: Thresholds
+): GateFailure[] {
+  const EPS = 1e-9;
+  const failures: GateFailure[] = [];
+  for (const summary of summaries) {
+    const bound = thresholds[summary.strictness];
+    if (!bound) {
+      throw new Error(`no threshold entry for strictness "${summary.strictness}"`);
+    }
+    // Guard against an eroded dataset: empty cohorts produce 0/0 = NaN, and
+    // every `NaN < x` / `NaN > x` comparison is false, so a metric of NaN would
+    // otherwise pass the gate with zero coverage. Treat it as a hard failure.
+    if (summary.adversarialSamples === 0 || summary.benignSamples === 0) {
+      throw new Error(
+        `empty eval cohort for "${summary.strictness}" ` +
+          `(${summary.adversarialSamples} adversarial, ${summary.benignSamples} benign)`
+      );
+    }
+    if (
+      !Number.isFinite(summary.overallDetectionRate) ||
+      !Number.isFinite(summary.overallFalsePositiveRate)
+    ) {
+      throw new Error(`non-finite metric for strictness "${summary.strictness}"`);
+    }
+    if (summary.overallDetectionRate < bound.minDetectionRate - EPS) {
+      failures.push({
+        strictness: summary.strictness,
+        metric: 'detection',
+        actual: summary.overallDetectionRate,
+        bound: bound.minDetectionRate,
+      });
+    }
+    if (summary.overallFalsePositiveRate > bound.maxFalsePositiveRate + EPS) {
+      failures.push({
+        strictness: summary.strictness,
+        metric: 'falsePositive',
+        actual: summary.overallFalsePositiveRate,
+        bound: bound.maxFalsePositiveRate,
+      });
+    }
+  }
+  return failures;
+}
+
+function printGateResult(failures: GateFailure[]): void {
+  const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
+  console.log('\n' + '='.repeat(70));
+  console.log('  EVAL GATE');
+  console.log('='.repeat(70));
+  if (failures.length === 0) {
+    console.log('  PASS — all strictness levels meet committed floors.');
+    console.log('='.repeat(70) + '\n');
+    return;
+  }
+  console.log('  FAIL — regression against scripts/eval/thresholds.json:\n');
+  for (const f of failures) {
+    if (f.metric === 'detection') {
+      console.log(
+        `  [${f.strictness}] detection rate ${pct(f.actual)} below floor ${pct(f.bound)}`
+      );
+    } else {
+      console.log(
+        `  [${f.strictness}] false-positive rate ${pct(f.actual)} above ceiling ${pct(f.bound)}`
+      );
+    }
+  }
+  console.log(
+    '\n  If this drop is intentional, edit scripts/eval/thresholds.json in'
+  );
+  console.log('  this same PR so the trade-off is reviewed alongside the change.');
+  console.log('='.repeat(70) + '\n');
+}
+
 // ─── Run all three strictness levels ─────────────────────────────────────────
 
+const gate = process.argv.includes('--gate');
+
+const summaries: Summary[] = [];
 for (const strictness of ['permissive', 'balanced', 'strict'] as const) {
   const { summary } = evaluate(strictness);
   summary.strictness = strictness;
+  summaries.push(summary);
   printReport(summary);
+}
+
+if (gate) {
+  const failures = checkGate(summaries, loadThresholds());
+  printGateResult(failures);
+  if (failures.length > 0) process.exit(1);
 }
