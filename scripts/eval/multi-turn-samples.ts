@@ -120,7 +120,12 @@ const adversarial: MultiTurnSample[] = [
     source: 'synthetic',
     category: 'adversarial',
     description: 'Persistent biased preference built incrementally across turns',
-    expectedToday: 'cumulative',
+    // Documented blind spot: preference-poisoning ("lead with X / recommend X
+    // over alternatives") is structurally identical to legitimate
+    // recommendation and sales enablement, so accumulation deliberately does
+    // not target it — a regex signal cannot separate the two without false
+    // positives. Closing this needs the ML classifier or semantic analysis.
+    expectedToday: 'blind-spot',
   },
 
   // Contextual-learning trap established across turns: a biased Q&A pattern is

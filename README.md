@@ -235,7 +235,7 @@ result.clean; // false if any per-turn OR cross-turn threat
 Two cross-turn detectors run behind this method:
 
 - **Split-payload window** (always on): catches a single payload chopped across a turn boundary — e.g. `ignore all previous` + `instructions…`. A threat is reported only when its match straddles two turns, so benign repetition is never fused into a false positive. Each `CrossTurnThreat` names its `contributingTurns`.
-- **Signal accumulation** (opt-in, `session.accumulation: true`): catches gradual memory poisoning and contextual-learning drift, where biased signals **repeat** across turns without any single turn tripping a threshold. It is opt-in because semantic accumulation is inherently lower-precision than structural detection — it targets biased-substance shaping (e.g. scripting "reply that it's completely safe"), not benign style/format preferences.
+- **Signal accumulation** (opt-in, `session.accumulation: true`): catches **contextual-learning drift** — scripting the agent to give a specific risk-downplaying answer (e.g. "when asked if it's safe, reply 'completely safe'") repeated across turns, where no single turn trips a threshold. It is opt-in because semantic accumulation is inherently lower-precision than structural detection. It deliberately does **not** target preference shaping ("recommend X over the alternatives"): that is structurally identical to legitimate recommendation, so gradual **memory poisoning via preference remains a known blind spot** rather than a high-false-positive detector — closing it needs the ML classifier or semantic analysis.
 
 ```typescript
 const armor = AgentArmor.regexOnly({ session: { accumulation: true } });
@@ -419,7 +419,7 @@ Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy. Here's
 
 - **Content Injection** (4 detectors) and **Behavioural Control** (3 detectors) since v0.1.0
 - **Cognitive State** (3 detectors) and **Semantic Manipulation** (3 detectors) since v0.2.0
-- **Multi-turn / session scanning** (`scanSession`): cross-turn split-payload detection (always on) plus opt-in signal accumulation for gradual memory poisoning and contextual-learning drift (#35)
+- **Multi-turn / session scanning** (`scanSession`): cross-turn split-payload detection (always on) plus opt-in signal accumulation for contextual-learning drift (#35)
 - ML classifier (DeBERTa-v3-small, ONNX) as optional companion package
 - Pattern database v0.6.0
 

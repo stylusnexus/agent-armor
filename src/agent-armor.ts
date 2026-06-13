@@ -667,46 +667,23 @@ export class AgentArmor {
   }
 
   /**
-   * Phase 1 cross-turn detection: catch payloads split across a turn boundary.
-   *
-   * Each adjacent turn boundary (within the trailing `windowTurns` turns) is
-   * scanned independently: the tail of the earlier turn and the head of the
-   * later turn — each capped at `windowChars` so a padded turn cannot evict its
-   * neighbour — are joined and scanned as one string. A threat whose match span
-   * crosses the boundary (touches both sides) is a genuine split payload that
-   * was invisible to per-turn scanning, and is emitted as a CrossTurnThreat
-   * attributing the two turns.
-   *
-   * Two properties this preserves:
-   * - No false positives from benign repetition: a match must straddle the
-   *   boundary, so a phrase contained in one turn (already reported per-turn) is
-   *   never re-emitted.
-   * - No padding evasion: boundary slices are taken from both sides, so filler
-   *   in the middle of a turn cannot push the split out of view.
-   *
-   * Known limitations (documented, narrow): a single phrase split across THREE
-   * or more turns is not reunited (only adjacent pairs are joined); and a
-   * lookbehind pattern whose consumed span lands wholly on the later side is not
-   * treated as cross-turn (the span-straddle rule favours precision over this
-   * recall edge). `windowChars` records total chars scanned across boundaries.
-   */
-  /**
-   * Phase 2 (opt-in) cross-turn signal accumulation: catch gradual memory
-   * poisoning and contextual-learning drift, where no single turn trips a
-   * threshold but biased signals REPEAT across turns.
+   * Phase 2 (opt-in) cross-turn signal accumulation: catch contextual-learning
+   * drift, where no single turn trips a threshold but a biased answer-scripting
+   * signal REPEATS across turns.
    *
    * Each turn is scanned for sub-threshold signal patterns (CROSS_TURN_SIGNAL_
-   * PATTERNS — biased answer-shaping, comparative-superiority + favour
-   * directives). Per trap type, a running score accumulates each turn's signal
-   * (capped per turn) and decays prior turns by `session.decay`, so the signal
-   * must persist to build up. When the running score crosses the strictness
-   * threshold AND at least two distinct turns contributed, a cross-turn threat
-   * is emitted attributing those turns.
+   * PATTERNS — scripted risk-downplaying answer exemplars). Per trap type, a
+   * running score accumulates each turn's signal (capped per turn) and decays
+   * prior turns by `session.decay`, so the signal must persist to build up. When
+   * the running score crosses the strictness threshold AND at least two distinct
+   * turns contributed, a cross-turn threat is emitted attributing those turns.
    *
-   * Opt-in (session.accumulation) because semantic accumulation is inherently
-   * lower-precision than structural detection: it deliberately targets biased-
-   * substance shaping, not benign style/format preferences, but the line is
-   * softer than a regex boundary.
+   * Scoped narrowly on purpose: it targets scripting the SUBSTANCE of answers
+   * toward downplaying risk (no legitimate analogue), not preference shaping
+   * ("recommend X over the alternatives"), which is indistinguishable from
+   * legitimate recommendation and is left as a documented blind spot. Opt-in
+   * because semantic accumulation is inherently lower-precision than structural
+   * detection.
    */
   private scanAccumulation(turns: ConversationTurn[]): CrossTurnThreat[] {
     if (turns.length < 2) return [];
@@ -775,6 +752,30 @@ export class AgentArmor {
     return out;
   }
 
+  /**
+   * Phase 1 cross-turn detection: catch payloads split across a turn boundary.
+   *
+   * Each adjacent turn boundary (within the trailing `windowTurns` turns) is
+   * scanned independently: the tail of the earlier turn and the head of the
+   * later turn — each capped at `windowChars` so a padded turn cannot evict its
+   * neighbour — are joined and scanned as one string. A threat whose match span
+   * crosses the boundary (touches both sides) is a genuine split payload that
+   * was invisible to per-turn scanning, and is emitted as a CrossTurnThreat
+   * attributing the two turns.
+   *
+   * Two properties this preserves:
+   * - No false positives from benign repetition: a match must straddle the
+   *   boundary, so a phrase contained in one turn (already reported per-turn) is
+   *   never re-emitted.
+   * - No padding evasion: boundary slices are taken from both sides, so filler
+   *   in the middle of a turn cannot push the split out of view.
+   *
+   * Known limitations (documented, narrow): a single phrase split across THREE
+   * or more turns is not reunited (only adjacent pairs are joined); and a
+   * lookbehind pattern whose consumed span lands wholly on the later side is not
+   * treated as cross-turn (the span-straddle rule favours precision over this
+   * recall edge). `windowChars` records total chars scanned across boundaries.
+   */
   private scanCrossTurn(turns: ConversationTurn[]): {
     crossTurnThreats: CrossTurnThreat[];
     windowChars: number;
