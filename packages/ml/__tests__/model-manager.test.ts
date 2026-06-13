@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtemp, writeFile, rm } from 'fs/promises';
+import { createHash } from 'crypto';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
@@ -92,11 +93,46 @@ describe('verifyChecksum', () => {
     await rm(tempDir, { recursive: true, force: true });
   });
 
-  it('returns true when checksum is placeholder', async () => {
+  it('skips verification (returns true) when expected checksum is a placeholder', async () => {
     const { verifyChecksum } = await import('../src/model-manager');
     const filePath = join(tempDir, 'test-model.onnx');
     await writeFile(filePath, 'some-content');
-    const result = await verifyChecksum(filePath);
+    const result = await verifyChecksum(filePath, 'PLACEHOLDER_SHA256');
     expect(result).toBe(true);
+  });
+
+  it('returns true when the file digest matches the expected checksum', async () => {
+    const { verifyChecksum } = await import('../src/model-manager');
+    const content = 'some-content';
+    const expected = createHash('sha256').update(content).digest('hex');
+    const filePath = join(tempDir, 'test-model.onnx');
+    await writeFile(filePath, content);
+    const result = await verifyChecksum(filePath, expected);
+    expect(result).toBe(true);
+  });
+
+  it('returns false when the file digest does not match the expected checksum', async () => {
+    const { verifyChecksum } = await import('../src/model-manager');
+    const filePath = join(tempDir, 'test-model.onnx');
+    await writeFile(filePath, 'some-content');
+    const result = await verifyChecksum(filePath, 'a'.repeat(64));
+    expect(result).toBe(false);
+  });
+
+  it('verifies against the shipped MODEL_CHECKSUM by default', async () => {
+    const { verifyChecksum } = await import('../src/model-manager');
+    const { MODEL_CHECKSUM } = await import('../src/constants');
+    const filePath = join(tempDir, 'test-model.onnx');
+    await writeFile(filePath, 'some-content');
+    const digestOfContent = createHash('sha256')
+      .update('some-content')
+      .digest('hex');
+    // Default path uses MODEL_CHECKSUM; result tracks whether the content
+    // happens to match it (it does not), independent of placeholder state.
+    const result = await verifyChecksum(filePath);
+    expect(result).toBe(
+      MODEL_CHECKSUM.startsWith('PLACEHOLDER') ||
+        digestOfContent === MODEL_CHECKSUM,
+    );
   });
 });

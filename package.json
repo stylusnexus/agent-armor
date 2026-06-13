@@ -18,7 +18,11 @@
     "test": "vitest",
     "test:run": "vitest run",
     "lint": "eslint src/",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "typecheck:eval": "tsc -p tsconfig.eval.json",
+    "eval": "tsx scripts/eval/run-eval.ts",
+    "eval:gate": "tsx scripts/eval/run-eval.ts --gate",
+    "eval:multi-turn": "tsx scripts/eval/run-multi-turn-eval.ts"
   },
   "keywords": [
     "ai-security",
@@ -53,6 +57,7 @@
   "devDependencies": {
     "@types/node": "^25.5.2",
     "tsup": "^8.5.1",
+    "tsx": "^4.20.6",
     "typescript": "^6.0.2",
     "vitest": "^4.1.2"
   }
