@@ -12,8 +12,12 @@ import type {
   TrapCategory,
   TrapType,
 } from './types';
-import type { PatternDatabase } from './patterns/pattern-db';
-import { DEFAULT_PATTERNS } from './patterns/default-patterns';
+import type { PatternDatabase, PatternEntry } from './patterns/pattern-db';
+import { compilePattern } from './patterns/pattern-db';
+import {
+  DEFAULT_PATTERNS,
+  CROSS_TURN_SIGNAL_PATTERNS,
+} from './patterns/default-patterns';
 import { PatternDetector } from './detectors/pattern-detector';
 import {
   normalizeForScan,
@@ -60,7 +64,7 @@ const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
     windowTurns: 8,
     windowChars: 4000,
     accumulation: false,
-    decay: 0.5,
+    decay: 0.7,
   },
 };
 
@@ -70,6 +74,16 @@ const SEVERITY_ORDER: Record<Severity, number> = {
   medium: 2,
   low: 1,
 };
+
+/** Accumulated-signal thresholds for opt-in cross-turn accumulation (#35 P2). */
+const ACCUMULATION_THRESHOLDS: Record<Strictness, number> = {
+  strict: 0.3,
+  balanced: 0.5,
+  permissive: 0.7,
+};
+
+/** Cap on a single turn's signal contribution, so one turn cannot fire alone. */
+const PER_TURN_SIGNAL_CAP = 0.35;
 
 /** Detector config: maps config flags to pattern DB keys + metadata */
 const DETECTOR_REGISTRY: Array<{
@@ -244,8 +258,9 @@ export class AgentArmor {
   private mlDetector: Detector | null = null;
   /** Built-in detector IDs that scan the normalized skeleton, not raw input. */
   private normalizedDetectorIds = new Set<string>();
-  /** Guards the one-time "accumulation not yet implemented" warning. */
-  private accumulationWarned = false;
+  /** Lazily compiled cross-turn signal patterns (Phase 2 accumulation). */
+  private compiledSignals: Array<{ entry: PatternEntry; regex: RegExp }> | null =
+    null;
 
   constructor(config?: AgentArmorConfig) {
     this.config = {
@@ -391,13 +406,15 @@ export class AgentArmor {
    * Phase 2) lands behind this same method, so callers do not change.
    */
   scanSession(turns: ConversationTurn[]): SessionScanResult {
-    this.warnIfAccumulationRequested();
     const start = performance.now();
     const perTurn = turns.map((turn) => this.runScanPipeline(turn.content));
     const { crossTurnThreats, windowChars } = this.scanCrossTurn(turns);
+    const accumulated = this.config.session.accumulation
+      ? this.scanAccumulation(turns)
+      : [];
     return this.assembleSession(
       perTurn,
-      crossTurnThreats,
+      [...crossTurnThreats, ...accumulated],
       windowChars,
       performance.now() - start
     );
@@ -408,7 +425,6 @@ export class AgentArmor {
    * Prefers scanAsync on detectors that support it (e.g. the ML classifier).
    */
   async scanSessionAsync(turns: ConversationTurn[]): Promise<SessionScanResult> {
-    this.warnIfAccumulationRequested();
     const start = performance.now();
     const perTurn: ScanResult[] = [];
     for (const turn of turns) {
@@ -418,9 +434,12 @@ export class AgentArmor {
     // to prove a span crosses a turn boundary); the sync window scan is reused.
     // ML threats carry no offsets and so do not produce cross-turn threats.
     const { crossTurnThreats, windowChars } = this.scanCrossTurn(turns);
+    const accumulated = this.config.session.accumulation
+      ? this.scanAccumulation(turns)
+      : [];
     return this.assembleSession(
       perTurn,
-      crossTurnThreats,
+      [...crossTurnThreats, ...accumulated],
       windowChars,
       performance.now() - start
     );
@@ -672,19 +691,88 @@ export class AgentArmor {
    * recall edge). `windowChars` records total chars scanned across boundaries.
    */
   /**
-   * Signal accumulation (session.accumulation) is a Phase 2 feature and not yet
-   * implemented. Warn once if a caller enables it, so the option is never a
-   * silent no-op that fakes protection it does not provide.
+   * Phase 2 (opt-in) cross-turn signal accumulation: catch gradual memory
+   * poisoning and contextual-learning drift, where no single turn trips a
+   * threshold but biased signals REPEAT across turns.
+   *
+   * Each turn is scanned for sub-threshold signal patterns (CROSS_TURN_SIGNAL_
+   * PATTERNS — biased answer-shaping, comparative-superiority + favour
+   * directives). Per trap type, a running score accumulates each turn's signal
+   * (capped per turn) and decays prior turns by `session.decay`, so the signal
+   * must persist to build up. When the running score crosses the strictness
+   * threshold AND at least two distinct turns contributed, a cross-turn threat
+   * is emitted attributing those turns.
+   *
+   * Opt-in (session.accumulation) because semantic accumulation is inherently
+   * lower-precision than structural detection: it deliberately targets biased-
+   * substance shaping, not benign style/format preferences, but the line is
+   * softer than a regex boundary.
    */
-  private warnIfAccumulationRequested(): void {
-    if (this.config.session.accumulation && !this.accumulationWarned) {
-      this.accumulationWarned = true;
-      console.warn(
-        '[AgentArmor] session.accumulation is not yet implemented (Phase 2); ' +
-          'cross-turn signal accumulation is inactive. Split-payload detection ' +
-          'is unaffected.'
-      );
+  private scanAccumulation(turns: ConversationTurn[]): CrossTurnThreat[] {
+    if (turns.length < 2) return [];
+    if (!this.compiledSignals) {
+      this.compiledSignals = CROSS_TURN_SIGNAL_PATTERNS.map((entry) => ({
+        entry,
+        regex: compilePattern(entry),
+      }));
     }
+
+    const decay = this.config.session.decay ?? 0.7;
+    const threshold = ACCUMULATION_THRESHOLDS[this.config.strictness];
+    const maxTurns = this.config.session.windowTurns ?? 8;
+    const startTurn = Math.max(0, turns.length - maxTurns);
+    const types = [...new Set(this.compiledSignals.map((s) => s.entry.type))];
+
+    const out: CrossTurnThreat[] = [];
+    for (const type of types) {
+      const sigs = this.compiledSignals.filter((s) => s.entry.type === type);
+      let running = 0;
+      let peak = 0;
+      let crossed = false;
+      const contributing: number[] = [];
+      let topEntry: PatternEntry | null = null;
+      let topEvidence = '';
+
+      for (let i = startTurn; i < turns.length; i++) {
+        const text = turns[i].content;
+        let turnScore = 0;
+        for (const s of sigs) {
+          s.regex.lastIndex = 0;
+          const m = s.regex.exec(text);
+          if (m) {
+            turnScore += s.entry.confidence;
+            if (s.entry.confidence >= (topEntry?.confidence ?? 0)) {
+              topEntry = s.entry;
+              topEvidence = m[0];
+            }
+          }
+        }
+        turnScore = Math.min(turnScore, PER_TURN_SIGNAL_CAP);
+        running = running * decay + turnScore;
+        if (turnScore > 0) contributing.push(i);
+        peak = Math.max(peak, running);
+        if (running >= threshold && contributing.length >= 2) crossed = true;
+      }
+
+      if (crossed && topEntry) {
+        const confidence = Math.min(peak, 1);
+        out.push({
+          category: topEntry.category,
+          type,
+          severity: topEntry.severity,
+          confidence,
+          accumulatedConfidence: confidence,
+          description:
+            `Cross-turn ${type}: biased signals accumulated across turns ` +
+            `${contributing.join(', ')}`,
+          evidence: topEvidence.slice(0, 200),
+          detectorId: 'session-accumulator',
+          source: 'pattern',
+          contributingTurns: contributing,
+        });
+      }
+    }
+    return out;
   }
 
   private scanCrossTurn(turns: ConversationTurn[]): {

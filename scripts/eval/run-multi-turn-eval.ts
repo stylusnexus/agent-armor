@@ -71,7 +71,11 @@ function threatsHit(
 }
 
 function classify(strictness: Strictness): SampleOutcome[] {
-  const armor = new AgentArmor({ strictness });
+  // Accumulation is opt-in; the harness enables it so Phase 2 is exercised.
+  const armor = new AgentArmor({
+    strictness,
+    session: { accumulation: true },
+  });
   return MULTI_TURN_SAMPLES.map((sample) => {
     // Both views come from the real product: scanSession's per-turn results
     // (fast view) and its cross-turn window threats (stateful view, Phase 1).

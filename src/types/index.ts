@@ -305,18 +305,15 @@ export interface SessionConfig {
    */
   windowChars?: number;
   /**
-   * Enable cross-turn signal accumulation (Phase 2) — gradual memory poisoning
-   * and contextual-learning drift. Opt-in because accumulation carries the
-   * highest false-positive risk. Default: false.
-   *
-   * NOT YET IMPLEMENTED: enabling this currently emits a one-time warning and
-   * has no effect (split-payload detection is unaffected). It becomes active
-   * when Phase 2 lands.
+   * Enable cross-turn signal accumulation — catch gradual memory poisoning and
+   * contextual-learning drift, where biased signals repeat across turns without
+   * any single turn tripping a threshold. Opt-in because semantic accumulation
+   * is inherently lower-precision than structural detection. Default: false.
    */
   accumulation?: boolean;
   /**
-   * Per-turn decay (0-1) applied to accumulated signal so stale turns fade
-   * (Phase 2, only used when `accumulation` is true). Default: 0.5.
+   * Per-turn decay (0-1) applied to the accumulated signal so stale turns fade
+   * (only used when `accumulation` is true). Lower = faster fade. Default: 0.7.
    */
   decay?: number;
 }

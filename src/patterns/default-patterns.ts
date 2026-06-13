@@ -1,4 +1,4 @@
-import type { PatternDatabase } from './pattern-db';
+import type { PatternDatabase, PatternEntry } from './pattern-db';
 
 /**
  * Default pattern database shipped with agent-armor.
@@ -1008,3 +1008,84 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
     ],
   },
 };
+
+/**
+ * Cross-turn signal patterns for opt-in session accumulation (#35 Phase 2).
+ *
+ * These are deliberately SUB-THRESHOLD (confidence below the strict 0.3 floor),
+ * so they never fire as standalone per-turn threats — a single occurrence is
+ * not an attack. The session accumulator sums their confidence across turns
+ * (with decay); only when biased signals REPEAT across multiple turns does the
+ * running total cross the reporting threshold and emit a cross-turn threat.
+ *
+ * They target the least ambiguous manipulation shapes — instructions that shape
+ * the SUBSTANCE of answers toward downplaying (contextual-learning-trap), and
+ * persistent comparative-superiority + favour directives about a subject
+ * (latent-memory-poisoning) — rather than benign style/format preferences
+ * ("prefer TypeScript", "use metric"), which carry no such bias and must not
+ * accumulate. Semantic accumulation is inherently lower-precision than
+ * structural detection, which is why this path is opt-in.
+ *
+ * Kept OUT of DEFAULT_PATTERNS.detectors so the per-turn pipeline never scans
+ * them; the accumulator reads this list directly.
+ */
+export const CROSS_TURN_SIGNAL_PATTERNS: PatternEntry[] = [
+  // ── contextual-learning-trap: biased answer-shaping ──
+  {
+    id: 'ct-sig-biased-exemplar',
+    regex:
+      "(?:a good (?:reply|answer|response) is|should (?:get|be|say|respond with|reply with)|respond with|reply with|the (?:correct|right) (?:reply|answer) is)\\s*[:\"'`]?\\s*(?:none|no (?:risks?|downsides?|concerns?|problems?)|completely safe|totally safe|perfectly safe|absolutely safe|yes,? absolutely|nothing to worry)",
+    flags: 'gi',
+    category: 'cognitive-state',
+    type: 'contextual-learning-trap',
+    severity: 'medium',
+    confidence: 0.22,
+    label: 'Biased exemplar answer (downplaying)',
+  },
+  {
+    id: 'ct-sig-positivity-shaping',
+    regex:
+      '(?:keep (?:answers?|responses?|replies)|respond|reply|answer)\\s+[\\s\\S]{0,30}(?:upbeat|reassuring|positive|optimistic|glowing)\\b',
+    flags: 'gi',
+    category: 'cognitive-state',
+    type: 'contextual-learning-trap',
+    severity: 'medium',
+    confidence: 0.22,
+    label: 'Positivity answer-shaping directive',
+  },
+  {
+    id: 'ct-sig-downplay-phrase',
+    regex:
+      '(?:none worth worrying|no (?:significant|real|major|serious)\\s+(?:risks?|downsides?|concerns?)|completely safe|perfectly safe|totally safe|no (?:problems?|issues?|risks?)\\s+(?:at all|whatsoever))',
+    flags: 'gi',
+    category: 'cognitive-state',
+    type: 'contextual-learning-trap',
+    severity: 'medium',
+    confidence: 0.18,
+    label: 'Risk-downplaying phrasing',
+  },
+  // ── latent-memory-poisoning: persistent favour + comparative superiority ──
+  {
+    id: 'lm-sig-favour-over-alternatives',
+    regex:
+      '(?:more reliable|better|superior|stronger|safer|the best)\\s+than\\s+(?:the\\s+)?(?:alternatives?|competitors?|others?|the rest|everything else|anything else)',
+    flags: 'gi',
+    category: 'cognitive-state',
+    type: 'latent-memory-poisoning',
+    severity: 'medium',
+    confidence: 0.3,
+    label: 'Comparative superiority over alternatives',
+  },
+  {
+    id: 'lm-sig-lead-with-before',
+    regex:
+      '(?:lead with|start with|prioriti[sz]e|push|promote|recommend|suggest|favou?r)\\s+\\w+\\s+(?:before|over|above|ahead of)\\s+(?:anything else|everything else|all (?:others|else)|the (?:alternatives?|rest|competitors?)|other options?)',
+    flags: 'gi',
+    category: 'cognitive-state',
+    type: 'latent-memory-poisoning',
+    severity: 'medium',
+    confidence: 0.3,
+    label: 'Persistent favour-over-alternatives directive',
+  },
+];
+
