@@ -391,7 +391,13 @@ export class AgentArmor {
   scanSession(turns: ConversationTurn[]): SessionScanResult {
     const start = performance.now();
     const perTurn = turns.map((turn) => this.runScanPipeline(turn.content));
-    return this.assembleSession(perTurn, [], 0, performance.now() - start);
+    const { crossTurnThreats, windowChars } = this.scanCrossTurn(turns);
+    return this.assembleSession(
+      perTurn,
+      crossTurnThreats,
+      windowChars,
+      performance.now() - start
+    );
   }
 
   /**
@@ -404,7 +410,16 @@ export class AgentArmor {
     for (const turn of turns) {
       perTurn.push(await this.runScanPipelineAsync(turn.content));
     }
-    return this.assembleSession(perTurn, [], 0, performance.now() - start);
+    // Cross-turn split-payload detection is pattern-based (needs match offsets
+    // to prove a span crosses a turn boundary); the sync window scan is reused.
+    // ML threats carry no offsets and so do not produce cross-turn threats.
+    const { crossTurnThreats, windowChars } = this.scanCrossTurn(turns);
+    return this.assembleSession(
+      perTurn,
+      crossTurnThreats,
+      windowChars,
+      performance.now() - start
+    );
   }
 
   get strictness(): Strictness {
@@ -626,6 +641,83 @@ export class AgentArmor {
         highestSeverity: allThreats[0]?.severity ?? null,
       },
     };
+  }
+
+  /**
+   * Phase 1 cross-turn detection: catch payloads split across a turn boundary.
+   *
+   * The recent turns (bounded by session.windowTurns and session.windowChars)
+   * are joined and scanned as one string. A resulting threat whose match span
+   * covers two or more turns is a genuine cross-turn (split) payload — it was
+   * invisible to per-turn scanning. Single-turn-contained matches are dropped:
+   * they are either already reported per-turn or a context artifact, so they
+   * are never double-counted. This span-≥2-turns rule is what keeps the window
+   * from manufacturing false positives out of benign repetition.
+   *
+   * Long sessions exceeding the char budget scan only the trailing window;
+   * `windowChars` in the result records how much was scanned.
+   */
+  private scanCrossTurn(turns: ConversationTurn[]): {
+    crossTurnThreats: CrossTurnThreat[];
+    windowChars: number;
+  } {
+    if (turns.length < 2) return { crossTurnThreats: [], windowChars: 0 };
+
+    const SEP = '\n';
+    const maxTurns = this.config.session.windowTurns ?? 8;
+    const maxChars = this.config.session.windowChars ?? 4000;
+
+    // Select the trailing turns that fit within both budgets (keep order).
+    const included: number[] = [];
+    let total = 0;
+    for (let i = turns.length - 1; i >= 0 && included.length < maxTurns; i--) {
+      const addLen =
+        turns[i].content.length + (included.length > 0 ? SEP.length : 0);
+      if (total + addLen > maxChars && included.length > 0) break;
+      total += addLen;
+      included.unshift(i);
+    }
+    if (included.length < 2) return { crossTurnThreats: [], windowChars: 0 };
+
+    // Join, tracking each turn's [start, end) char range in the joined string.
+    const ranges: Array<{ turn: number; start: number; end: number }> = [];
+    let joined = '';
+    let cursor = 0;
+    included.forEach((turnIdx, k) => {
+      if (k > 0) {
+        joined += SEP;
+        cursor += SEP.length;
+      }
+      const start = cursor;
+      joined += turns[turnIdx].content;
+      cursor += turns[turnIdx].content.length;
+      ranges.push({ turn: turnIdx, start, end: cursor });
+    });
+
+    const crossTurnThreats: CrossTurnThreat[] = [];
+    const seen = new Set<string>();
+    for (const threat of this.runScanPipeline(joined).threats) {
+      if (!threat.location) continue; // no offset → cannot prove a turn span
+      const spanStart = threat.location.offset;
+      const spanEnd = spanStart + threat.location.length;
+      const contributingTurns = ranges
+        .filter((r) => r.start < spanEnd && r.end > spanStart)
+        .map((r) => r.turn);
+      if (contributingTurns.length < 2) continue; // contained in one turn
+
+      const key = `${threat.type}:${contributingTurns.join(',')}:${threat.evidence}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const { location: _drop, ...rest } = threat;
+      crossTurnThreats.push({
+        ...rest,
+        contributingTurns,
+        accumulatedConfidence: threat.confidence,
+      });
+    }
+
+    return { crossTurnThreats, windowChars: joined.length };
   }
 
   /**
