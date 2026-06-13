@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "packages": {
+    ".": {
+      "release-type": "node",
+      "package-name": "@stylusnexus/agentarmor",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "include-component-in-tag": false,
+      "changelog-sections": [
+        { "type": "feat", "section": "Added" },
+        { "type": "fix", "section": "Fixed" },
+        { "type": "perf", "section": "Performance" },
+        { "type": "refactor", "section": "Changed" },
+        { "type": "docs", "section": "Documentation" },
+        { "type": "chore", "section": "Misc", "hidden": true },
+        { "type": "ci", "section": "Misc", "hidden": true },
+        { "type": "test", "section": "Misc", "hidden": true },
+        { "type": "build", "section": "Misc", "hidden": true }
+      ]
+    }
+  }
+}

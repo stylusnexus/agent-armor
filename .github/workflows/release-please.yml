@@ -1,0 +1,32 @@
+# Automates CHANGELOG.md + version bumps from Conventional Commit messages.
+# On each push to main, release-please opens/updates a "release PR" that
+# accumulates changelog entries and bumps the version. Merging that PR tags
+# the release (vX.Y.Z) and creates a GitHub release. npm publish stays manual
+# (see CONTRIBUTING / CLAUDE.md) until a publish job + NPM_TOKEN are added.
+#
+# Pre-1.0 bump policy (matches the /version-check skill):
+#   breaking change -> minor   (bump-minor-pre-major)
+#   feat / fix      -> patch    (bump-patch-for-minor-pre-major)
+#
+# NOTE: requires "Allow GitHub Actions to create and approve pull requests"
+# enabled under Settings -> Actions -> General, or release-please cannot open
+# the release PR with the default GITHUB_TOKEN.
+name: release-please
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

@@ -77,3 +77,16 @@ Use [Conventional Commits](https://www.conventionalcommits.org/):
 - `docs:` -- documentation only
 - `chore:` -- maintenance, deps, CI
 - `feat!:` -- breaking change
+
+These titles feed the changelog automation below, so write them as the user-facing summary of the change.
+
+## Releases
+
+`CHANGELOG.md` and version bumps are automated by [release-please](https://github.com/googleapis/release-please). You do **not** edit `CHANGELOG.md` by hand.
+
+1. Merge PRs to `main` with Conventional Commit titles (squash-merge keeps the title as the commit subject).
+2. release-please opens/updates a **release PR** that accumulates the changelog and bumps the version in `package.json` + `.release-please-manifest.json`.
+3. Merging the release PR tags the release (`vX.Y.Z`) and creates a GitHub release.
+4. Publishing to npm is still manual: `npm run build && npm publish --access public`.
+
+Pre-1.0 bump policy: a breaking change (`feat!:` / `BREAKING CHANGE:`) bumps the **minor** version; `feat:`/`fix:` bump the **patch** version.
