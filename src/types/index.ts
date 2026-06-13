@@ -197,6 +197,14 @@ export type Strictness = "permissive" | "balanced" | "strict";
 
 export interface AgentArmorConfig {
   strictness?: Strictness;
+  /**
+   * Apply Unicode normalization (NFKC + confusable folding + invisible-char
+   * stripping) before semantic detectors run, so homoglyph-obfuscated payloads
+   * are matched. Evidence and offsets still report against the original text.
+   * Structural detectors (content-injection) always scan the raw input.
+   * Default: true.
+   */
+  normalizeUnicode?: boolean;
   contentInjection?: {
     hiddenHTML?: boolean;
     metadataInjection?: boolean;

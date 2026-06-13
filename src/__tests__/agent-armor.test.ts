@@ -276,6 +276,7 @@ describe('AgentArmor', () => {
   describe('Performance', () => {
     it('scans content in under 50ms for typical pages', () => {
       const largeHTML = '<p>Normal paragraph. </p>'.repeat(1000);
+      armor.scanSync(largeHTML); // warm up JIT + regex compilation
       const result = armor.scanSync(largeHTML);
       expect(result.durationMs).toBeLessThan(50);
     });

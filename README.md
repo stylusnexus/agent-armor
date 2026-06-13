@@ -82,13 +82,13 @@ npm install @stylusnexus/agentarmor-ml
 
 ### Eval Suite
 
-86 curated samples (59 adversarial, 27 benign) covering all 10 shipped detector types across 4 attack categories:
+103 curated samples (66 adversarial, 37 benign) covering all 10 shipped detector types across 4 attack categories, including homoglyph-obfuscated payloads and scanner-directed verdict suppression:
 
 | Strictness   | Detection Rate (regex) | False Positive Rate |
 | ------------ | ---------------------- | ------------------- |
-| Permissive   | 79.7%                  | 0.0%                |
-| **Balanced** | **89.8%**              | **0.0%**            |
-| Strict       | 89.8%                  | 0.0%                |
+| Permissive   | 81.8%                  | 0.0%                |
+| **Balanced** | **90.9%**              | **0.0%**            |
+| Strict       | 90.9%                  | 0.0%                |
 
 The eval suite includes 10 adversarial samples drawn from real-world incidents (2025-2026): MCP tool poisoning, RAG vector DB saturation, covert exfiltration via image proxies, supply chain prompt injection, memory poisoning, and HITL dialog forgery. Regex catches 5 of these; the remaining 5 (pure social engineering and context-dependent attacks) measure the gap that the [ML classifier](#ml-classifier-optional) closes. On the original 49 adversarial samples, regex detection is 100% at balanced strictness.
 
@@ -140,10 +140,15 @@ const armor = await AgentArmor.create({
     exfiltrationURLs: true, // Data exfiltration patterns
     privilegeEscalation: true, // Sub-agent spawning triggers
   },
-  // 'permissive' = only high-confidence threats (87.8% detection)
-  // 'balanced'   = recommended default (100% detection, 0% FP)
+  // 'permissive' = only high-confidence threats (81.8% detection)
+  // 'balanced'   = recommended default (90.9% detection, 0% FP)
   // 'strict'     = maximum coverage, catches subtle attacks
   strictness: "balanced",
+
+  // Fold Unicode homoglyphs (Cyrillic/Greek look-alikes), strip invisible
+  // characters, and apply NFKC before semantic detectors run, so obfuscated
+  // payloads are caught. Evidence still reports the original text. Default: true.
+  normalizeUnicode: true,
 
   // ML classifier (requires @stylusnexus/agentarmor-ml)
   ml: {

@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor versions may contain breaking changes.
 
+<!-- New entries are generated automatically by release-please from Conventional
+Commit messages on merge to main. Do not edit unreleased entries by hand. -->
+
 ## [0.2.5] - 2026-04-07
 
 ### Added
