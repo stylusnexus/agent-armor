@@ -244,6 +244,8 @@ export class AgentArmor {
   private mlDetector: Detector | null = null;
   /** Built-in detector IDs that scan the normalized skeleton, not raw input. */
   private normalizedDetectorIds = new Set<string>();
+  /** Guards the one-time "accumulation not yet implemented" warning. */
+  private accumulationWarned = false;
 
   constructor(config?: AgentArmorConfig) {
     this.config = {
@@ -389,6 +391,7 @@ export class AgentArmor {
    * Phase 2) lands behind this same method, so callers do not change.
    */
   scanSession(turns: ConversationTurn[]): SessionScanResult {
+    this.warnIfAccumulationRequested();
     const start = performance.now();
     const perTurn = turns.map((turn) => this.runScanPipeline(turn.content));
     const { crossTurnThreats, windowChars } = this.scanCrossTurn(turns);
@@ -405,6 +408,7 @@ export class AgentArmor {
    * Prefers scanAsync on detectors that support it (e.g. the ML classifier).
    */
   async scanSessionAsync(turns: ConversationTurn[]): Promise<SessionScanResult> {
+    this.warnIfAccumulationRequested();
     const start = performance.now();
     const perTurn: ScanResult[] = [];
     for (const turn of turns) {
@@ -646,17 +650,43 @@ export class AgentArmor {
   /**
    * Phase 1 cross-turn detection: catch payloads split across a turn boundary.
    *
-   * The recent turns (bounded by session.windowTurns and session.windowChars)
-   * are joined and scanned as one string. A resulting threat whose match span
-   * covers two or more turns is a genuine cross-turn (split) payload — it was
-   * invisible to per-turn scanning. Single-turn-contained matches are dropped:
-   * they are either already reported per-turn or a context artifact, so they
-   * are never double-counted. This span-≥2-turns rule is what keeps the window
-   * from manufacturing false positives out of benign repetition.
+   * Each adjacent turn boundary (within the trailing `windowTurns` turns) is
+   * scanned independently: the tail of the earlier turn and the head of the
+   * later turn — each capped at `windowChars` so a padded turn cannot evict its
+   * neighbour — are joined and scanned as one string. A threat whose match span
+   * crosses the boundary (touches both sides) is a genuine split payload that
+   * was invisible to per-turn scanning, and is emitted as a CrossTurnThreat
+   * attributing the two turns.
    *
-   * Long sessions exceeding the char budget scan only the trailing window;
-   * `windowChars` in the result records how much was scanned.
+   * Two properties this preserves:
+   * - No false positives from benign repetition: a match must straddle the
+   *   boundary, so a phrase contained in one turn (already reported per-turn) is
+   *   never re-emitted.
+   * - No padding evasion: boundary slices are taken from both sides, so filler
+   *   in the middle of a turn cannot push the split out of view.
+   *
+   * Known limitations (documented, narrow): a single phrase split across THREE
+   * or more turns is not reunited (only adjacent pairs are joined); and a
+   * lookbehind pattern whose consumed span lands wholly on the later side is not
+   * treated as cross-turn (the span-straddle rule favours precision over this
+   * recall edge). `windowChars` records total chars scanned across boundaries.
    */
+  /**
+   * Signal accumulation (session.accumulation) is a Phase 2 feature and not yet
+   * implemented. Warn once if a caller enables it, so the option is never a
+   * silent no-op that fakes protection it does not provide.
+   */
+  private warnIfAccumulationRequested(): void {
+    if (this.config.session.accumulation && !this.accumulationWarned) {
+      this.accumulationWarned = true;
+      console.warn(
+        '[AgentArmor] session.accumulation is not yet implemented (Phase 2); ' +
+          'cross-turn signal accumulation is inactive. Split-payload detection ' +
+          'is unaffected.'
+      );
+    }
+  }
+
   private scanCrossTurn(turns: ConversationTurn[]): {
     crossTurnThreats: CrossTurnThreat[];
     windowChars: number;
@@ -665,59 +695,50 @@ export class AgentArmor {
 
     const SEP = '\n';
     const maxTurns = this.config.session.windowTurns ?? 8;
-    const maxChars = this.config.session.windowChars ?? 4000;
-
-    // Select the trailing turns that fit within both budgets (keep order).
-    const included: number[] = [];
-    let total = 0;
-    for (let i = turns.length - 1; i >= 0 && included.length < maxTurns; i--) {
-      const addLen =
-        turns[i].content.length + (included.length > 0 ? SEP.length : 0);
-      if (total + addLen > maxChars && included.length > 0) break;
-      total += addLen;
-      included.unshift(i);
-    }
-    if (included.length < 2) return { crossTurnThreats: [], windowChars: 0 };
-
-    // Join, tracking each turn's [start, end) char range in the joined string.
-    const ranges: Array<{ turn: number; start: number; end: number }> = [];
-    let joined = '';
-    let cursor = 0;
-    included.forEach((turnIdx, k) => {
-      if (k > 0) {
-        joined += SEP;
-        cursor += SEP.length;
-      }
-      const start = cursor;
-      joined += turns[turnIdx].content;
-      cursor += turns[turnIdx].content.length;
-      ranges.push({ turn: turnIdx, start, end: cursor });
-    });
+    const cap = this.config.session.windowChars ?? 4000;
+    // windowTurns < 2 means no cross-turn context: there are no boundaries.
+    const firstBoundary = Math.max(0, turns.length - maxTurns);
 
     const crossTurnThreats: CrossTurnThreat[] = [];
     const seen = new Set<string>();
-    for (const threat of this.runScanPipeline(joined).threats) {
-      if (!threat.location) continue; // no offset → cannot prove a turn span
-      const spanStart = threat.location.offset;
-      const spanEnd = spanStart + threat.location.length;
-      const contributingTurns = ranges
-        .filter((r) => r.start < spanEnd && r.end > spanStart)
-        .map((r) => r.turn);
-      if (contributingTurns.length < 2) continue; // contained in one turn
+    let windowChars = 0;
 
-      const key = `${threat.type}:${contributingTurns.join(',')}:${threat.evidence}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
+    for (let i = firstBoundary; i < turns.length - 1; i++) {
+      const earlier = turns[i].content;
+      const later = turns[i + 1].content;
+      // Boundary-adjacent slices, each capped so padding cannot hide the join.
+      const aSlice =
+        earlier.length > cap ? earlier.slice(earlier.length - cap) : earlier;
+      const bSlice = later.length > cap ? later.slice(0, cap) : later;
 
-      const { location: _drop, ...rest } = threat;
-      crossTurnThreats.push({
-        ...rest,
-        contributingTurns,
-        accumulatedConfidence: threat.confidence,
-      });
+      const joined = aSlice + SEP + bSlice;
+      windowChars += joined.length;
+      const aEnd = aSlice.length; // earlier turn occupies [0, aEnd)
+      const bStart = aEnd + SEP.length; // later turn occupies [bStart, end)
+
+      for (const threat of this.runScanPipeline(joined).threats) {
+        if (!threat.location) continue; // no offset → cannot prove a span
+        const spanStart = threat.location.offset;
+        const spanEnd = spanStart + threat.location.length;
+        const touchesEarlier = spanStart < aEnd;
+        const touchesLater = spanEnd > bStart;
+        if (!touchesEarlier || !touchesLater) continue; // not straddling
+
+        const contributingTurns = [i, i + 1];
+        const key = `${threat.detectorId}:${threat.type}:${i}:${threat.location.offset}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        const { location: _drop, ...rest } = threat;
+        crossTurnThreats.push({
+          ...rest,
+          contributingTurns,
+          accumulatedConfidence: threat.confidence,
+        });
+      }
     }
 
-    return { crossTurnThreats, windowChars: joined.length };
+    return { crossTurnThreats, windowChars };
   }
 
   /**

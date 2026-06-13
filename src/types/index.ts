@@ -308,6 +308,10 @@ export interface SessionConfig {
    * Enable cross-turn signal accumulation (Phase 2) — gradual memory poisoning
    * and contextual-learning drift. Opt-in because accumulation carries the
    * highest false-positive risk. Default: false.
+   *
+   * NOT YET IMPLEMENTED: enabling this currently emits a one-time warning and
+   * has no effect (split-payload detection is unaffected). It becomes active
+   * when Phase 2 lands.
    */
   accumulation?: boolean;
   /**
