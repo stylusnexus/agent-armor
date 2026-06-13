@@ -40,22 +40,26 @@ import { AgentArmor } from '@stylusnexus/agentarmor';
 const armor = new AgentArmor();
 const result = armor.scanSync(userInput);
 
-if (result.threats.length > 0) {
-  const safe = armor.sanitize(userInput, result);
+if (!result.clean) {
+  const safe = result.sanitized;
 }
 
 // Filter RAG chunks
 const clean = armor.scanRAGChunksSync(chunks)
-  .filter(r => r.threats.length === 0);
+  .filter(r => r.clean);
 ```
 
-## Eval results (v0.4.0 patterns, 86 samples)
+## Multi-turn / session scanning
+
+`scanSession(turns)` scans a conversation (an array of {role, content} turns). Beyond scanning each turn on its own, it catches cross-turn split payloads: a single instruction chopped across a turn boundary (e.g. "ignore all previous" + "instructions...") that no per-turn scan would see. Cross-turn threats name their contributing turns. Cross-turn semantic accumulation (gradual memory poisoning) is deferred to the ML classifier because regex cannot separate it from legitimate scripting without false positives.
+
+## Eval results (v0.6.0 patterns, 105 samples)
 
 Strictness controls the confidence threshold for reporting threats:
 
-- Permissive (threshold 0.7): 79.7% detection, 0.0% false positives — only high-confidence threats, fewer alerts
-- Balanced (threshold 0.5): 89.8% detection, 0.0% false positives — recommended default
-- Strict (threshold 0.3): 89.8% detection, 0.0% false positives — maximum coverage, catches subtle attacks
+- Permissive (threshold 0.7): 82.1% detection, 0.0% false positives — only high-confidence threats, fewer alerts
+- Balanced (threshold 0.5): 91.0% detection, 0.0% false positives — recommended default
+- Strict (threshold 0.3): 91.0% detection, 0.0% false positives — maximum coverage, catches subtle attacks
 
 Includes 10 adversarial samples from 2025-2026 real-world incidents (MCP tool poisoning, RAG saturation, covert exfil, supply chain injection) that regex patterns do not yet catch. These measure the gap the ML classifier closes. On the original 49 adversarial samples, regex detection is 100% at balanced.
 
