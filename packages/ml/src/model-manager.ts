@@ -287,11 +287,18 @@ export async function downloadFile(
 }
 
 /**
- * Verify SHA-256 checksum of a file against MODEL_CHECKSUM.
- * Returns true if checksum matches. Skips (returns true) if checksum is a placeholder.
+ * Verify the SHA-256 checksum of a file against an expected value (defaults to
+ * the shipped MODEL_CHECKSUM). Returns true if the digest matches. Skips
+ * verification (returns true) when the expected checksum is a placeholder.
+ *
+ * `expected` is parameterized so the behavior can be exercised independently of
+ * whichever real checksum the package currently ships.
  */
-export async function verifyChecksum(filePath: string): Promise<boolean> {
-  if (MODEL_CHECKSUM.startsWith('PLACEHOLDER')) {
+export async function verifyChecksum(
+  filePath: string,
+  expected: string = MODEL_CHECKSUM,
+): Promise<boolean> {
+  if (expected.startsWith('PLACEHOLDER')) {
     return true;
   }
 
@@ -301,7 +308,7 @@ export async function verifyChecksum(filePath: string): Promise<boolean> {
     hash.update(chunk);
   }
   const digest = hash.digest('hex');
-  return digest === MODEL_CHECKSUM;
+  return digest === expected;
 }
 
 /**
