@@ -373,6 +373,7 @@ The `examples/` directory has ready-to-run integration examples:
 | `rag-pipeline.ts`          | Developer     | Filter poisoned RAG chunks before LLM context assembly                              |
 | `express-middleware.ts`    | Developer     | Express middleware that scans and sanitizes requests                                |
 | `web-content-scanner.ts`   | Developer     | Scan raw HTML from web fetches in strict mode                                       |
+| `scan-agent-config.ts`     | Developer     | Scan AI-assistant config files (CLAUDE.md, .cursorrules, MCP) before trusting them  |
 | `ml-classifier.ts`         | Developer     | Async pipeline with ML classifier enabled                                           |
 | `custom-detector.ts`       | Developer     | Implement and register a custom `Detector`                                          |
 | `real-world-validation.ts` | Security      | Validate against real-world attack samples from published research                  |
