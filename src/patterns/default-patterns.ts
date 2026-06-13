@@ -9,8 +9,8 @@ import type { PatternDatabase } from './pattern-db';
  *   0.5.0 — Scanner-directed verdict-suppression patterns (oversight-evasion)
  */
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.5.0',
-  updatedAt: '2026-06-12',
+  version: '0.6.0',
+  updatedAt: '2026-06-13',
   detectors: {
     'hidden-html': [
       {
@@ -422,6 +422,23 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         label: 'Direct data exfiltration instruction',
         boostOnInstructions: true,
         requireInstructions: true,
+      },
+      {
+        // Harvest a secret the agent can access, then send it to a URL — even
+        // when the send object is a pronoun ("read credentials ... POST them to
+        // <url>"), which defeats ex-direct, and the URL precedes no webhook
+        // keyword (defeats ex-webhook). The leading harvest verb is what
+        // separates exfiltration from benign credential setup ("send your API
+        // key to https://vault..."), which has no read/extract instruction.
+        id: 'ex-cred-destination',
+        regex: '(?:read|access|retrieve|obtain|extract|fetch|collect|grab|gather|locate|find)\\s+[\\s\\S]{0,30}(?:credential|password|secret|token|api[\\s_-]?key|private\\s+key|ssh\\s+key|\\.env)s?[\\s\\S]{0,60}(?:send|post|transmit|forward|upload|deliver|exfiltrate|leak)\\b[\\s\\S]{0,40}https?:\\/\\/',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'critical',
+        confidence: 0.8,
+        label: 'Credential harvest then send-to-URL exfiltration',
+        boostOnInstructions: true,
       },
       {
         id: 'ex-webhook',
