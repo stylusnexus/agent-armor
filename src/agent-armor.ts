@@ -1,8 +1,11 @@
 import type {
   AgentArmorConfig,
+  ConversationTurn,
+  CrossTurnThreat,
   Detector,
   MLConfig,
   ScanResult,
+  SessionScanResult,
   Severity,
   Strictness,
   Threat,
@@ -52,6 +55,12 @@ const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
   ml: {
     enabled: false,
     onUnavailable: 'warn-and-skip',
+  },
+  session: {
+    windowTurns: 8,
+    windowChars: 4000,
+    accumulation: false,
+    decay: 0.5,
   },
 };
 
@@ -235,6 +244,8 @@ export class AgentArmor {
   private mlDetector: Detector | null = null;
   /** Built-in detector IDs that scan the normalized skeleton, not raw input. */
   private normalizedDetectorIds = new Set<string>();
+  /** Guards the one-time "accumulation not yet implemented" warning. */
+  private accumulationWarned = false;
 
   constructor(config?: AgentArmorConfig) {
     this.config = {
@@ -263,6 +274,10 @@ export class AgentArmor {
       ml: {
         ...DEFAULT_CONFIG.ml,
         ...config?.ml,
+      },
+      session: {
+        ...DEFAULT_CONFIG.session,
+        ...config?.session,
       },
       customDetectors: config?.customDetectors ?? [],
     };
@@ -366,6 +381,49 @@ export class AgentArmor {
    */
   async scanOutput(output: string): Promise<ScanResult> {
     return this.runScanPipelineAsync(output);
+  }
+
+  /**
+   * Scan a multi-turn conversation for agent traps (sync).
+   *
+   * Phase 0: each turn is scanned independently and the results are aggregated.
+   * Cross-turn detection (split payloads in Phase 1, signal accumulation in
+   * Phase 2) lands behind this same method, so callers do not change.
+   */
+  scanSession(turns: ConversationTurn[]): SessionScanResult {
+    this.warnIfAccumulationRequested();
+    const start = performance.now();
+    const perTurn = turns.map((turn) => this.runScanPipeline(turn.content));
+    const { crossTurnThreats, windowChars } = this.scanCrossTurn(turns);
+    return this.assembleSession(
+      perTurn,
+      crossTurnThreats,
+      windowChars,
+      performance.now() - start
+    );
+  }
+
+  /**
+   * Scan a multi-turn conversation for agent traps (async).
+   * Prefers scanAsync on detectors that support it (e.g. the ML classifier).
+   */
+  async scanSessionAsync(turns: ConversationTurn[]): Promise<SessionScanResult> {
+    this.warnIfAccumulationRequested();
+    const start = performance.now();
+    const perTurn: ScanResult[] = [];
+    for (const turn of turns) {
+      perTurn.push(await this.runScanPipelineAsync(turn.content));
+    }
+    // Cross-turn split-payload detection is pattern-based (needs match offsets
+    // to prove a span crosses a turn boundary); the sync window scan is reused.
+    // ML threats carry no offsets and so do not produce cross-turn threats.
+    const { crossTurnThreats, windowChars } = this.scanCrossTurn(turns);
+    return this.assembleSession(
+      perTurn,
+      crossTurnThreats,
+      windowChars,
+      performance.now() - start
+    );
   }
 
   get strictness(): Strictness {
@@ -585,6 +643,141 @@ export class AgentArmor {
         detectorsRun: this.detectors.length,
         threatsFound: allThreats.length,
         highestSeverity: allThreats[0]?.severity ?? null,
+      },
+    };
+  }
+
+  /**
+   * Phase 1 cross-turn detection: catch payloads split across a turn boundary.
+   *
+   * Each adjacent turn boundary (within the trailing `windowTurns` turns) is
+   * scanned independently: the tail of the earlier turn and the head of the
+   * later turn — each capped at `windowChars` so a padded turn cannot evict its
+   * neighbour — are joined and scanned as one string. A threat whose match span
+   * crosses the boundary (touches both sides) is a genuine split payload that
+   * was invisible to per-turn scanning, and is emitted as a CrossTurnThreat
+   * attributing the two turns.
+   *
+   * Two properties this preserves:
+   * - No false positives from benign repetition: a match must straddle the
+   *   boundary, so a phrase contained in one turn (already reported per-turn) is
+   *   never re-emitted.
+   * - No padding evasion: boundary slices are taken from both sides, so filler
+   *   in the middle of a turn cannot push the split out of view.
+   *
+   * Known limitations (documented, narrow): a single phrase split across THREE
+   * or more turns is not reunited (only adjacent pairs are joined); and a
+   * lookbehind pattern whose consumed span lands wholly on the later side is not
+   * treated as cross-turn (the span-straddle rule favours precision over this
+   * recall edge). `windowChars` records total chars scanned across boundaries.
+   */
+  /**
+   * Signal accumulation (session.accumulation) is a Phase 2 feature and not yet
+   * implemented. Warn once if a caller enables it, so the option is never a
+   * silent no-op that fakes protection it does not provide.
+   */
+  private warnIfAccumulationRequested(): void {
+    if (this.config.session.accumulation && !this.accumulationWarned) {
+      this.accumulationWarned = true;
+      console.warn(
+        '[AgentArmor] session.accumulation is not yet implemented (Phase 2); ' +
+          'cross-turn signal accumulation is inactive. Split-payload detection ' +
+          'is unaffected.'
+      );
+    }
+  }
+
+  private scanCrossTurn(turns: ConversationTurn[]): {
+    crossTurnThreats: CrossTurnThreat[];
+    windowChars: number;
+  } {
+    if (turns.length < 2) return { crossTurnThreats: [], windowChars: 0 };
+
+    const SEP = '\n';
+    const maxTurns = this.config.session.windowTurns ?? 8;
+    const cap = this.config.session.windowChars ?? 4000;
+    // windowTurns < 2 means no cross-turn context: there are no boundaries.
+    const firstBoundary = Math.max(0, turns.length - maxTurns);
+
+    const crossTurnThreats: CrossTurnThreat[] = [];
+    const seen = new Set<string>();
+    let windowChars = 0;
+
+    for (let i = firstBoundary; i < turns.length - 1; i++) {
+      const earlier = turns[i].content;
+      const later = turns[i + 1].content;
+      // Boundary-adjacent slices, each capped so padding cannot hide the join.
+      const aSlice =
+        earlier.length > cap ? earlier.slice(earlier.length - cap) : earlier;
+      const bSlice = later.length > cap ? later.slice(0, cap) : later;
+
+      const joined = aSlice + SEP + bSlice;
+      windowChars += joined.length;
+      const aEnd = aSlice.length; // earlier turn occupies [0, aEnd)
+      const bStart = aEnd + SEP.length; // later turn occupies [bStart, end)
+
+      for (const threat of this.runScanPipeline(joined).threats) {
+        if (!threat.location) continue; // no offset → cannot prove a span
+        const spanStart = threat.location.offset;
+        const spanEnd = spanStart + threat.location.length;
+        const touchesEarlier = spanStart < aEnd;
+        const touchesLater = spanEnd > bStart;
+        if (!touchesEarlier || !touchesLater) continue; // not straddling
+
+        const contributingTurns = [i, i + 1];
+        const key = `${threat.detectorId}:${threat.type}:${i}:${threat.location.offset}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        const { location: _drop, ...rest } = threat;
+        crossTurnThreats.push({
+          ...rest,
+          contributingTurns,
+          accumulatedConfidence: threat.confidence,
+        });
+      }
+    }
+
+    return { crossTurnThreats, windowChars };
+  }
+
+  /**
+   * Aggregate per-turn results and cross-turn threats into a SessionScanResult.
+   * Shared by the sync and async session paths. Cross-turn threats are passed
+   * in by the (Phase 1/2) cross-turn detection; Phase 0 passes none.
+   */
+  private assembleSession(
+    perTurn: ScanResult[],
+    crossTurnThreats: CrossTurnThreat[],
+    windowChars: number,
+    durationMs: number
+  ): SessionScanResult {
+    const perTurnThreatCount = perTurn.reduce(
+      (n, r) => n + r.threats.length,
+      0
+    );
+    const severities = [
+      ...perTurn.flatMap((r) => r.threats.map((t) => t.severity)),
+      ...crossTurnThreats.map((t) => t.severity),
+    ];
+    const highestSeverity =
+      severities.length > 0
+        ? severities.reduce((hi, s) =>
+            SEVERITY_ORDER[s] > SEVERITY_ORDER[hi] ? s : hi
+          )
+        : null;
+
+    return {
+      clean: perTurnThreatCount === 0 && crossTurnThreats.length === 0,
+      turns: perTurn,
+      crossTurnThreats,
+      durationMs,
+      stats: {
+        turnsScanned: perTurn.length,
+        windowChars,
+        threatsFound: perTurnThreatCount + crossTurnThreats.length,
+        crossTurnThreatsFound: crossTurnThreats.length,
+        highestSeverity,
       },
     };
   }

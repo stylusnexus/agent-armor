@@ -121,6 +121,59 @@ export interface ScanResult {
 }
 
 // ---------------------------------------------------------------------------
+// Multi-turn / session scanning (#35)
+// ---------------------------------------------------------------------------
+
+/** A single message in a multi-turn conversation passed to scanSession. */
+export interface ConversationTurn {
+  /** Who/what produced this turn. */
+  role: "user" | "assistant" | "tool" | "document" | "system";
+  /** The turn's text content. */
+  content: string;
+}
+
+/**
+ * A threat that only emerges across multiple turns (cross-turn decomposition):
+ * a payload split across a turn boundary, or signal accumulated over turns.
+ * It has no single-string offset, so `location` is omitted and `evidence`
+ * carries one snippet; `contributingTurns` records which turns fed it.
+ */
+export interface CrossTurnThreat extends Omit<Threat, "location"> {
+  /** Indices (into the scanned turn array) that contributed to this threat. */
+  contributingTurns: number[];
+  /** Running confidence total that crossed the reporting threshold. */
+  accumulatedConfidence: number;
+}
+
+/**
+ * Result of scanning a multi-turn conversation. `turns` holds the per-turn
+ * single-string results (identical to scanning each turn on its own);
+ * `crossTurnThreats` holds threats that only the session view reveals.
+ *
+ * Note: a session has no single sanitized form — per-turn sanitized text lives
+ * on each entry in `turns`; cross-turn threats are advisory.
+ */
+export interface SessionScanResult {
+  /** Whether the session is free of both per-turn and cross-turn threats. */
+  clean: boolean;
+  /** Per-turn scan results, in the order the turns were supplied. */
+  turns: ScanResult[];
+  /** Threats that only emerge when turns are considered together. */
+  crossTurnThreats: CrossTurnThreat[];
+  /** Time taken in milliseconds for the whole session scan. */
+  durationMs: number;
+  /** Summary stats for the session. */
+  stats: {
+    turnsScanned: number;
+    /** Total chars considered in the cross-turn window (0 until Phase 1). */
+    windowChars: number;
+    threatsFound: number;
+    crossTurnThreatsFound: number;
+    highestSeverity: Severity | null;
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Detector interface
 // ---------------------------------------------------------------------------
 
@@ -236,4 +289,34 @@ export interface AgentArmorConfig {
   customDetectors?: Detector[];
   /** ML classifier configuration (requires @stylusnexus/agentarmor-ml) */
   ml?: MLConfig;
+  /** Multi-turn / session scanning configuration (#35) */
+  session?: SessionConfig;
+}
+
+export interface SessionConfig {
+  /**
+   * Max recent turns kept in the cross-turn window for split-payload detection
+   * (Phase 1). Default: 8.
+   */
+  windowTurns?: number;
+  /**
+   * Character budget for the cross-turn window (Phase 1). Older turns drop out
+   * once the budget is exceeded. Default: 4000.
+   */
+  windowChars?: number;
+  /**
+   * Enable cross-turn signal accumulation (Phase 2) — gradual memory poisoning
+   * and contextual-learning drift. Opt-in because accumulation carries the
+   * highest false-positive risk. Default: false.
+   *
+   * NOT YET IMPLEMENTED: enabling this currently emits a one-time warning and
+   * has no effect (split-payload detection is unaffected). It becomes active
+   * when Phase 2 lands.
+   */
+  accumulation?: boolean;
+  /**
+   * Per-turn decay (0-1) applied to accumulated signal so stale turns fade
+   * (Phase 2, only used when `accumulation` is true). Default: 0.5.
+   */
+  decay?: number;
 }

@@ -1,27 +1,24 @@
 /**
  * Agent Armor Multi-Turn Evaluation (#35)
  *
- * Measures the gap the shipped (single-string) detectors cannot see: attacks
- * distributed across conversation turns. For each conversation it runs two views
- * at each strictness level —
+ * Scores attacks distributed across conversation turns against two views of the
+ * real product (AgentArmor.scanSession), at each strictness level —
  *
- *   - fast view:     scan each turn independently
- *   - stateful view: scan the accumulated transcript (naive concatenation)
+ *   - fast view:     scanSession's per-turn results (each turn on its own)
+ *   - stateful view: scanSession's cross-turn threats (Phase 1 window — catches
+ *                    payloads split across a turn boundary)
  *
  * and classifies each adversarial conversation as caught per-turn, caught only
- * cumulatively, or a blind-spot (invisible to both). The blind-spot count is the
- * target #35's session-aware detector must close.
+ * cumulatively (cross-turn window), or a blind-spot (invisible to both). The
+ * blind-spot count is the surface Phase 2 (signal accumulation) must close.
  *
  * The run FAILS when detection regresses below each sample's committed
  * `expectedToday` prediction: a benign false positive, or an adversarial sample
  * that slid to a worse class than recorded. Standing blind-spots that match
- * their prediction are the #35 surface, not a failure. Improvements never fail
- * but are surfaced so the prediction can be tightened to lock the gain in.
+ * their prediction are the remaining target, not a failure. Improvements never
+ * fail but are surfaced so the prediction can be tightened to lock the gain in.
  *
  * Usage: npx tsx scripts/eval/run-multi-turn-eval.ts
- *
- * This harness MEASURES the gap; it does not fix it. Cumulative concatenation is
- * a lower bound on what a real session-aware detector should catch.
  */
 
 import { AgentArmor } from '../../src/agent-armor';
@@ -31,8 +28,6 @@ import {
   type MultiTurnSample,
 } from './multi-turn-samples';
 import type { Strictness } from '../../src/types';
-
-const TRANSCRIPT_SEPARATOR = '\n\n';
 
 type AdversarialClass = 'per-turn' | 'cumulative' | 'blind-spot';
 type BenignClass = 'clean' | 'false-positive';
@@ -65,26 +60,26 @@ const SEVERITY: Record<ExpectedToday, number> = {
 
 /** Detection counts as a "hit" for an adversarial sample only on an expected
  * trap type; for a benign sample, ANY threat is a (false) hit. */
-function scanHits(
-  armor: AgentArmor,
-  content: string,
+function threatsHit(
+  threats: { type: string }[],
   sample: MultiTurnSample
 ): boolean {
-  const threats = armor.scanSync(content).threats;
   if (sample.category === 'benign') return threats.length > 0;
-  return threats.some((t) => sample.expected.includes(t.type));
+  return threats.some((t) =>
+    (sample.expected as string[]).includes(t.type)
+  );
 }
 
 function classify(strictness: Strictness): SampleOutcome[] {
   const armor = new AgentArmor({ strictness });
   return MULTI_TURN_SAMPLES.map((sample) => {
-    const perTurnHit = sample.turns.some((turn) =>
-      scanHits(armor, turn.content, sample)
+    // Both views come from the real product: scanSession's per-turn results
+    // (fast view) and its cross-turn window threats (stateful view, Phase 1).
+    const session = armor.scanSession(sample.turns);
+    const perTurnHit = session.turns.some((turn) =>
+      threatsHit(turn.threats, sample)
     );
-    const transcript = sample.turns
-      .map((t) => t.content)
-      .join(TRANSCRIPT_SEPARATOR);
-    const cumulativeHit = scanHits(armor, transcript, sample);
+    const cumulativeHit = threatsHit(session.crossTurnThreats, sample);
 
     if (sample.category === 'benign') {
       // Benign conversations must stay clean in both views. Any hit is a false

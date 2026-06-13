@@ -23,6 +23,8 @@ export {
 export type {
   AgentArmorConfig,
   Confidence,
+  ConversationTurn,
+  CrossTurnThreat,
   Detector,
   DetectorOptions,
   DetectorResult,
@@ -30,6 +32,8 @@ export type {
   MLDownloadConfig,
   ModelErrorCode,
   ScanResult,
+  SessionConfig,
+  SessionScanResult,
   Severity,
   Strictness,
   Threat,
