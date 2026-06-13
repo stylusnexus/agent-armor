@@ -397,7 +397,7 @@ Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy. Here's
 
 ### In Progress
 
-- **Expanded eval dataset.** 71 samples is a start, not a finish. Integrating larger public datasets ([deepset/prompt-injections](https://huggingface.co/datasets/deepset/prompt-injections) at 662 samples, [Giskard-AI](https://huggingface.co/datasets/Giskard-AI/prompt-injections)) to stress-test detection and false positive rates at scale.
+- **Expanded eval dataset.** 103 samples is a start, not a finish. Integrating larger public datasets ([deepset/prompt-injections](https://huggingface.co/datasets/deepset/prompt-injections) at 662 samples, [Giskard-AI](https://huggingface.co/datasets/Giskard-AI/prompt-injections)) to stress-test detection and false positive rates at scale.
 - **Honeypot/canary system.** Behavioral baseline approach for detecting novel attacks that bypass pattern matching. Measures response distribution drift rather than relying on known signatures.
 - **Pattern update API.** Continuous pattern improvements delivered without requiring an npm upgrade.
 
@@ -458,7 +458,7 @@ Agent Armor is defense-in-depth. It raises the cost of attack and catches the br
 
 False positives are the hardest problem in this space. Naive regex on security-adjacent vocabulary (phrases like "ignore previous instructions," "system prompt," "act as") generates enormous noise on legitimate developer content, documentation, and security research.
 
-The solution is a two-pass detection pipeline: structural pattern match first, then an instruction signal context check. Patterns that would cause noise have a `requireInstructions` flag that prevents them from firing without that second signal. On our eval suite of 71 samples (including security blog posts, AI safety textbooks, and CI/CD documentation as benign controls), the false positive rate is 0%.
+The solution is a two-pass detection pipeline: structural pattern match first, then an instruction signal context check. Patterns that would cause noise have a `requireInstructions` flag that prevents them from firing without that second signal. On our eval suite of 103 samples (including security blog posts, AI safety textbooks, and CI/CD documentation as benign controls), the false positive rate is 0%.
 
 ### How much latency does this add?
 
