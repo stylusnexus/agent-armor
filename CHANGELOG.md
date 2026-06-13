@@ -7,6 +7,25 @@ This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor 
 <!-- New entries are generated automatically by release-please from Conventional
 Commit messages on merge to main. Do not edit unreleased entries by hand. -->
 
+## [0.2.7](https://github.com/stylusnexus/agent-armor/compare/v0.2.6...v0.2.7) (2026-06-13)
+
+
+### Added
+
+* **eval:** CI detection-quality gate + stateful multi-turn harness ([#35](https://github.com/stylusnexus/agent-armor/issues/35)) ([#48](https://github.com/stylusnexus/agent-armor/issues/48)) ([40f9d8e](https://github.com/stylusnexus/agent-armor/commit/40f9d8e212f8d1849f5518f02d73925464ab6948))
+* **session:** scanSession API + cross-turn split-payload detection ([#35](https://github.com/stylusnexus/agent-armor/issues/35) Phases 0–1) ([#50](https://github.com/stylusnexus/agent-armor/issues/50)) ([ab1821e](https://github.com/stylusnexus/agent-armor/commit/ab1821e325aacc354a28ea323ada165052fc1f79))
+
+
+### Fixed
+
+* **patterns:** detect credential-harvest-then-send-to-URL exfiltration ([#49](https://github.com/stylusnexus/agent-armor/issues/49)) ([#51](https://github.com/stylusnexus/agent-armor/issues/51)) ([83fd063](https://github.com/stylusnexus/agent-armor/commit/83fd063c3f7830a29da9f293fb7fa3d6b5aa8b2b))
+
+
+### Documentation
+
+* fix stale eval-sample count in README prose (71 -&gt; 103) ([#46](https://github.com/stylusnexus/agent-armor/issues/46)) ([8fd216d](https://github.com/stylusnexus/agent-armor/commit/8fd216d065dc4fdbeb9cb693f8b7b22dac1896dd))
+* **session:** document scanSession split-payload, defer accumulation to ML ([#35](https://github.com/stylusnexus/agent-armor/issues/35)) ([#53](https://github.com/stylusnexus/agent-armor/issues/53)) ([07c50b4](https://github.com/stylusnexus/agent-armor/commit/07c50b42d2a1ebb7111218d07ed8c995fe4113ad))
+
 ## [0.2.6](https://github.com/stylusnexus/agent-armor/compare/v0.2.5...v0.2.6) (2026-06-13)
 
 
