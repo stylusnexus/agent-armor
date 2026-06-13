@@ -7,6 +7,27 @@ This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor 
 <!-- New entries are generated automatically by release-please from Conventional
 Commit messages on merge to main. Do not edit unreleased entries by hand. -->
 
+## [0.2.6](https://github.com/stylusnexus/agent-armor/compare/v0.2.5...v0.2.6) (2026-06-13)
+
+
+### Added
+
+* add ML data augmentation pipeline scripts ([f1fb88b](https://github.com/stylusnexus/agent-armor/commit/f1fb88bd39d3cc44d5760aa58bf7065733731dcc))
+* add transport-integrity taxonomy category ([#26](https://github.com/stylusnexus/agent-armor/issues/26)) ([5c73801](https://github.com/stylusnexus/agent-armor/commit/5c73801c035ff050377cb726cf7b8c9a947ca010))
+* detection hardening — unicode normalization + scanner-directed verdict suppression ([#42](https://github.com/stylusnexus/agent-armor/issues/42)) ([67ee749](https://github.com/stylusnexus/agent-armor/commit/67ee749238d7546b73d57efc36c6a8f367c8018c))
+* retrain ML classifier on 2,228 samples (7x previous) ([344035e](https://github.com/stylusnexus/agent-armor/commit/344035ebd49302684ed78948ec9110bc79fc21f6))
+
+
+### Fixed
+
+* address transport-integrity PR review feedback ([159c6d8](https://github.com/stylusnexus/agent-armor/commit/159c6d86eb1791fae75d3e0048fe33fbdf203fe7))
+
+
+### Documentation
+
+* **examples:** add config-file scanning example (rules-file backdoor) ([#45](https://github.com/stylusnexus/agent-armor/issues/45)) ([58d0a73](https://github.com/stylusnexus/agent-armor/commit/58d0a737e11d898fabdebabd88643819db7fb3af))
+* update ML model size to ~165MB (v2 retrain) ([99e2bea](https://github.com/stylusnexus/agent-armor/commit/99e2beac35b01d4be67e94c211a9bf81285e79b0))
+
 ## [0.2.5] - 2026-04-07
 
 ### Added
