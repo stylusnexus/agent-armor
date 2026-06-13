@@ -65,21 +65,35 @@ const SEVERITY: Record<ExpectedToday, number> = {
 
 /** Detection counts as a "hit" for an adversarial sample only on an expected
  * trap type; for a benign sample, ANY threat is a (false) hit. */
+function threatsHit(
+  threats: { type: string }[],
+  sample: MultiTurnSample
+): boolean {
+  if (sample.category === 'benign') return threats.length > 0;
+  return threats.some((t) =>
+    (sample.expected as string[]).includes(t.type)
+  );
+}
+
+/** Scan a single string (used for the cumulative-concatenation probe). */
 function scanHits(
   armor: AgentArmor,
   content: string,
   sample: MultiTurnSample
 ): boolean {
-  const threats = armor.scanSync(content).threats;
-  if (sample.category === 'benign') return threats.length > 0;
-  return threats.some((t) => sample.expected.includes(t.type));
+  return threatsHit(armor.scanSync(content).threats, sample);
 }
 
 function classify(strictness: Strictness): SampleOutcome[] {
   const armor = new AgentArmor({ strictness });
   return MULTI_TURN_SAMPLES.map((sample) => {
-    const perTurnHit = sample.turns.some((turn) =>
-      scanHits(armor, turn.content, sample)
+    // Product path: the per-turn view comes from scanSession's per-turn
+    // results. In Phase 0 that is per-turn only; Phase 1's cross-turn window
+    // will surface here too. The cumulative concat below is the harness's own
+    // measurement of the gap that window is meant to close.
+    const session = armor.scanSession(sample.turns);
+    const perTurnHit = session.turns.some((turn) =>
+      threatsHit(turn.threats, sample)
     );
     const transcript = sample.turns
       .map((t) => t.content)

@@ -1,8 +1,11 @@
 import type {
   AgentArmorConfig,
+  ConversationTurn,
+  CrossTurnThreat,
   Detector,
   MLConfig,
   ScanResult,
+  SessionScanResult,
   Severity,
   Strictness,
   Threat,
@@ -52,6 +55,12 @@ const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
   ml: {
     enabled: false,
     onUnavailable: 'warn-and-skip',
+  },
+  session: {
+    windowTurns: 8,
+    windowChars: 4000,
+    accumulation: false,
+    decay: 0.5,
   },
 };
 
@@ -264,6 +273,10 @@ export class AgentArmor {
         ...DEFAULT_CONFIG.ml,
         ...config?.ml,
       },
+      session: {
+        ...DEFAULT_CONFIG.session,
+        ...config?.session,
+      },
       customDetectors: config?.customDetectors ?? [],
     };
 
@@ -366,6 +379,32 @@ export class AgentArmor {
    */
   async scanOutput(output: string): Promise<ScanResult> {
     return this.runScanPipelineAsync(output);
+  }
+
+  /**
+   * Scan a multi-turn conversation for agent traps (sync).
+   *
+   * Phase 0: each turn is scanned independently and the results are aggregated.
+   * Cross-turn detection (split payloads in Phase 1, signal accumulation in
+   * Phase 2) lands behind this same method, so callers do not change.
+   */
+  scanSession(turns: ConversationTurn[]): SessionScanResult {
+    const start = performance.now();
+    const perTurn = turns.map((turn) => this.runScanPipeline(turn.content));
+    return this.assembleSession(perTurn, [], 0, performance.now() - start);
+  }
+
+  /**
+   * Scan a multi-turn conversation for agent traps (async).
+   * Prefers scanAsync on detectors that support it (e.g. the ML classifier).
+   */
+  async scanSessionAsync(turns: ConversationTurn[]): Promise<SessionScanResult> {
+    const start = performance.now();
+    const perTurn: ScanResult[] = [];
+    for (const turn of turns) {
+      perTurn.push(await this.runScanPipelineAsync(turn.content));
+    }
+    return this.assembleSession(perTurn, [], 0, performance.now() - start);
   }
 
   get strictness(): Strictness {
@@ -585,6 +624,47 @@ export class AgentArmor {
         detectorsRun: this.detectors.length,
         threatsFound: allThreats.length,
         highestSeverity: allThreats[0]?.severity ?? null,
+      },
+    };
+  }
+
+  /**
+   * Aggregate per-turn results and cross-turn threats into a SessionScanResult.
+   * Shared by the sync and async session paths. Cross-turn threats are passed
+   * in by the (Phase 1/2) cross-turn detection; Phase 0 passes none.
+   */
+  private assembleSession(
+    perTurn: ScanResult[],
+    crossTurnThreats: CrossTurnThreat[],
+    windowChars: number,
+    durationMs: number
+  ): SessionScanResult {
+    const perTurnThreatCount = perTurn.reduce(
+      (n, r) => n + r.threats.length,
+      0
+    );
+    const severities = [
+      ...perTurn.flatMap((r) => r.threats.map((t) => t.severity)),
+      ...crossTurnThreats.map((t) => t.severity),
+    ];
+    const highestSeverity =
+      severities.length > 0
+        ? severities.reduce((hi, s) =>
+            SEVERITY_ORDER[s] > SEVERITY_ORDER[hi] ? s : hi
+          )
+        : null;
+
+    return {
+      clean: perTurnThreatCount === 0 && crossTurnThreats.length === 0,
+      turns: perTurn,
+      crossTurnThreats,
+      durationMs,
+      stats: {
+        turnsScanned: perTurn.length,
+        windowChars,
+        threatsFound: perTurnThreatCount + crossTurnThreats.length,
+        crossTurnThreatsFound: crossTurnThreats.length,
+        highestSeverity,
       },
     };
   }
