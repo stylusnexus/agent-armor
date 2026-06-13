@@ -165,7 +165,7 @@ export interface SessionScanResult {
   /** Summary stats for the session. */
   stats: {
     turnsScanned: number;
-    /** Total chars considered in the cross-turn window (0 until Phase 1). */
+    /** Total chars considered in the cross-turn split-payload window. */
     windowChars: number;
     threatsFound: number;
     crossTurnThreatsFound: number;
@@ -295,28 +295,29 @@ export interface AgentArmorConfig {
 
 export interface SessionConfig {
   /**
-   * Max recent turns kept in the cross-turn window for split-payload detection
-   * (Phase 1). Default: 8.
+   * Max recent turns kept in the cross-turn window for split-payload detection.
+   * Default: 8.
    */
   windowTurns?: number;
   /**
-   * Character budget for the cross-turn window (Phase 1). Older turns drop out
-   * once the budget is exceeded. Default: 4000.
+   * Character budget for the cross-turn split-payload window. Older turns drop
+   * out once the budget is exceeded. Default: 4000.
    */
   windowChars?: number;
   /**
-   * Enable cross-turn signal accumulation (Phase 2) — gradual memory poisoning
-   * and contextual-learning drift. Opt-in because accumulation carries the
-   * highest false-positive risk. Default: false.
+   * Reserved for cross-turn signal accumulation — gradual memory poisoning and
+   * contextual-learning drift. Default: false.
    *
-   * NOT YET IMPLEMENTED: enabling this currently emits a one-time warning and
-   * has no effect (split-payload detection is unaffected). It becomes active
-   * when Phase 2 lands.
+   * NOT AVAILABLE in the regex SDK: a regex signal cannot separate a malicious
+   * standing "always downplay risk" rule from legitimate reassurance scripting
+   * without an unacceptable false-positive rate (the distinction is semantic,
+   * not lexical). This is planned for the ML classifier. Enabling it here has no
+   * effect and emits a one-time warning; split-payload detection is unaffected.
    */
   accumulation?: boolean;
   /**
-   * Per-turn decay (0-1) applied to accumulated signal so stale turns fade
-   * (Phase 2, only used when `accumulation` is true). Default: 0.5.
+   * Per-turn decay (0-1) reserved for accumulation (see `accumulation`; not
+   * active in the regex SDK). Default: 0.5.
    */
   decay?: number;
 }

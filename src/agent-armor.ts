@@ -386,9 +386,10 @@ export class AgentArmor {
   /**
    * Scan a multi-turn conversation for agent traps (sync).
    *
-   * Phase 0: each turn is scanned independently and the results are aggregated.
-   * Cross-turn detection (split payloads in Phase 1, signal accumulation in
-   * Phase 2) lands behind this same method, so callers do not change.
+   * Each turn is scanned independently (`turns`), and the recent turns are also
+   * scanned for cross-turn split payloads (`crossTurnThreats`). Cross-turn
+   * semantic accumulation is reserved for the ML classifier (see
+   * `session.accumulation`) and is inactive here.
    */
   scanSession(turns: ConversationTurn[]): SessionScanResult {
     this.warnIfAccumulationRequested();
@@ -648,7 +649,7 @@ export class AgentArmor {
   }
 
   /**
-   * Phase 1 cross-turn detection: catch payloads split across a turn boundary.
+   * Cross-turn split-payload detection: catch payloads split across a boundary.
    *
    * Each adjacent turn boundary (within the trailing `windowTurns` turns) is
    * scanned independently: the tail of the earlier turn and the head of the
@@ -672,17 +673,19 @@ export class AgentArmor {
    * recall edge). `windowChars` records total chars scanned across boundaries.
    */
   /**
-   * Signal accumulation (session.accumulation) is a Phase 2 feature and not yet
-   * implemented. Warn once if a caller enables it, so the option is never a
-   * silent no-op that fakes protection it does not provide.
+   * Cross-turn signal accumulation (session.accumulation) is not available in
+   * the regex SDK — it is deferred to the ML classifier because a regex signal
+   * cannot separate malicious standing-downplay rules from legitimate scripting
+   * without unacceptable false positives. Warn once if a caller enables it, so
+   * the option is never a silent no-op that fakes protection it does not give.
    */
   private warnIfAccumulationRequested(): void {
     if (this.config.session.accumulation && !this.accumulationWarned) {
       this.accumulationWarned = true;
       console.warn(
-        '[AgentArmor] session.accumulation is not yet implemented (Phase 2); ' +
-          'cross-turn signal accumulation is inactive. Split-payload detection ' +
-          'is unaffected.'
+        '[AgentArmor] session.accumulation is not available in the regex SDK ' +
+          '(deferred to the ML classifier); cross-turn signal accumulation is ' +
+          'inactive. Split-payload detection is unaffected.'
       );
     }
   }
@@ -744,7 +747,7 @@ export class AgentArmor {
   /**
    * Aggregate per-turn results and cross-turn threats into a SessionScanResult.
    * Shared by the sync and async session paths. Cross-turn threats are passed
-   * in by the (Phase 1/2) cross-turn detection; Phase 0 passes none.
+   * in by cross-turn detection; an empty list yields a per-turn-only result.
    */
   private assembleSession(
     perTurn: ScanResult[],
