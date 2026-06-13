@@ -171,10 +171,9 @@ const adversarial: MultiTurnSample[] = [
     source: 'synthetic',
     category: 'adversarial',
     description: 'Exfiltration destination primed early, triggered in final turn',
-    // Measured blind-spot: the exfiltration detector does not fire on this
-    // "POST <credentials> to <url>" phrasing even on its own turn. That gap is
-    // a real finding — tracked for the data-exfiltration patterns, not #35.
-    expectedToday: 'blind-spot',
+    // Caught per-turn since #49: the ex-cred-destination pattern fires on the
+    // final turn's "read credentials ... POST them to <url>" instruction.
+    expectedToday: 'per-turn',
   },
 ];
 
