@@ -268,27 +268,37 @@ export type Strictness = "permissive" | "balanced" | "strict";
 /**
  * One entry in a positive allowlist of permitted agent actions. A request is
  * admissible only if it matches a rule's `tool` exactly AND satisfies every
- * constraint present on that rule. Constraints left undefined are unconstrained.
+ * constraint present on that rule. Constraints left undefined are unconstrained
+ * — a bare `{ tool: 'fs.read' }` admits ANY args for that tool, so add the
+ * `hosts`/`paths`/`mode` constraints the tool needs.
  */
 export interface ActionRule {
   /** Exact tool / operation name this rule permits (e.g. `'http.get'`). */
   tool: string;
   /**
-   * Allowed hosts for the request. The request host is read from `args.host`
-   * or the hostname of `args.url`. Each entry is an exact host or a
-   * leading-wildcard subdomain (`'*.example.com'`, which also matches the apex
-   * `example.com`). If set and no host can be determined, the request is denied.
+   * Allowed hosts. The request host is taken from the hostname of `args.url`
+   * (what an HTTP tool actually fetches); `args.host` is consulted only when no
+   * `args.url` is present, and if both are given and disagree the request is
+   * denied. Each entry is an exact host or a leading-wildcard subdomain
+   * (`'*.example.com'`, which also matches the apex `example.com`). A trailing
+   * FQDN dot is ignored. If set and no host can be determined, the request is
+   * denied.
    */
   hosts?: string[];
   /**
-   * Allowed paths as globs (see {@link matchGlob}). Matched against `args.path`.
-   * If set and `args.path` is absent or matches none, the request is denied.
+   * Allowed paths as globs (see {@link matchGlob}). Matched against `args.path`,
+   * which must be an already-decoded, relative path. The gate fails closed on
+   * absolute paths, parent-directory traversal (`..`), percent-encoding, and
+   * non-ASCII (it never resolves paths against a trusted base). If set and
+   * `args.path` is absent or matches none, the request is denied.
    */
   paths?: string[];
   /**
-   * Required access mode. `'read-only'` denies any request that signals a write
-   * (`args.mode` of `'write'`/`'read-write'`, `args.write === true`, or
-   * `args.readOnly === false`). `'read-write'` imposes no mode constraint.
+   * Required access mode. `'read-only'` denies any request that signals a write:
+   * `args.mode` of `'write'`/`'read-write'`, `args.write === true`,
+   * `args.readOnly === false`, or an HTTP `args.method` other than
+   * GET/HEAD/OPTIONS. This is a known-signal check, not content inspection — it
+   * does not parse SQL/command bodies. `'read-write'` imposes no mode constraint.
    */
   mode?: "read-only" | "read-write";
 }
