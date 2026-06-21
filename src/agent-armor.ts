@@ -4,6 +4,7 @@ import type {
   CrossTurnThreat,
   Detector,
   MLConfig,
+  RiskLevel,
   ScanResult,
   SessionScanResult,
   Severity,
@@ -70,6 +71,39 @@ const SEVERITY_ORDER: Record<Severity, number> = {
   medium: 2,
   low: 1,
 };
+
+/**
+ * Roll up a scan to a single {@link RiskLevel} from its dominant threat.
+ *
+ * `severity` is the highest severity present; `confidence` is that dominant
+ * threat's confidence (0-1). Confidence buckets: high (>= 0.8), medium
+ * (0.5-0.8), low (< 0.5). Returns `none` when there is no threat.
+ *
+ * | severity \ confidence | >= 0.8   | 0.5-0.8 | < 0.5  |
+ * |-----------------------|----------|---------|--------|
+ * | critical              | critical | high    | medium |
+ * | high                  | high     | high    | medium |
+ * | medium                | medium   | medium  | low    |
+ * | low                   | low      | low     | low    |
+ */
+export function computeRiskLevel(
+  severity: Severity | null,
+  confidence: number
+): RiskLevel {
+  if (severity === null) return "none";
+  const band: "high" | "mid" | "low" =
+    confidence >= 0.8 ? "high" : confidence >= 0.5 ? "mid" : "low";
+  switch (severity) {
+    case "critical":
+      return band === "high" ? "critical" : band === "mid" ? "high" : "medium";
+    case "high":
+      return band === "low" ? "medium" : "high";
+    case "medium":
+      return band === "low" ? "low" : "medium";
+    case "low":
+      return "low";
+  }
+}
 
 /** Detector config: maps config flags to pattern DB keys + metadata */
 const DETECTOR_REGISTRY: Array<{
@@ -571,6 +605,10 @@ export class AgentArmor {
       threats: allThreats,
       sanitized,
       durationMs,
+      riskLevel: computeRiskLevel(
+        allThreats[0]?.severity ?? null,
+        allThreats[0]?.confidence ?? 0
+      ),
       stats: {
         detectorsRun: this.detectors.length,
         threatsFound: allThreats.length,
@@ -640,6 +678,10 @@ export class AgentArmor {
       threats: allThreats,
       sanitized,
       durationMs,
+      riskLevel: computeRiskLevel(
+        allThreats[0]?.severity ?? null,
+        allThreats[0]?.confidence ?? 0
+      ),
       stats: {
         detectorsRun: this.detectors.length,
         threatsFound: allThreats.length,

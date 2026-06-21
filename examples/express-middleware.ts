@@ -23,10 +23,20 @@ function agentArmorMiddleware(fieldName: string = 'content') {
 
     const result = armor.scanSync(content);
 
+    // Hard-block the most dangerous content using the single risk roll-up,
+    // instead of iterating threats to make the same decision by hand.
+    if (result.riskLevel === 'critical' || result.riskLevel === 'high') {
+      return res.status(422).json({
+        error: 'Content blocked by security scan',
+        riskLevel: result.riskLevel,
+      });
+    }
+
     if (!result.clean) {
       // Log the threats for monitoring
       console.warn('[AgentArmor]', {
         path: req.path,
+        riskLevel: result.riskLevel,
         threats: result.threats.map(t => ({
           type: t.type,
           severity: t.severity,
@@ -35,13 +45,7 @@ function agentArmorMiddleware(fieldName: string = 'content') {
         })),
       });
 
-      // Option 1: Block the request
-      // return res.status(422).json({
-      //   error: 'Content blocked by security scan',
-      //   threats: result.threats.length,
-      // });
-
-      // Option 2: Sanitize and continue (recommended)
+      // Lower-risk threats: sanitize and continue (recommended)
       req.body[fieldName] = result.sanitized;
     }
 

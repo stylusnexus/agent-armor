@@ -69,6 +69,13 @@ export type TrapType =
 
 export type Severity = "low" | "medium" | "high" | "critical";
 
+/**
+ * Single roll-up risk assessment for a scan, computed from the dominant threat
+ * (highest severity + its confidence). Gives integrators a one-line allow/deny
+ * decision without iterating threats. `none` means no threats were found.
+ */
+export type RiskLevel = "none" | "low" | "medium" | "high" | "critical";
+
 /** 0-1 confidence score from a detector */
 export type Confidence = number;
 
@@ -112,6 +119,12 @@ export interface ScanResult {
   sanitized: string;
   /** Time taken in milliseconds */
   durationMs: number;
+  /**
+   * Single roll-up risk assessment derived from the dominant threat. `none`
+   * when `clean` is true. Lets integrators decide with one comparison
+   * (`if (result.riskLevel === 'critical') block()`).
+   */
+  riskLevel: RiskLevel;
   /** Summary stats */
   stats: {
     detectorsRun: number;

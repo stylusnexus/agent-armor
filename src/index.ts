@@ -1,4 +1,4 @@
-export { AgentArmor } from './agent-armor';
+export { AgentArmor, computeRiskLevel } from './agent-armor';
 
 // Pattern database (for custom patterns / remote updates)
 export type { PatternDatabase, PatternEntry } from './patterns';
@@ -31,6 +31,7 @@ export type {
   MLConfig,
   MLDownloadConfig,
   ModelErrorCode,
+  RiskLevel,
   ScanResult,
   SessionConfig,
   SessionScanResult,

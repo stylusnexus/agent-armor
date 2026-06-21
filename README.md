@@ -193,6 +193,7 @@ interface ScanResult {
   threats: Threat[]; // sorted by severity, then confidence
   sanitized: string; // content with threats neutralized
   durationMs: number; // scan time in milliseconds
+  riskLevel: "none" | "low" | "medium" | "high" | "critical"; // single roll-up
   stats: {
     detectorsRun: number;
     threatsFound: number;
@@ -218,6 +219,27 @@ The `source` field indicates which detection method found the threat:
 - `'pattern'` — matched by a regex pattern from the built-in pattern database
 - `'ml'` — flagged by the ML classifier
 - `'custom'` — found by a user-provided custom detector
+
+### `riskLevel` — one-line allow/deny
+
+`riskLevel` rolls the whole scan up to a single value so you can gate without
+iterating threats. It is derived from the dominant threat (its severity, banded
+by confidence); a clean scan is `'none'`.
+
+```typescript
+const result = armor.scanSync(content);
+if (result.riskLevel === "critical" || result.riskLevel === "high") block();
+```
+
+| Highest severity | confidence ≥ 0.8 | 0.5–0.8 | < 0.5  |
+| ---------------- | ---------------- | ------- | ------ |
+| critical         | critical         | high    | medium |
+| high             | high             | high    | medium |
+| medium           | medium           | medium  | low    |
+| low              | low              | low     | low    |
+
+The same mapping is exported as `computeRiskLevel(severity, confidence)` if you
+want to compute it yourself.
 
 ## Multi-Turn / Session Scanning
 
