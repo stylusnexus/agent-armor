@@ -48,6 +48,11 @@ function hostAllowed(host: string, allowed: string[]): boolean {
   });
 }
 
+/** True if any segment of the path is `..` (parent-directory traversal). */
+function hasTraversal(path: string): boolean {
+  return path.split(/[\\/]/).some((seg) => seg === "..");
+}
+
 /** True if the request args signal a write/mutating operation. */
 function signalsWrite(args: Record<string, unknown>): boolean {
   const mode = typeof args.mode === "string" ? args.mode.toLowerCase() : "";
@@ -89,6 +94,15 @@ function ruleAdmits(
       return {
         ok: false,
         reason: `Tool "${rule.tool}" requires a path (args.path); none was provided.`,
+      };
+    }
+    // Fail closed on traversal: a `..` segment can escape an allowlisted
+    // directory (e.g. `./data/../../etc/passwd` would otherwise satisfy
+    // `./data/**`). We deny rather than resolve, since there is no trusted base.
+    if (hasTraversal(path)) {
+      return {
+        ok: false,
+        reason: `Path "${path}" contains a parent-directory ('..') segment; traversal is not permitted.`,
       };
     }
     if (!matchAnyGlob(rule.paths, path)) {

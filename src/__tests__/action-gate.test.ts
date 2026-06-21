@@ -91,6 +91,18 @@ describe('action gate / checkAction (#57)', () => {
       expect(v.admissible).toBe(false);
       expect(v.reason).toMatch(/requires a path/);
     });
+
+    it('blocks path traversal even when the glob would otherwise match (fail closed)', () => {
+      const v = armor.checkAction({ tool: 'fs.read', args: { path: './data/../../../etc/passwd' } });
+      expect(v.admissible).toBe(false);
+      expect(v.reason).toMatch(/traversal is not permitted/);
+    });
+
+    it('blocks traversal with backslash separators too', () => {
+      const v = armor.checkAction({ tool: 'fs.read', args: { path: 'data\\..\\..\\secrets' } });
+      expect(v.admissible).toBe(false);
+      expect(v.reason).toMatch(/traversal/);
+    });
   });
 
   describe('mode constraint (read-only)', () => {
