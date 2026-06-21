@@ -12,12 +12,11 @@ github:
     - 57
   branches: []
 depends_on: []
-last_touched: 2026-06-20T17:59
-last_handoff: 2026-06-20T17:59
+last_touched: 2026-06-21T11:25
+last_handoff: 2026-06-21T11:25
 next_up:
-  - 34
-  - 57
   - 35
+  - 37
 blockers: []
 ---
 # Detection Hardening
@@ -28,10 +27,10 @@ Near-term core detection + SDK improvements: risk roll-up, multi-turn scanning, 
 
 | # | Title | Assignee | Status |
 |---|---|---|---|
-| #34 | Add computed riskLevel roll-up to ScanResult | — | 🔲 Open |
+| #34 | Add computed riskLevel roll-up to ScanResult | — | ✅ Shipped |
 | #35 | Stateful multi-turn conversation scanning (cross-turn decomposition) | — | 🔲 Open |
 | #37 | Long-context attention-dilution detection | — | 🔲 Open |
-| #57 | feat: allowlist-based pre-execution action gate (`checkAction`) | — | 🔲 Open |
+| #57 | feat: allowlist-based pre-execution action gate (`checkAction`) | — | ✅ Shipped |
 
 
 ## Session log
@@ -42,3 +41,22 @@ Near-term core detection + SDK improvements: risk roll-up, multi-turn scanning, 
 - Next: #34 Add computed riskLevel roll-up to ScanResult
 - Next: #57 feat: allowlist-based pre-execution action gate (`checkAction`)
 - Next: #35 Stateful multi-turn conversation scanning (cross-turn decomposition)
+
+### Session — 2026-06-21 10:46
+
+- Touched: feat: add computed riskLevel roll-up to ScanResult (#34) (#60) (1a63340)
+- Touched: feat: add computed riskLevel roll-up to ScanResult (#34) (1a6ca0b)
+- Touched: chore: add work-plan planning tracks for open issues (#59) (588b77b)
+- Touched: docs: add deterministic-vs-probabilistic positioning to README and llms.txt (#58) (637a4d4)
+- Touched: chore: add work-plan planning tracks for open issues (02badf0)
+- Next: #57 feat: allowlist-based pre-execution action gate (`checkAction`)
+- Next: #35 Stateful multi-turn conversation scanning (cross-turn decomposition)
+- Next: #37 Long-context attention-dilution detection
+
+### Session — 2026-06-21 11:25
+
+- Touched: feat: allowlist-based pre-execution action gate (#57) (#61) (766af56)
+- Touched: feat: add allowlist-based pre-execution action gate (#57) (96a901a)
+- Touched: feat: add computed riskLevel roll-up to ScanResult (#34) (#60) (1a63340)
+- Next: #35 Stateful multi-turn conversation scanning (cross-turn decomposition)
+- Next: #37 Long-context attention-dilution detection
