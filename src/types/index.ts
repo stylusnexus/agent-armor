@@ -261,8 +261,67 @@ export interface MLConfig {
 
 export type Strictness = "permissive" | "balanced" | "strict";
 
+// ---------------------------------------------------------------------------
+// Pre-execution action gate (#57)
+// ---------------------------------------------------------------------------
+
+/**
+ * One entry in a positive allowlist of permitted agent actions. A request is
+ * admissible only if it matches a rule's `tool` exactly AND satisfies every
+ * constraint present on that rule. Constraints left undefined are unconstrained.
+ */
+export interface ActionRule {
+  /** Exact tool / operation name this rule permits (e.g. `'http.get'`). */
+  tool: string;
+  /**
+   * Allowed hosts for the request. The request host is read from `args.host`
+   * or the hostname of `args.url`. Each entry is an exact host or a
+   * leading-wildcard subdomain (`'*.example.com'`, which also matches the apex
+   * `example.com`). If set and no host can be determined, the request is denied.
+   */
+  hosts?: string[];
+  /**
+   * Allowed paths as globs (see {@link matchGlob}). Matched against `args.path`.
+   * If set and `args.path` is absent or matches none, the request is denied.
+   */
+  paths?: string[];
+  /**
+   * Required access mode. `'read-only'` denies any request that signals a write
+   * (`args.mode` of `'write'`/`'read-write'`, `args.write === true`, or
+   * `args.readOnly === false`). `'read-write'` imposes no mode constraint.
+   */
+  mode?: "read-only" | "read-write";
+}
+
+/** A proposed agent action evaluated by {@link AgentArmor.checkAction}. */
+export interface ActionRequest {
+  /** The tool / operation the agent proposes to run. */
+  tool: string;
+  /**
+   * Tool arguments. The gate inspects `url`/`host` (host constraint), `path`
+   * (path constraint), and `mode`/`write`/`readOnly` (mode constraint).
+   */
+  args?: Record<string, unknown>;
+}
+
+/** The deterministic verdict from {@link AgentArmor.checkAction}. */
+export interface ActionVerdict {
+  /** True only if the request matched a rule and satisfied all its constraints. */
+  admissible: boolean;
+  /** Human-readable explanation. Always set when `admissible` is false. */
+  reason?: string;
+  /** The rule that admitted the request, when `admissible` is true. */
+  matchedRule?: ActionRule;
+}
+
 export interface AgentArmorConfig {
   strictness?: Strictness;
+  /**
+   * Positive allowlist for the pre-execution action gate (#57). When set,
+   * {@link AgentArmor.checkAction} admits only requests matching one of these
+   * rules; everything else fails closed. An empty array denies all actions.
+   */
+  allowedActions?: ActionRule[];
   /**
    * Apply Unicode normalization (NFKC + confusable folding + invisible-char
    * stripping) before semantic detectors run, so homoglyph-obfuscated payloads

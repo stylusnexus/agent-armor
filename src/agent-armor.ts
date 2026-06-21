@@ -1,4 +1,6 @@
 import type {
+  ActionRequest,
+  ActionVerdict,
   AgentArmorConfig,
   ConversationTurn,
   CrossTurnThreat,
@@ -13,6 +15,7 @@ import type {
   TrapCategory,
   TrapType,
 } from './types';
+import { evaluateAction } from './action-gate';
 import type { PatternDatabase } from './patterns/pattern-db';
 import { DEFAULT_PATTERNS } from './patterns/default-patterns';
 import { PatternDetector } from './detectors/pattern-detector';
@@ -24,6 +27,7 @@ import {
 
 const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
   strictness: 'balanced',
+  allowedActions: [],
   normalizeUnicode: true,
   contentInjection: {
     hiddenHTML: true,
@@ -338,6 +342,26 @@ export class AgentArmor {
    */
   static regexOnly(config?: Omit<AgentArmorConfig, 'ml'>): AgentArmor {
     return new AgentArmor(config);
+  }
+
+  /**
+   * Pre-execution action gate (#57). Check a proposed agent action against the
+   * configured `allowedActions` allowlist and return a deterministic verdict.
+   *
+   * This is the positive-allowlist complement to the deny-list detector
+   * pipeline: it admits only explicitly permitted actions and fails closed on
+   * everything else, independent of any detector confidence threshold. With no
+   * `allowedActions` configured, every action is denied.
+   *
+   * @example
+   * const armor = AgentArmor.regexOnly({
+   *   allowedActions: [{ tool: 'http.get', hosts: ['api.internal.example.com'] }],
+   * });
+   * const verdict = armor.checkAction({ tool: 'http.post', args: { url: '...' } });
+   * if (!verdict.admissible) throw new ActionBlockedError(verdict.reason);
+   */
+  checkAction(req: ActionRequest): ActionVerdict {
+    return evaluateAction(req, this.config.allowedActions);
   }
 
   /**

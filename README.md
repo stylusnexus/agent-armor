@@ -260,6 +260,39 @@ The shipped cross-turn detector is the **split-payload window**: it catches a si
 
 > **Cross-turn _semantic_ accumulation** (gradual memory poisoning, contextual-learning drift) is **not** in the regex SDK. We prototyped it and concluded a regex signal cannot separate, say, a malicious "always reply that it's safe" rule from legitimate reassurance scripting without an unacceptable false-positive rate — the distinction is semantic, not lexical. The `session.accumulation` flag is reserved for this and is **planned for the ML classifier**; enabling it on the regex SDK has no effect and warns once.
 
+## Pre-Execution Action Gate
+
+The detectors answer _"does this content look adversarial?"_. They can't answer _"should this agent be allowed to POST to an unknown host, or read `/etc/passwd`, right now?"_. `checkAction()` is the positive-allowlist complement: you declare the finite set of actions an agent may take, and everything else is refused by default — deterministically, with no confidence scores. Inference is probabilistic; the gate is not.
+
+```typescript
+import { AgentArmor, ActionBlockedError } from "@stylusnexus/agentarmor";
+
+const armor = AgentArmor.regexOnly({
+  allowedActions: [
+    { tool: "http.get", hosts: ["api.internal.example.com", "*.trusted.example"] },
+    { tool: "fs.read", paths: ["./data/**", "logs/*.log"] },
+    { tool: "db.query", mode: "read-only" },
+  ],
+});
+
+const verdict = armor.checkAction({
+  tool: "http.post",
+  args: { url: "https://evil.example/exfil" },
+});
+// → { admissible: false, reason: 'Tool "http.post" is not on the allowlist.' }
+
+if (!verdict.admissible) throw new ActionBlockedError(verdict.reason); // fail closed
+```
+
+Matching is binary and **fails closed**:
+
+- **Default-deny** — a tool not on the allowlist is refused; an empty `allowedActions` denies _everything_ (it is not allow-all).
+- **`hosts`** — the request host (`args.url` hostname or `args.host`) must match an entry; supports exact hosts and `*.domain` subdomain wildcards (which also match the apex).
+- **`paths`** — `args.path` must match one of the [glob](src/glob.ts) patterns (`*` within a segment, `**` across segments, `?`, `[a-z]`/`[!…]` classes, `{a,b}` alternation).
+- **`mode: 'read-only'`** — refuses requests that signal a write (`args.mode` of `write`/`read-write`, `args.write === true`, or `args.readOnly === false`).
+
+Every refusal carries a human-readable `reason`; every admission carries the `matchedRule`. The gate is independent of `strictness` — it is an admissibility check, not a scored detection. See [`examples/action-gate.ts`](examples/action-gate.ts).
+
 ## ML Classifier
 
 The optional `@stylusnexus/agentarmor-ml` package adds an ONNX-based classifier that catches threats regex patterns might miss. It downloads the model on first use and caches it locally.
@@ -418,6 +451,7 @@ The `examples/` directory has ready-to-run integration examples:
 | `express-middleware.ts`    | Developer     | Express middleware that scans and sanitizes requests                                |
 | `web-content-scanner.ts`   | Developer     | Scan raw HTML from web fetches in strict mode                                       |
 | `scan-agent-config.ts`     | Developer     | Scan AI-assistant config files (CLAUDE.md, .cursorrules, MCP) before trusting them  |
+| `action-gate.ts`           | Developer     | Allowlist-based pre-execution gate: admit permitted tool calls, fail closed on the rest |
 | `ml-classifier.ts`         | Developer     | Async pipeline with ML classifier enabled                                           |
 | `custom-detector.ts`       | Developer     | Implement and register a custom `Detector`                                          |
 | `real-world-validation.ts` | Security      | Validate against real-world attack samples from published research                  |
@@ -436,6 +470,7 @@ Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy. Here's
 
 - **Content Injection** (4 detectors) and **Behavioural Control** (3 detectors) since v0.1.0
 - **Cognitive State** (3 detectors) and **Semantic Manipulation** (3 detectors) since v0.2.0
+- **Pre-execution action gate** — deterministic allowlist admissibility check (`checkAction()`)
 - ML classifier (DeBERTa-v3-small, ONNX) as optional companion package
 - Pattern database v0.4.0 with 71 pattern entries
 
