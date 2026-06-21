@@ -1,5 +1,9 @@
 export { AgentArmor, computeRiskLevel } from './agent-armor';
 
+// Pre-execution action gate (#57)
+export { ActionBlockedError, evaluateAction } from './action-gate';
+export { matchGlob, globToRegExp } from './glob';
+
 // Pattern database (for custom patterns / remote updates)
 export type { PatternDatabase, PatternEntry } from './patterns';
 export { DEFAULT_PATTERNS } from './patterns';
@@ -21,6 +25,9 @@ export {
 } from './detectors';
 
 export type {
+  ActionRequest,
+  ActionRule,
+  ActionVerdict,
   AgentArmorConfig,
   Confidence,
   ConversationTurn,

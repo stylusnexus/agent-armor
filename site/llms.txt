@@ -55,6 +55,22 @@ const clean = armor.scanRAGChunksSync(chunks)
 
 `scanSession(turns)` scans a conversation (an array of {role, content} turns). Beyond scanning each turn on its own, it catches cross-turn split payloads: a single instruction chopped across a turn boundary (e.g. "ignore all previous" + "instructions...") that no per-turn scan would see. Cross-turn threats name their contributing turns. Cross-turn semantic accumulation (gradual memory poisoning) is deferred to the ML classifier because regex cannot separate it from legitimate scripting without false positives.
 
+## Pre-execution action gate
+
+`checkAction(req)` is a positive-allowlist admissibility gate — the deterministic complement to the deny-list detectors. You declare the finite set of actions an agent may take via `allowedActions`, and any tool call not matching a rule is refused. It is binary (no confidence scores, independent of strictness) and fails closed: an empty allowlist denies everything. Rules match an exact tool name plus optional constraints — `hosts` (exact or `*.domain` wildcard, read from `args.url`/`args.host`), `paths` (globs over `args.path`, with `*`/`**`/`?`/`[...]`/`{a,b}`), and `mode: 'read-only'` (refuses writes). The verdict carries a human-readable `reason` on refusal and the `matchedRule` on admission. This is what makes "deterministic execution layer" literal: inference is probabilistic, the gate is not.
+
+```typescript
+const armor = AgentArmor.regexOnly({
+  allowedActions: [
+    { tool: 'http.get', hosts: ['api.internal.example.com'] },
+    { tool: 'fs.read', paths: ['./data/**'] },
+    { tool: 'db.query', mode: 'read-only' },
+  ],
+});
+const verdict = armor.checkAction({ tool: 'http.post', args: { url: 'https://evil.example' } });
+if (!verdict.admissible) throw new ActionBlockedError(verdict.reason);
+```
+
 ## Eval results (v0.6.0 patterns, 105 samples)
 
 Strictness controls the confidence threshold for reporting threats:
