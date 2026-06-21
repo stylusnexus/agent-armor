@@ -25,6 +25,8 @@ This isn't theoretical. It's happening now:
 
 Google DeepMind's [AI Agent Traps](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438) taxonomy (Franklin et al., 2026) catalogs 14 attack types across 6 categories. [OpenAI has stated](https://techcrunch.com/2025/12/22/openai-says-ai-browsers-may-always-be-vulnerable-to-prompt-injection-attacks/) that AI browsers "may always be vulnerable" to prompt injection.
 
+Most defenses answer one guess with another — an LLM judging whether another LLM was fooled. That's a guessing system grading a guessing system. Agent Armor inverts it: detection is **deterministic** by default. Inference is probabilistic; the layer that decides what reaches your agent shouldn't be. Versioned regex patterns run first and sub-millisecond; the ML classifier is an optional second opinion, never the gate.
+
 Agent Armor scans content at every stage of the agent lifecycle: before ingestion, after retrieval, and before the agent's output reaches the user. Input validation _and_ output validation in one pipeline.
 
 ## Quick Start
