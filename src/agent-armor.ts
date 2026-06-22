@@ -450,7 +450,7 @@ export class AgentArmor {
    * `session.accumulation`) and is inactive here.
    */
   scanSession(turns: ConversationTurn[]): SessionScanResult {
-    this.warnIfAccumulationRequested();
+    this.warnIfAccumulationRequested(false); // sync path cannot run ML inference
     const start = performance.now();
     const perTurn = turns.map((turn) => this.runScanPipeline(turn.content));
     const { crossTurnThreats, windowChars } = this.scanCrossTurn(turns);
@@ -467,7 +467,7 @@ export class AgentArmor {
    * Prefers scanAsync on detectors that support it (e.g. the ML classifier).
    */
   async scanSessionAsync(turns: ConversationTurn[]): Promise<SessionScanResult> {
-    this.warnIfAccumulationRequested();
+    // The accumulation pass (scanAccumulation) emits the warn when it cannot run.
     const start = performance.now();
     const perTurn: ScanResult[] = [];
     for (const turn of turns) {
@@ -477,9 +477,12 @@ export class AgentArmor {
     // to prove a span crosses a turn boundary); the sync window scan is reused.
     // ML threats carry no offsets and so do not produce cross-turn threats.
     const { crossTurnThreats, windowChars } = this.scanCrossTurn(turns);
+    // Cross-turn semantic accumulation: show the ML classifier a window of
+    // recent turns so accumulated signal invisible per-turn can surface (#35).
+    const accumulationThreats = await this.scanAccumulation(turns, perTurn);
     return this.assembleSession(
       perTurn,
-      crossTurnThreats,
+      [...crossTurnThreats, ...accumulationThreats],
       windowChars,
       performance.now() - start
     );
@@ -739,21 +742,108 @@ export class AgentArmor {
    * recall edge). `windowChars` records total chars scanned across boundaries.
    */
   /**
-   * Cross-turn signal accumulation (session.accumulation) is not available in
-   * the regex SDK — it is deferred to the ML classifier because a regex signal
-   * cannot separate malicious standing-downplay rules from legitimate scripting
-   * without unacceptable false positives. Warn once if a caller enables it, so
-   * the option is never a silent no-op that fakes protection it does not give.
+   * Cross-turn signal accumulation (session.accumulation) runs only via the ML
+   * classifier on the async session path (#35) — a regex signal cannot separate
+   * malicious standing-downplay rules from legitimate scripting without
+   * unacceptable false positives. Warn once when accumulation is requested but
+   * cannot run (no ML classifier, or the sync path where ML inference is
+   * unavailable), so the option is never a silent no-op that fakes protection.
+   *
+   * @param canRunML whether this call path can actually run ML accumulation.
    */
-  private warnIfAccumulationRequested(): void {
-    if (this.config.session.accumulation && !this.accumulationWarned) {
-      this.accumulationWarned = true;
-      console.warn(
-        '[AgentArmor] session.accumulation is not available in the regex SDK ' +
-          '(deferred to the ML classifier); cross-turn signal accumulation is ' +
-          'inactive. Split-payload detection is unaffected.'
-      );
+  private warnIfAccumulationRequested(canRunML: boolean): void {
+    if (!this.config.session.accumulation || this.accumulationWarned) return;
+    if (canRunML) return; // accumulation will actually run
+    this.accumulationWarned = true;
+    const reason = this.mlDetector
+      ? 'cross-turn accumulation runs only on the async path — call scanSessionAsync()'
+      : 'enable the ML classifier (ml.enabled) to activate cross-turn accumulation';
+    console.warn(
+      `[AgentArmor] session.accumulation: ${reason}. ` +
+        'Split-payload detection is unaffected.'
+    );
+  }
+
+  /**
+   * Cross-turn semantic accumulation via the ML classifier (#35 step 1).
+   *
+   * The per-turn pass shows the model each turn alone, so accumulation attacks
+   * — where no single turn is malicious but the arc is (gradual memory
+   * poisoning, contextual-learning drift) — are invisible. This shows the model
+   * a trailing window of recent turns concatenated (bounded by `windowTurns` /
+   * `windowChars`, most-recent-first), so the accumulated context becomes one
+   * string its `latent-memory-poisoning` / `contextual-learning-trap` labels can
+   * fire on. A label is reported as cross-turn only when it did NOT already fire
+   * on an individual turn — otherwise it is a per-turn threat already captured.
+   *
+   * Gated on the ML classifier being present and `session.accumulation` enabled;
+   * inert otherwise. The window join scheme here is provisional (plain newline)
+   * pending the cross-turn-structured retrain (#35 step 2).
+   */
+  private async scanAccumulation(
+    turns: ConversationTurn[],
+    perTurn: ScanResult[]
+  ): Promise<CrossTurnThreat[]> {
+    const canRunML =
+      !!this.mlDetector &&
+      typeof this.mlDetector.scanAsync === 'function' &&
+      this.config.session.accumulation === true;
+    this.warnIfAccumulationRequested(canRunML);
+    if (!canRunML || turns.length < 2) return [];
+
+    const ACCUMULATION_TYPES = new Set<TrapType>([
+      'latent-memory-poisoning',
+      'contextual-learning-trap',
+    ]);
+    // Types already caught on a single turn are not cross-turn-only signals.
+    const perTurnTypes = new Set<TrapType>(
+      perTurn.flatMap((r) => r.threats.map((t) => t.type))
+    );
+
+    const SEP = '\n';
+    const maxTurns = this.config.session.windowTurns ?? 8;
+    const cap = this.config.session.windowChars ?? 4000;
+    // Build the trailing window most-recent-first within the char budget,
+    // always keeping at least the final turn.
+    let startIdx = turns.length - 1;
+    let total = turns[startIdx].content.length;
+    for (let i = turns.length - 2; i >= Math.max(0, turns.length - maxTurns); i--) {
+      const next = total + SEP.length + turns[i].content.length;
+      if (next > cap) break;
+      total = next;
+      startIdx = i;
     }
+    // A single-turn window is not cross-turn; nothing to accumulate.
+    if (startIdx >= turns.length - 1) return [];
+
+    const windowTurns = turns.slice(startIdx);
+    const joined = windowTurns.map((t) => t.content).join(SEP);
+    const contributingTurns = windowTurns.map((_, k) => startIdx + k);
+
+    let result;
+    try {
+      result = await this.mlDetector!.scanAsync!(joined, {
+        strictness: this.config.strictness,
+      });
+    } catch (err) {
+      console.warn(
+        `[AgentArmor] ML accumulation scan failed: ${err instanceof Error ? err.message : String(err)}`
+      );
+      return [];
+    }
+
+    const out: CrossTurnThreat[] = [];
+    for (const threat of result.threats) {
+      if (!ACCUMULATION_TYPES.has(threat.type)) continue;
+      if (perTurnTypes.has(threat.type)) continue; // already caught per-turn
+      const { location: _drop, ...rest } = threat;
+      out.push({
+        ...rest,
+        contributingTurns,
+        accumulatedConfidence: threat.confidence,
+      });
+    }
+    return out;
   }
 
   private scanCrossTurn(turns: ConversationTurn[]): {
