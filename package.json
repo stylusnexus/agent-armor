@@ -22,7 +22,8 @@
     "typecheck:eval": "tsc -p tsconfig.eval.json",
     "eval": "tsx scripts/eval/run-eval.ts",
     "eval:gate": "tsx scripts/eval/run-eval.ts --gate",
-    "eval:multi-turn": "tsx scripts/eval/run-multi-turn-eval.ts"
+    "eval:multi-turn": "tsx scripts/eval/run-multi-turn-eval.ts",
+    "eval:action-gate": "tsx scripts/eval/action-gate-fuzz.ts"
   },
   "keywords": [
     "ai-security",
