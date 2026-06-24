@@ -63,13 +63,19 @@ function isAbsoluteLike(p: string): boolean {
 
 /**
  * Does this path, taken literally as a decoded path, target a location outside a
- * confined workspace root? Absolute/drive paths escape by definition; a relative
- * path escapes if it normalizes to something not under ROOT (i.e. it climbs out
- * via `..`). Bare in-workspace filenames (`config.php`, relative `etc/passwd`)
- * do NOT escape — admitting those is correct gate behaviour.
+ * confined workspace root? Escape vectors, independent of what the gate checks:
+ *   - absolute / drive paths (`/etc/passwd`, `C:\…`)
+ *   - a leading `~` — home-directory expansion lands outside the workspace
+ *   - a URL/stream wrapper (`php://input`, `file://…`) — not a relative read
+ *   - a relative path that normalizes above ROOT (climbs out via `..`)
+ * Bare in-workspace filenames (`config.php`, relative `etc/passwd`) do NOT
+ * escape — admitting those is correct gate behaviour. This classifier must err
+ * toward flagging: a too-narrow definition hides a real gate hole as "correct".
  */
 function escapesWorkspace(rawPath: string): boolean {
   if (isAbsoluteLike(rawPath)) return true;
+  if (rawPath.startsWith('~')) return true;
+  if (/^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(rawPath)) return true;
   const resolved = path.posix.normalize(path.posix.join(ROOT, toPosix(rawPath)));
   return resolved !== ROOT && !resolved.startsWith(ROOT + '/');
 }
@@ -80,15 +86,24 @@ function manualDecode(s: string): string {
 }
 
 /** The gate's contract is "already-decoded path"; SecLists ships encoded forms.
- * Test raw (should die on the `%` rule) and the decoded form (the real test). */
+ * Test raw (should die on the `%` rule) and the decoded form (the real test).
+ * Decode up to a few passes so double-encoded payloads (`%252e%252e…`) reach
+ * their fully-decoded `../../…` form rather than stalling at a residual `%`. */
 function forms(raw: string): { label: string; path: string }[] {
   const out = [{ label: 'raw', path: raw }];
-  try {
-    const d = decodeURIComponent(raw);
-    if (d !== raw) out.push({ label: 'decodeURI', path: d });
-  } catch {
-    const d = manualDecode(raw);
-    if (d !== raw) out.push({ label: 'manual%XX', path: d });
+  let cur = raw;
+  for (let pass = 1; pass <= 3; pass++) {
+    let dec: string;
+    try {
+      dec = decodeURIComponent(cur);
+    } catch {
+      dec = manualDecode(cur);
+    }
+    if (dec === cur) break; // fully decoded
+    if (dec !== raw && !out.some((f) => f.path === dec)) {
+      out.push({ label: `decoded#${pass}`, path: dec });
+    }
+    cur = dec;
   }
   return out;
 }

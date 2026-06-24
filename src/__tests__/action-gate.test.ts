@@ -142,6 +142,21 @@ describe('action gate / checkAction (#57)', () => {
       expect(v.admissible).toBe(false);
       expect(v.reason).toMatch(/traversal/);
     });
+
+    it('blocks a leading ~ even when a ** rule would match (home-dir expansion escapes)', () => {
+      const wide = AgentArmor.regexOnly({ allowedActions: [{ tool: 'fs.read', paths: ['**'] }] });
+      const v = wide.checkAction({ tool: 'fs.read', args: { path: '~/.ssh/id_rsa' } });
+      expect(v.admissible).toBe(false);
+      expect(v.reason).toMatch(/home-directory/);
+    });
+
+    it('blocks URL/stream wrappers like php:// and file:// (I1)', () => {
+      const wide = AgentArmor.regexOnly({ allowedActions: [{ tool: 'fs.read', paths: ['**'] }] });
+      expect(wide.checkAction({ tool: 'fs.read', args: { path: 'php://input' } }).admissible).toBe(false);
+      const v = wide.checkAction({ tool: 'fs.read', args: { path: 'file:///etc/passwd' } });
+      expect(v.admissible).toBe(false);
+      expect(v.reason).toMatch(/scheme/);
+    });
   });
 
   describe('mode constraint (read-only)', () => {
