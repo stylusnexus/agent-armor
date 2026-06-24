@@ -70,8 +70,10 @@ function isAbsolutePath(path: string): boolean {
  * must fail closed on anything it cannot reason about literally: absolute paths
  * (un-confinable without a base), parent-directory traversal in any all-dots
  * form (`..`, `...`, `....`), percent-encoding (the caller must pass a decoded
- * path — `%2e%2e` would otherwise slip past), and non-ASCII (unicode dot/slash
- * confusables). Callers are expected to pass already-decoded, normalized paths.
+ * path — `%2e%2e` would otherwise slip past), non-ASCII (unicode dot/slash
+ * confusables), a leading `~` (home-directory expansion escapes the workspace),
+ * and URL/stream wrappers (`php://`, `file://` — not workspace-relative reads).
+ * Callers are expected to pass already-decoded, normalized paths.
  */
 function pathPolicyViolation(path: string): string | null {
   if (path.includes("%")) {
@@ -79,6 +81,12 @@ function pathPolicyViolation(path: string): string | null {
   }
   if (/[^\x20-\x7e]/.test(path)) {
     return "contains non-ASCII characters";
+  }
+  if (path.startsWith("~")) {
+    return "starts with '~'; home-directory expansion cannot be confined";
+  }
+  if (/^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(path)) {
+    return "contains a URL/stream scheme; the gate confines filesystem paths, not wrappers";
   }
   if (isAbsolutePath(path)) {
     return "is absolute; the gate has no trusted base to confine it against";
