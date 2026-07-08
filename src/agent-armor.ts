@@ -520,9 +520,12 @@ export class AgentArmor {
             `Install @stylusnexus/agentarmor-ml or set ml.onUnavailable to 'warn-and-skip'.`
           );
         } else if (behavior === 'warn-and-skip') {
-          console.warn(
-            `[AgentArmor] ML classifier unavailable, falling back to regex-only: ${err instanceof Error ? err.message : String(err)}`
-          );
+          const message = `[AgentArmor] ML classifier unavailable, falling back to regex-only: ${err instanceof Error ? err.message : String(err)}`;
+          if (this.config.on?.warn) {
+            this.config.on.warn({ message, context: { detectorId: 'ml-classifier' } });
+          } else {
+            console.warn(message);
+          }
         }
       }
     }
@@ -761,11 +764,15 @@ export class AgentArmor {
   private warnIfAccumulationRequested(): void {
     if (this.config.session.accumulation && !this.accumulationWarned) {
       this.accumulationWarned = true;
-      console.warn(
+      const message =
         '[AgentArmor] session.accumulation is not available in the regex SDK ' +
-          '(deferred to the ML classifier); cross-turn signal accumulation is ' +
-          'inactive. Split-payload detection is unaffected.'
-      );
+        '(deferred to the ML classifier); cross-turn signal accumulation is ' +
+        'inactive. Split-payload detection is unaffected.';
+      if (this.config.on?.warn) {
+        this.config.on.warn({ message });
+      } else {
+        console.warn(message);
+      }
     }
   }
 
