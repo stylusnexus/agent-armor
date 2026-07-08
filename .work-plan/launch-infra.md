@@ -11,13 +11,11 @@ github:
     - 66
     - 67
     - 70
-  branches: [feat/64-65-ci-and-doc-hardening]
+  branches: []
 depends_on: []
-last_touched: 2026-07-07T21:40
-last_handoff: 2026-07-07T21:40
+last_touched: 2026-07-08T04:09
+last_handoff: 2026-07-08T04:09
 next_up:
-  - 65
-  - 64
   - 66
 blockers: []
 ---
@@ -29,8 +27,8 @@ Pre-launch credibility polish (CI gates the security fuzz test doesn't run yet, 
 
 | # | Title | Assignee | Status |
 |---|---|---|---|
-| #64 | ci: run action-gate fuzz, lint, ML package tests, and build in CI | — | 🔲 Open |
-| #65 | chore(docs): fix README/site drift and add a doc-consistency gate to CI | — | 🔲 Open |
+| #64 | ci: run action-gate fuzz, lint, ML package tests, and build in CI | — | ✅ Shipped |
+| #65 | chore(docs): fix README/site drift and add a doc-consistency gate to CI | — | ✅ Shipped |
 | #66 | feat: agentarmor CLI with JSON/SARIF output for CI scanning | — | 🔲 Open |
 | #67 | docs: generated API reference (TypeDoc) published to agentarmor.dev | — | 🔲 Open |
 | #70 | ci: automated npm publish with provenance via release-please (trusted publishing) | — | 🔲 Open |
@@ -51,3 +49,12 @@ Pre-launch credibility polish (CI gates the security fuzz test doesn't run yet, 
 - Correction mid-implementation: the eval sample count was NOT stale (105/67/38 is correct at runtime) — an initial grep-based count during planning miscounted by one. The checker script itself caught this before it shipped; committed a visible fix-up rather than amending history. Found in the process: one sample block in `scripts/eval/samples.ts` matches `category: 'adversarial'` via grep but isn't wired into `ALL_SAMPLES` — real but out of scope here, worth a follow-up look (possibly folds into #69's eval-coverage work).
 - #64: `npm run lint` was previously non-functional (eslint not installed, no config) — added eslint 9 + typescript-eslint, fixed the 7 violations a recommended ruleset surfaced. Added `.github/workflows/ci.yml` with 5 jobs (lint, docs-drift, build, ml-package, action-gate-fuzz w/ SecLists sparse-clone + cache). Hardened `action-gate-fuzz.ts` to fail (not skip) when the corpus is missing under `CI=true`.
 - All local dry-runs green: lint, check:docs, build (root + ml), ml-package typecheck/test, and the real action-gate fuzz against the live SecLists corpus (0 escapes / 41,524 escape attempts, matches pinned baseline).
+
+### Session — 2026-07-08 04:09 (merged, #64/#65 shipped)
+
+- PR #72 opened, CI caught a real pre-existing bug on first run: `packages/ml/package-lock.json` had been out of sync with `package.json` since the ML package's original commit (months ago) — nothing had ever run `npm ci` in `packages/ml` before this PR's `ml-package`/`build` jobs existed. Fixed by regenerating the lockfile (`21db3e1`), verified clean `npm ci` + typecheck + test + build.
+- All 7 checks green (lint, docs-drift, build, ml-package, action-gate-fuzz, eval, Cloudflare Pages). Merged via `gh pr merge --squash --admin` (branch protection required a review approval; user explicitly authorized the bypass) — commit `0d05aaa`.
+- #64 auto-closed via the squash commit's "Closes #64, #65" — GitHub only linked #64 (needs the keyword repeated per issue: "closes #64, closes #65"). #65 closed manually with a note.
+- Local/remote feature branch deleted, main synced.
+- Two follow-ups NOT done here, still open: the unwired eval sample in `samples.ts` (candidate for #69), and the pre-existing `npm audit` findings in vitest's transitive deps (esbuild/postcss/vite) — out of scope for this PR.
+- Next up in this track: #66 (CLI + SARIF), the biggest remaining adoption lever.
