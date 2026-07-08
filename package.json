@@ -48,6 +48,9 @@
     "url": "https://github.com/stylusnexus/agent-armor/issues"
   },
   "homepage": "https://agentarmor.dev",
+  "bin": {
+    "agentarmor": "./dist/cli.js"
+  },
   "engines": {
     "node": ">=18.0.0"
   },
