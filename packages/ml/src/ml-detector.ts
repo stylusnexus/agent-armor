@@ -66,9 +66,19 @@ const LABEL_TO_CATEGORY: Record<string, string> = {
   'benign': 'content-injection',
 };
 
+/**
+ * ONNX-based detector running the DeBERTa-v3-small multi-label classifier.
+ * Implements Agent Armor's `Detector` interface via structural typing —
+ * {@link MLDetector.create} loads the model; {@link MLDetector.scanAsync}
+ * runs inference. {@link MLDetector.scan} (sync) always returns no threats,
+ * since ONNX inference is async-only.
+ */
 export class MLDetector implements Detector {
+  /** Unique identifier for this detector. */
   readonly id = 'ml-classifier';
+  /** Human-readable name. */
   readonly name = 'ML Classifier (DeBERTa-v3-small)';
+  /** Trap category this detector's labels currently map into. */
   readonly category = 'content-injection';
 
   private session: OrtSession;
@@ -81,6 +91,7 @@ export class MLDetector implements Detector {
     this.ort = ort;
   }
 
+  /** Loads the ONNX session and tokenizer from resolved {@link ModelArtifacts}. */
   static async create(artifacts: ModelArtifacts): Promise<MLDetector> {
     const ort = await import('onnxruntime-node') as unknown as OrtModule;
     const session = await ort.InferenceSession.create(artifacts.modelPath);
@@ -88,12 +99,12 @@ export class MLDetector implements Detector {
     return new MLDetector(session, tokenizer, ort);
   }
 
-  // Sync scan returns empty — ML inference is async only
+  /** Always returns no threats — ML inference is async-only, use {@link scanAsync}. */
   scan(_content: string, _options?: DetectorOptions): DetectorResult {
     return { threats: [] };
   }
 
-  // Async scan runs ONNX inference
+  /** Tokenizes `content`, runs ONNX inference, and returns threats above the strictness threshold. */
   async scanAsync(content: string, options?: DetectorOptions): Promise<DetectorResult> {
     const strictness = options?.strictness ?? 'balanced';
     const threshold = THRESHOLDS[strictness] ?? THRESHOLDS.balanced;
@@ -132,7 +143,7 @@ export class MLDetector implements Detector {
     return { threats };
   }
 
-  // ML detector doesn't modify content — pattern detectors handle sanitization
+  /** Passthrough — the ML detector doesn't modify content; pattern detectors sanitize. */
   sanitize(content: string, _threats: Threat[]): string {
     return content;
   }
