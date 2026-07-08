@@ -142,6 +142,12 @@ function bucket(reason: string): string {
 function main(): void {
   const corpus = findCorpus();
   if (!corpus) {
+    if (process.env.CI) {
+      console.error('\n[action-gate-fuzz] SecLists corpus not found in CI — failing.');
+      console.error('  Expected a checkout with Fuzzing/LFI/ at SECLISTS_DIR, ../SecLists, or ../../SecLists.');
+      console.error('  Check the sparse-checkout step in .github/workflows/ci.yml.\n');
+      process.exit(1);
+    }
     console.log('\n[action-gate-fuzz] SecLists corpus not found — skipping.');
     console.log('  Set SECLISTS_DIR=/path/to/SecLists (needs Fuzzing/LFI/).\n');
     process.exit(0);

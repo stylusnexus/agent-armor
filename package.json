@@ -23,7 +23,8 @@
     "eval": "tsx scripts/eval/run-eval.ts",
     "eval:gate": "tsx scripts/eval/run-eval.ts --gate",
     "eval:multi-turn": "tsx scripts/eval/run-multi-turn-eval.ts",
-    "eval:action-gate": "tsx scripts/eval/action-gate-fuzz.ts"
+    "eval:action-gate": "tsx scripts/eval/action-gate-fuzz.ts",
+    "check:docs": "tsx scripts/check-doc-drift.ts"
   },
   "keywords": [
     "ai-security",
@@ -57,9 +58,11 @@
   ],
   "devDependencies": {
     "@types/node": "^25.5.2",
+    "eslint": "^9.0.0",
     "tsup": "^8.5.1",
     "tsx": "^4.20.6",
     "typescript": "^6.0.2",
+    "typescript-eslint": "^8.0.0",
     "vitest": "^4.1.2"
   }
 }

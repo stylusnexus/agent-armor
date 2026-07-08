@@ -367,6 +367,7 @@ describe('AgentArmor', () => {
 
     it('defaults transportIntegrity flags to true', () => {
       const armor = new AgentArmor();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- private-field access for test assertions
       expect((armor as any).config.transportIntegrity).toEqual({
         toolCallTampering: true,
         credentialExposure: true,
@@ -382,6 +383,7 @@ describe('AgentArmor', () => {
           credentialExposure: false,
         },
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- private-field access for test assertions
       expect((armor as any).config.transportIntegrity).toEqual({
         toolCallTampering: false,
         credentialExposure: false,
@@ -395,6 +397,7 @@ describe('AgentArmor', () => {
       const armor = new AgentArmor({
         transportIntegrity: { toolCallTampering: false },
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- private-field access for test assertions
       expect((armor as any).config.transportIntegrity).toEqual({
         toolCallTampering: false,
         credentialExposure: true,
@@ -473,6 +476,7 @@ describe('AgentArmor', () => {
 
     it('session config merges with defaults (accumulation opt-in, off by default)', () => {
       const armor = new AgentArmor({ session: { windowTurns: 4 } });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- private-field access for test assertions
       expect((armor as any).config.session).toEqual({
         windowTurns: 4,
         windowChars: 4000,
