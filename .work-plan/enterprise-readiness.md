@@ -9,10 +9,10 @@ github:
     - 24
     - 38
     - 75
-  branches: [feat/24-diagnostics-events]
+  branches: []
 depends_on: []
-last_touched: 2026-07-08T17:28
-last_handoff: 2026-07-08T17:28
+last_touched: 2026-07-08T23:08
+last_handoff: 2026-07-08T23:08
 next_up:
   - 75
 blockers: []
@@ -55,3 +55,10 @@ Reprioritized P3 → P1 on 2026-07-07: #24 is the most actively-discussed open i
 - 9 new tests (189 total, up from 180), all passing on first run — the plan's Task 6 contingency (verify `scanSession`/`loadPatterns` signatures before trusting the test assumptions) needed no correction, both matched exactly.
 - Full verification: typecheck/lint/test clean, build clean, `eval:gate` unaffected, docs regenerated under Node 20 (per #67's CONTRIBUTING.md note) with the 4 new types (`WarnEvent`, `ErrorEvent`, `DetectorSkippedEvent`, `DiagnosticsConfig`) confirmed present and cross-referenced in the generated reference.
 - Next: open the PR, merge once green (same admin-bypass pattern as #72/#73/#74). Then #75 (audit-evidence records) is unblocked and ready to plan — carries forward the marywang-aiops three-layer design and the once-per-chunk/turn granularity decision from this session, nothing to re-derive.
+
+### Session — 2026-07-08 23:08 (merged, #24 shipped)
+
+- PR #76 opened, all 7 checks green on the first run — neither of the two known traps from #72/#74 (packages/ml lockfile drift, Node-version docs-asset non-determinism) recurred this time. Merged via `gh pr merge --squash --admin` (branch protection required review approval; user explicitly confirmed the bypass) — commit `d65871c`. #24 auto-closed cleanly.
+- Verified live post-merge: `agentarmor.dev/api/interfaces/DiagnosticsConfig.html` resolves 200 (after Cloudflare's normal trailing-redirect).
+- Local/remote feature branch deleted, main synced.
+- #75 (audit-evidence records) is now unblocked and next up in this track.
