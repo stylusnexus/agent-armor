@@ -14,8 +14,8 @@ github:
     - 31
   branches: []
 depends_on: []
-last_touched: 2026-06-20T17:59
-last_handoff: 2026-06-20T17:59
+last_touched: 2026-07-07T21:07
+last_handoff: 2026-07-07T21:07
 next_up:
   - 26
   - 27
@@ -24,6 +24,8 @@ blockers: []
 # Transport Integrity
 
 New taxonomy category for malicious-intermediary attacks and its detectors (tool-call tampering, credential exposure, dependency substitution, response anomaly, response signing)
+
+Confirmed P1 on 2026-07-07's value pass: already correctly ordered — #26 is the taxonomy/type-system prerequisite blocking #27-#30 in this track plus #32 in ml-v2-retrain, so it stays first regardless of anything else.
 
 ## Issues
 

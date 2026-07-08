@@ -13,8 +13,8 @@ github:
     - 11
   branches: []
 depends_on: []
-last_touched: 2026-06-20T17:59
-last_handoff: 2026-06-20T17:59
+last_touched: 2026-07-07T21:07
+last_handoff: 2026-07-07T21:07
 next_up:
   - 7
   - 8
@@ -24,13 +24,15 @@ blockers: []
 
 DeepMind P2 systemic taxonomy detectors: congestion, cascade, collusion, compositional fragments, sybil
 
+Confirmed P2 on 2026-07-07's value pass: this cluster is correctly deferred until there are users to generate real incident signal (per CLAUDE.md's own launch roadmap). Note: the duplicate-title checker flags #7/#10 at 74% title similarity — reviewed, not a real duplicate (congestion vs. compositional-fragment traps are distinct DeepMind taxonomy categories).
+
 ## Issues
 
 | # | Title | Assignee | Status |
 |---|---|---|---|
 | #7 | P2: Congestion Trap Detection | — | 🔲 Open |
 | #8 | P2: Interdependence Cascade Detection | — | 🔲 Open |
-| #9 | P2: Tacit Collusion Detection | — | 🔲 Open |
+| #9 | Collusion-signal detection — coordination beacons in scanned content (rescoped 2026-07-07 from runtime pricing/bidding analysis, which was out of architectural scope) | — | 🔲 Open |
 | #10 | P2: Compositional Fragment Trap Detection | — | 🔲 Open |
 | #11 | P2: Sybil Attack Detection | — | 🔲 Open |
 
