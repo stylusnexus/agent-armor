@@ -11,12 +11,11 @@ github:
     - 66
     - 67
     - 70
-  branches: []
+  branches: [feat/67-api-reference]
 depends_on: []
-last_touched: 2026-07-08T14:50
-last_handoff: 2026-07-08T14:50
+last_touched: 2026-07-08T10:14
+last_handoff: 2026-07-08T10:14
 next_up:
-  - 67
   - 70
 blockers: []
 ---
@@ -31,7 +30,7 @@ Pre-launch credibility polish (CI gates the security fuzz test doesn't run yet, 
 | #64 | ci: run action-gate fuzz, lint, ML package tests, and build in CI | — | ✅ Shipped |
 | #65 | chore(docs): fix README/site drift and add a doc-consistency gate to CI | — | ✅ Shipped |
 | #66 | feat: agentarmor CLI with JSON/SARIF output for CI scanning | — | ✅ Shipped |
-| #67 | docs: generated API reference (TypeDoc) published to agentarmor.dev | — | 🔲 Open |
+| #67 | docs: generated API reference (TypeDoc) published to agentarmor.dev | — | ✅ Shipped |
 | #70 | ci: automated npm publish with provenance via release-please (trusted publishing) | — | 🔲 Open |
 
 ## Session log
@@ -77,3 +76,16 @@ Pre-launch credibility polish (CI gates the security fuzz test doesn't run yet, 
 - PR #73 opened, all 7 checks green on the first run (no repeat of #72's lockfile surprise). Merged via `gh pr merge --squash --admin` (branch protection required review approval; user explicitly authorized the bypass again) — commit `5331e14`. #66 auto-closed cleanly (single issue ref this time, unlike #72's comma-list keyword-parsing gap).
 - Local/remote feature branch deleted, main synced.
 - **Security note, not code-related:** a comment appeared on PR #73 recommending `pip install vulnledger` for SBOM generation. Investigated (read-only OSINT only — nothing installed/executed): the PyPI package (published by "akuma-creator" 2026-06-28, single alpha version, zero download stats) lists its source at `github.com/AKUMA-creator-ng/Vulnledger`, which returns 404 — the account and repo don't exist. The GitHub comment itself isn't visible via the REST or GraphQL API (checked both issue-comments and PR-review-comments endpoints, including minimized/hidden ones) — already removed, or arrived via a non-GitHub channel. Separately, there IS a real, unrelated `raymond-itsec/vulnledger` project on GitHub (account created 2018, small footprint — 1 star, 0 forks, 56 open issues, actively pushed) with no evident PyPI publishing under that name — likely just a name collision the impostor package benefits from, not the same project. Recommended not installing the PyPI package; nothing added to the repo as a result of this.
+
+### Session — 2026-07-08 10:14 (branch feat/67-api-reference, #67 implemented)
+
+- Implemented #67 per `docs/superpowers/plans/2026-07-08-api-reference.md`. Not yet merged.
+- TypeDoc (0.28.20, confirmed live compatible with this project's TypeScript 6.0.2 via its own peerDependencies range) set up as two independent invocations — root package → `site/api/`, ML package → `site/api/ml/` — each using its own tsconfig, avoiding cross-package conflicts. `npm run docs:build` (root), `packages/ml`'s own `docs:build`, and a new root `docs:build:all` orchestrator. Zero new runtime dependencies (devDependency only, both packages).
+- All 7 originally-flagged exports from the issue (`evaluateAction`, `matchGlob`, `globToRegExp`, `PatternDetector`, `BaseDetector`, `PatternEntry`/`PatternDatabase`, `DEFAULT_PATTERNS`) confirmed present in the generated reference.
+- Scope decision: "every export has a description" scoped to top-level exported symbols, not every nested inline `__type` sub-property — verified live via `typedoc --validation.notDocumented true` (84 warnings on the root package; ~62 were `AgentArmorConfig`'s per-toggle booleans and a few `stats`/`location` inline shapes, out of scope; ~20 were genuine top-level interfaces/type-aliases with zero doc comment, all fixed). Same pattern in `packages/ml` (21 warnings; 5 genuinely fixable — `AgentArmorModelError`, `MLDetector`, `ModelArtifacts` — the rest are module-private structural-typing shadows, intentionally not exported).
+- Scope decision: "regeneration is automatic" implemented as a CI freshness gate (`docs-api` job in `ci.yml`, regenerates + `git diff --exit-code`s `site/api`), not an auto-committing bot — no bot-token/write-permission setup exists in this repo. Mirrors `check:docs`'s (#65) existing gate-don't-mutate philosophy.
+- **Real bug found and fixed:** TypeDoc embeds the current git commit SHA into every "Defined in" source link by default. That would have made the freshness gate perpetually red — every future commit changes every doc page's source links regardless of whether that file's exports changed, a chicken-and-egg problem for committed-output-plus-diff-gate. Fixed by pinning `gitRevision: "main"` in both `typedoc.json` configs; verified true determinism (two consecutive regenerations produce byte-identical output) before wiring the CI gate on it.
+- Added ~35 TSDoc comments total across `src/types/index.ts` (20 symbols) and `packages/ml/src/{errors,model-manager,ml-detector}.ts` (5 symbols) — all doc-comment-only, no signature changes.
+- Linked from README's top badge line, `site/llms.txt`, and `site/index.html`'s nav (the last one beyond the issue's literal ask, but cheap and directly serves "reachable from agentarmor.dev" for a human visitor, not just the URL existing).
+- Full verification: typecheck/lint/test (180/180 root, 12/12 ml) clean, both builds clean, `docs:build:all` regeneration byte-identical to committed output, spot-checked generated HTML contains both `AgentArmorConfig` and `MLDetector` with their new descriptions rendered, `eval:gate` unaffected (this branch touched no detector logic).
+- Next up in this track: #70 (npm provenance) — the last open issue in launch-infra.
