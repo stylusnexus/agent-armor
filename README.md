@@ -321,7 +321,46 @@ const armor = await AgentArmor.create({
 
 When ML is enabled, calling `await armor.scan(content)` runs both regex and ML detectors. The ML classifier's threats have `source: 'ml'` in the result, making it easy to distinguish them from pattern-based detections.
 
-If the ML package is not installed or the model is unavailable, behavior depends on the `onUnavailable` setting: `'throw'` (default), `'warn-and-skip'`, or `'silent-skip'`.
+If the ML package is not installed or the model is unavailable, behavior depends on the `onUnavailable` setting: `'warn-and-skip'` (default), `'throw'`, or `'silent-skip'`.
+
+## CLI
+
+Scan files from a terminal, pre-commit hook, or CI pipeline — no TypeScript required.
+
+```bash
+npx agentarmor scan <path...> [options]
+```
+
+| Option | Values | Default | Description |
+|---|---|---|---|
+| `--strictness` | `permissive`, `balanced`, `strict` | `balanced` | Confidence threshold |
+| `--format` | `text`, `json`, `sarif` | `text` | Output format |
+| `--fail-on` | `none`, `low`, `medium`, `high`, `critical` | `low` | Minimum risk level that fails the run |
+| `--ml` | flag | off | Use the ML classifier (requires `@stylusnexus/agentarmor-ml`) |
+| `--include` | comma-separated extensions | `.md,.txt,.json,.cursorrules` | Override default extensions when scanning a directory |
+
+A file path is always scanned regardless of extension; a directory path recurses, filtered by `--include` (skips `node_modules/`, `.git/`, `dist/`, `coverage/`).
+
+Exit codes: `0` clean, `1` threat(s) at/above `--fail-on`, `2` usage/IO error.
+
+### GitHub Actions
+
+```yaml
+- name: Scan for agent traps
+  run: npx agentarmor scan . --format sarif --fail-on high > results.sarif
+
+- name: Upload SARIF
+  uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: results.sarif
+```
+
+### Pre-commit hook
+
+```bash
+#!/bin/sh
+npx agentarmor scan CLAUDE.md .cursorrules --fail-on high
+```
 
 ## Architecture
 
