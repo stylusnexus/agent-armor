@@ -362,6 +362,28 @@ Exit codes: `0` clean, `1` threat(s) at/above `--fail-on`, `2` usage/IO error.
 npx agentarmor scan CLAUDE.md .cursorrules --fail-on high
 ```
 
+## Diagnostics & Event Callbacks
+
+Route Agent Armor's internal diagnostics to your own logging/alerting instead of `console.warn`. Fully opt-in — with no `on` config, behavior is unchanged.
+
+```typescript
+const armor = AgentArmor.regexOnly({
+  on: {
+    warn: (event) => logger.warn(event.message, event.context),
+    error: (event) => sentry.captureException(event.error, { extra: event.context }),
+    detectorSkipped: (event) => metrics.increment('detector.skipped', { id: event.detectorId, reason: event.reason }),
+  },
+});
+```
+
+| Event | Fires when |
+|---|---|
+| `warn` | A known, expected degraded condition (e.g. ML classifier unavailable under `onUnavailable: 'warn-and-skip'`, `session.accumulation` requested but not available in the regex SDK) |
+| `error` | A detector's `scan()`/`scanAsync()` threw and was caught — includes the real `Error` object |
+| `detectorSkipped` | A detector wasn't loaded — `reason: 'config-disabled'` (a config toggle is off) or `'no-patterns'` (the loaded pattern database has no entries for it) |
+
+`onUnavailable` on the ML config is unchanged and still controls *whether* to throw/warn/skip when the ML classifier is unavailable — `on.warn` controls *where* that warning goes.
+
 ## Architecture
 
 Agent Armor operates as a middleware pipeline with three interception points:
