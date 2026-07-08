@@ -84,7 +84,7 @@ npm install @stylusnexus/agentarmor-ml
 
 ### Eval Suite
 
-105 curated samples (67 adversarial, 38 benign) covering all 10 shipped detector types across 4 attack categories, including homoglyph-obfuscated payloads and scanner-directed verdict suppression:
+106 curated samples (68 adversarial, 38 benign) covering all 10 shipped detector types across 4 attack categories, including homoglyph-obfuscated payloads and scanner-directed verdict suppression:
 
 | Strictness   | Detection Rate (regex) | False Positive Rate |
 | ------------ | ---------------------- | ------------------- |
@@ -425,7 +425,7 @@ armor.loadPatterns(latestPatterns);
 armor.loadPatterns(myCustomPatterns);
 
 // Check current pattern version
-console.log(armor.patternVersion); // '0.2.0'
+console.log(armor.patternVersion); // '0.6.0'
 ```
 
 ## Framework Agnostic
@@ -472,7 +472,7 @@ Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy. Here's
 - **Cognitive State** (3 detectors) and **Semantic Manipulation** (3 detectors) since v0.2.0
 - **Pre-execution action gate** — deterministic allowlist admissibility check (`checkAction()`)
 - ML classifier (DeBERTa-v3-small, ONNX) as optional companion package
-- Pattern database v0.4.0 with 71 pattern entries
+- Pattern database v0.6.0 with 83 pattern entries
 
 ### In Progress
 
