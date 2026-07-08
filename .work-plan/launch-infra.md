@@ -11,12 +11,13 @@ github:
     - 66
     - 67
     - 70
-  branches: []
+  branches: [feat/66-cli-sarif]
 depends_on: []
-last_touched: 2026-07-08T04:09
-last_handoff: 2026-07-08T04:09
+last_touched: 2026-07-08T00:33
+last_handoff: 2026-07-08T00:33
 next_up:
-  - 66
+  - 67
+  - 70
 blockers: []
 ---
 # Launch Infra & Adoption
@@ -29,7 +30,7 @@ Pre-launch credibility polish (CI gates the security fuzz test doesn't run yet, 
 |---|---|---|---|
 | #64 | ci: run action-gate fuzz, lint, ML package tests, and build in CI | — | ✅ Shipped |
 | #65 | chore(docs): fix README/site drift and add a doc-consistency gate to CI | — | ✅ Shipped |
-| #66 | feat: agentarmor CLI with JSON/SARIF output for CI scanning | — | 🔲 Open |
+| #66 | feat: agentarmor CLI with JSON/SARIF output for CI scanning | — | ✅ Shipped |
 | #67 | docs: generated API reference (TypeDoc) published to agentarmor.dev | — | 🔲 Open |
 | #70 | ci: automated npm publish with provenance via release-please (trusted publishing) | — | 🔲 Open |
 
@@ -57,4 +58,16 @@ Pre-launch credibility polish (CI gates the security fuzz test doesn't run yet, 
 - #64 auto-closed via the squash commit's "Closes #64, #65" — GitHub only linked #64 (needs the keyword repeated per issue: "closes #64, closes #65"). #65 closed manually with a note.
 - Local/remote feature branch deleted, main synced.
 - Two follow-ups NOT done here, still open: the unwired eval sample in `samples.ts` (candidate for #69), and the pre-existing `npm audit` findings in vitest's transitive deps (esbuild/postcss/vite) — out of scope for this PR.
-- Next up in this track: #66 (CLI + SARIF), the biggest remaining adoption lever.
+
+### Session — 2026-07-08 00:33 (branch feat/66-cli-sarif, #66 implemented)
+
+- Implemented #66 per `docs/superpowers/plans/2026-07-08-cli-sarif.md`. Not yet merged.
+- New `agentarmor` bin (`src/cli.ts` + `src/cli/{args,discover-files,formatters,scan-command,severity}.ts`): `agentarmor scan <path...> [--strictness] [--format text|json|sarif] [--fail-on] [--ml] [--include]`. Zero new runtime dependencies (hand-rolled arg parsing, matching `packages/ml/src/cli.ts`'s existing style).
+- Scope decision: SARIF rule id uses `Threat.detectorId` (e.g. `hidden-html`, `exfiltration`), not per-pattern-id as the issue text suggested — `PatternEntry.id` (e.g. `hh-display-none`) is never propagated onto `Threat` today (verified in `src/detectors/base.ts`/`pattern-detector.ts`); threading it through is a separate, higher-risk core-type change. `detectorId` still fully satisfies the acceptance criteria.
+- `--fail-on` reuses `ScanResult.riskLevel` (the #34 roll-up) instead of re-deriving severity — avoids duplicating SDK logic.
+- Real bugs found and fixed along the way: (1) duplicate shebang broke the built `dist/cli.js` (source had one, tsup's banner config added another — fixed by removing the source one, matching `packages/ml`'s pattern); (2) root `tsconfig.json` never had `types: ["node"]` since nothing under `src/` used Node builtins before `discover-files.ts` — added; (3) README's ML Classifier section claimed `onUnavailable` defaults to `'throw'`, but the real default (and this branch's live `--ml` verification) is `'warn-and-skip'` — fixed.
+- 43 new tests (180 total, up from 137), all passing; lint/typecheck/build all clean.
+- Full manual E2E verification against the built binary: `--help`, clean scan (exit 0), poisoned scan naming threat+detector+evidence (exit 1), directory recursion, JSON format, SARIF structural validity (`resultCount`/`ruleCount` confirmed), `--fail-on critical` threshold behavior, `--ml` graceful degradation when the ML package isn't installed (SDK's own warn-and-skip fired correctly), and no-config `npx`-style invocation from a directory with nothing in it.
+- Also updated local (gitignored) `CLAUDE.md`: its "Documentation upkeep" section told future sessions to hand-edit `CHANGELOG.md` "until automation lands" — release-please (#41) already shipped that automation weeks ago; corrected to say never hand-edit it.
+- Skipped the plan's CHANGELOG.md step entirely for the same reason — the file is bot-managed, hand-editing would fight release-please.
+- Next up in this track: #67 (API reference) and #70 (npm provenance) — both P1, no dependency between them.
