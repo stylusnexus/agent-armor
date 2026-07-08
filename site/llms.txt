@@ -71,7 +71,7 @@ const verdict = armor.checkAction({ tool: 'http.post', args: { url: 'https://evi
 if (!verdict.admissible) throw new ActionBlockedError(verdict.reason);
 ```
 
-## Eval results (v0.6.0 patterns, 105 samples)
+## Eval results (v0.6.0 patterns, 106 samples)
 
 Strictness controls the confidence threshold for reporting threats:
 
