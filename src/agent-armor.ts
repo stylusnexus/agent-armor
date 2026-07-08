@@ -67,6 +67,7 @@ const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
     accumulation: false,
     decay: 0.5,
   },
+  on: {},
 };
 
 const SEVERITY_ORDER: Record<Severity, number> = {
@@ -317,6 +318,10 @@ export class AgentArmor {
         ...DEFAULT_CONFIG.session,
         ...config?.session,
       },
+      on: {
+        ...DEFAULT_CONFIG.on,
+        ...config?.on,
+      },
       customDetectors: config?.customDetectors ?? [],
     };
 
@@ -515,9 +520,12 @@ export class AgentArmor {
             `Install @stylusnexus/agentarmor-ml or set ml.onUnavailable to 'warn-and-skip'.`
           );
         } else if (behavior === 'warn-and-skip') {
-          console.warn(
-            `[AgentArmor] ML classifier unavailable, falling back to regex-only: ${err instanceof Error ? err.message : String(err)}`
-          );
+          const message = `[AgentArmor] ML classifier unavailable, falling back to regex-only: ${err instanceof Error ? err.message : String(err)}`;
+          if (this.config.on?.warn) {
+            this.config.on.warn({ message, context: { detectorId: 'ml-classifier' } });
+          } else {
+            console.warn(message);
+          }
         }
       }
     }
@@ -528,10 +536,16 @@ export class AgentArmor {
     for (const reg of DETECTOR_REGISTRY) {
       const groupConfig =
         this.config[reg.configGroup] as Record<string, boolean>;
-      if (!groupConfig[reg.configKey]) continue;
+      if (!groupConfig[reg.configKey]) {
+        this.config.on?.detectorSkipped?.({ detectorId: reg.id, reason: 'config-disabled' });
+        continue;
+      }
 
       const patterns = this.patternDb.detectors[reg.patternDbKey];
-      if (!patterns || patterns.length === 0) continue;
+      if (!patterns || patterns.length === 0) {
+        this.config.on?.detectorSkipped?.({ detectorId: reg.id, reason: 'no-patterns' });
+        continue;
+      }
 
       this.detectors.push(
         new PatternDetector({
@@ -600,9 +614,13 @@ export class AgentArmor {
             : result.threats)
         );
       } catch (err) {
-        console.warn(
-          `[AgentArmor] Detector "${detector.id}" threw during scan: ${err instanceof Error ? err.message : String(err)}`
-        );
+        const error = err instanceof Error ? err : new Error(String(err));
+        const message = `[AgentArmor] Detector "${detector.id}" threw during scan: ${error.message}`;
+        if (this.config.on?.error) {
+          this.config.on.error({ message, error, context: { detectorId: detector.id } });
+        } else {
+          console.warn(message);
+        }
       }
     }
 
@@ -673,9 +691,13 @@ export class AgentArmor {
           );
         }
       } catch (err) {
-        console.warn(
-          `[AgentArmor] Detector "${detector.id}" threw during scan: ${err instanceof Error ? err.message : String(err)}`
-        );
+        const error = err instanceof Error ? err : new Error(String(err));
+        const message = `[AgentArmor] Detector "${detector.id}" threw during scan: ${error.message}`;
+        if (this.config.on?.error) {
+          this.config.on.error({ message, error, context: { detectorId: detector.id } });
+        } else {
+          console.warn(message);
+        }
       }
     }
 
@@ -748,11 +770,15 @@ export class AgentArmor {
   private warnIfAccumulationRequested(): void {
     if (this.config.session.accumulation && !this.accumulationWarned) {
       this.accumulationWarned = true;
-      console.warn(
+      const message =
         '[AgentArmor] session.accumulation is not available in the regex SDK ' +
-          '(deferred to the ML classifier); cross-turn signal accumulation is ' +
-          'inactive. Split-payload detection is unaffected.'
-      );
+        '(deferred to the ML classifier); cross-turn signal accumulation is ' +
+        'inactive. Split-payload detection is unaffected.';
+      if (this.config.on?.warn) {
+        this.config.on.warn({ message });
+      } else {
+        console.warn(message);
+      }
     }
   }
 
