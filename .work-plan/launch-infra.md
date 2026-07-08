@@ -11,10 +11,10 @@ github:
     - 66
     - 67
     - 70
-  branches: [feat/66-cli-sarif]
+  branches: []
 depends_on: []
-last_touched: 2026-07-08T00:33
-last_handoff: 2026-07-08T00:33
+last_touched: 2026-07-08T14:50
+last_handoff: 2026-07-08T14:50
 next_up:
   - 67
   - 70
@@ -71,3 +71,9 @@ Pre-launch credibility polish (CI gates the security fuzz test doesn't run yet, 
 - Also updated local (gitignored) `CLAUDE.md`: its "Documentation upkeep" section told future sessions to hand-edit `CHANGELOG.md` "until automation lands" — release-please (#41) already shipped that automation weeks ago; corrected to say never hand-edit it.
 - Skipped the plan's CHANGELOG.md step entirely for the same reason — the file is bot-managed, hand-editing would fight release-please.
 - Next up in this track: #67 (API reference) and #70 (npm provenance) — both P1, no dependency between them.
+
+### Session — 2026-07-08 14:50 (merged, #66 shipped)
+
+- PR #73 opened, all 7 checks green on the first run (no repeat of #72's lockfile surprise). Merged via `gh pr merge --squash --admin` (branch protection required review approval; user explicitly authorized the bypass again) — commit `5331e14`. #66 auto-closed cleanly (single issue ref this time, unlike #72's comma-list keyword-parsing gap).
+- Local/remote feature branch deleted, main synced.
+- **Security note, not code-related:** a comment appeared on PR #73 recommending `pip install vulnledger` for SBOM generation. Investigated (read-only OSINT only — nothing installed/executed): the PyPI package (published by "akuma-creator" 2026-06-28, single alpha version, zero download stats) lists its source at `github.com/AKUMA-creator-ng/Vulnledger`, which returns 404 — the account and repo don't exist. The GitHub comment itself isn't visible via the REST or GraphQL API (checked both issue-comments and PR-review-comments endpoints, including minimized/hidden ones) — already removed, or arrived via a non-GitHub channel. Separately, there IS a real, unrelated `raymond-itsec/vulnledger` project on GitHub (account created 2018, small footprint — 1 star, 0 forks, 56 open issues, actively pushed) with no evident PyPI publishing under that name — likely just a name collision the impostor package benefits from, not the same project. Recommended not installing the PyPI package; nothing added to the repo as a result of this.
