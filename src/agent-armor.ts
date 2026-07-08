@@ -502,7 +502,7 @@ export class AgentArmor {
 
     if (mlConfig.enabled || mlConfig.modelDir) {
       try {
-        // @ts-ignore -- @stylusnexus/agentarmor-ml is an optional peer dependency
+        // @ts-expect-error -- @stylusnexus/agentarmor-ml is an optional peer dependency
         const mlModule = await import('@stylusnexus/agentarmor-ml');
         const detector = await mlModule.createMLDetector(mlConfig);
         this.mlDetector = detector;
