@@ -11,10 +11,10 @@ github:
     - 66
     - 67
     - 70
-  branches: [feat/67-api-reference]
+  branches: []
 depends_on: []
-last_touched: 2026-07-08T10:14
-last_handoff: 2026-07-08T10:14
+last_touched: 2026-07-08T22:15
+last_handoff: 2026-07-08T22:15
 next_up:
   - 70
 blockers: []
@@ -89,3 +89,12 @@ Pre-launch credibility polish (CI gates the security fuzz test doesn't run yet, 
 - Linked from README's top badge line, `site/llms.txt`, and `site/index.html`'s nav (the last one beyond the issue's literal ask, but cheap and directly serves "reachable from agentarmor.dev" for a human visitor, not just the URL existing).
 - Full verification: typecheck/lint/test (180/180 root, 12/12 ml) clean, both builds clean, `docs:build:all` regeneration byte-identical to committed output, spot-checked generated HTML contains both `AgentArmorConfig` and `MLDetector` with their new descriptions rendered, `eval:gate` unaffected (this branch touched no detector logic).
 - Next up in this track: #70 (npm provenance) — the last open issue in launch-infra.
+
+### Session — 2026-07-08 22:15 (merged, #67 shipped)
+
+- Pushed one more fix before merging: PR #74's `docs-api` job failed on first CI run — the only diff was in TypeDoc's compressed search/navigation assets (`assets/{hierarchy,navigation,search}.js`), not any actual doc content. Root cause: I'd generated the committed `site/api/` locally under Node v26.4.0, but `ci.yml` runs Node 20 — the compressed blob bytes differ across Node/zlib versions even though the decompressed content is identical. Installed Node 20.20.2 via `nvm`, regenerated, confirmed only those asset files changed, pushed (`471a693`) — `docs-api` went green on re-run. Added a `CONTRIBUTING.md` note (`## API Reference Docs`) so the next contributor doesn't hit the same trap.
+- This repo has no `dev` branch (confirmed via CONTRIBUTING.md and `git branch -a`) — feature branches PR directly into `main`, and Cloudflare Pages auto-deploys on merge with no separate promotion step. "Deploy" for this repo is just "merge to main."
+- All 7 checks green, merged via `gh pr merge --squash --admin` (branch protection required review approval; user explicitly authorized the bypass a third time) — commit `39b349c`. #67 auto-closed cleanly.
+- Verified live post-merge: `https://agentarmor.dev/api/` and `https://agentarmor.dev/api/ml/` both return 200.
+- Local/remote feature branch deleted, main synced.
+- Next up in this track: #70 (npm provenance) is the only remaining open issue in launch-infra. Separately, issue #24 (enterprise-readiness track) is queued next per user request — the `marywang-aiops` comment on it (event record / evidence package / control claim layering, already captured verbatim in the issue thread) is the design to carry forward when that work starts.
