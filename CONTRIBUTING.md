@@ -57,6 +57,18 @@ npm run test:run
 
 Run both before submitting a PR.
 
+## API Reference Docs
+
+If your change adds, removes, or edits a public export in `src/index.ts` or `packages/ml/src/index.ts`, regenerate the API reference and commit the result:
+
+```bash
+npm run docs:build:all
+```
+
+**Use Node 20 to regenerate**, matching CI (`ci.yml`'s `docs-api` job runs on Node 20). TypeDoc's compressed search/navigation assets (`site/api/**/assets/{hierarchy,navigation,search}.js`) can come out byte-different on other Node versions even when the documented content is identical — that mismatch will fail the `docs-api` freshness gate even though nothing is actually stale. If you use `nvm`, `nvm use 20` before running the command above.
+
+`docs-api` in CI regenerates the docs and fails the build if `site/api/` doesn't match what's committed — the error message names the exact command to run.
+
 ## ML Pipeline (Optional)
 
 For contributors working on the ML-based detectors:
