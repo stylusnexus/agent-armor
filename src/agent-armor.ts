@@ -536,10 +536,16 @@ export class AgentArmor {
     for (const reg of DETECTOR_REGISTRY) {
       const groupConfig =
         this.config[reg.configGroup] as Record<string, boolean>;
-      if (!groupConfig[reg.configKey]) continue;
+      if (!groupConfig[reg.configKey]) {
+        this.config.on?.detectorSkipped?.({ detectorId: reg.id, reason: 'config-disabled' });
+        continue;
+      }
 
       const patterns = this.patternDb.detectors[reg.patternDbKey];
-      if (!patterns || patterns.length === 0) continue;
+      if (!patterns || patterns.length === 0) {
+        this.config.on?.detectorSkipped?.({ detectorId: reg.id, reason: 'no-patterns' });
+        continue;
+      }
 
       this.detectors.push(
         new PatternDetector({
