@@ -344,6 +344,51 @@ export interface ActionVerdict {
   matchedRule?: ActionRule;
 }
 
+// ---------------------------------------------------------------------------
+// Diagnostics / event system (#24)
+// ---------------------------------------------------------------------------
+
+/** Fired for expected-but-degraded conditions (e.g. ML unavailable, a feature no-op). */
+export interface WarnEvent {
+  /** Human-readable message — identical text to what would otherwise go to console.warn. */
+  message: string;
+  /** Structured context for the condition, when available (e.g. which detector). */
+  context?: Record<string, unknown>;
+}
+
+/** Fired when something unexpected happened and was caught (e.g. a detector threw). */
+export interface ErrorEvent {
+  /** Human-readable message — identical text to what would otherwise go to console.warn. */
+  message: string;
+  /** The actual caught error, for stack traces / instanceof checks / Sentry, etc. */
+  error: Error;
+  /** Structured context for the condition, when available (e.g. which detector). */
+  context?: Record<string, unknown>;
+}
+
+/** Fired when a detector was not loaded into the pipeline. */
+export interface DetectorSkippedEvent {
+  /** The detector's registry id (matches {@link Threat.detectorId} when it does run). */
+  detectorId: string;
+  /** Why it was skipped: an explicit config toggle, or no patterns for it in the loaded database. */
+  reason: "config-disabled" | "no-patterns";
+}
+
+/**
+ * Diagnostics callbacks, passed as `config.on`. Routes internal diagnostics to your
+ * own logging/alerting instead of `console.warn`. Fully opt-in: with no `on` config,
+ * behavior is identical to not having this feature — every event still reaches
+ * `console.warn` exactly as before.
+ */
+export interface DiagnosticsConfig {
+  /** Expected-but-degraded conditions (ML unavailable, a config no-op, etc.). */
+  warn?: (event: WarnEvent) => void;
+  /** Unexpected caught errors (a detector threw during scan). */
+  error?: (event: ErrorEvent) => void;
+  /** A detector was not loaded into the pipeline. */
+  detectorSkipped?: (event: DetectorSkippedEvent) => void;
+}
+
 /** Configuration passed to {@link AgentArmor.regexOnly} or {@link AgentArmor.create}. */
 export interface AgentArmorConfig {
   /** Confidence-threshold preset. Default: `'balanced'`. */
@@ -400,6 +445,8 @@ export interface AgentArmorConfig {
   ml?: MLConfig;
   /** Multi-turn / session scanning configuration (#35) */
   session?: SessionConfig;
+  /** Diagnostics callbacks — route internal warnings/errors to your own logging (#24). */
+  on?: DiagnosticsConfig;
 }
 
 /** Multi-turn / session scanning configuration, passed as `config.session` (#35). */

@@ -67,6 +67,7 @@ const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
     accumulation: false,
     decay: 0.5,
   },
+  on: {},
 };
 
 const SEVERITY_ORDER: Record<Severity, number> = {
@@ -316,6 +317,10 @@ export class AgentArmor {
       session: {
         ...DEFAULT_CONFIG.session,
         ...config?.session,
+      },
+      on: {
+        ...DEFAULT_CONFIG.on,
+        ...config?.on,
       },
       customDetectors: config?.customDetectors ?? [],
     };
