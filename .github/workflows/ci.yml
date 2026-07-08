@@ -89,3 +89,25 @@ jobs:
           git clone --filter=blob:none --depth 1 --sparse https://github.com/danielmiessler/SecLists ../SecLists
           git -C ../SecLists sparse-checkout set Fuzzing/LFI
       - run: npm run eval:action-gate
+
+  docs-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run docs:build
+      - name: Install and build ML package docs
+        working-directory: packages/ml
+        run: |
+          npm ci
+          npm run docs:build
+      - name: Fail if generated docs are stale
+        run: |
+          git diff --exit-code -- site/api || {
+            echo "::error::site/api/ is stale. Run 'npm run docs:build:all' and commit the result."
+            exit 1
+          }

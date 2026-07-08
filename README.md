@@ -3,7 +3,7 @@
 [![npm version](https://img.shields.io/npm/v/@stylusnexus/agentarmor.svg)](https://www.npmjs.com/package/@stylusnexus/agentarmor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**[agentarmor.dev](https://agentarmor.dev)** | **[npm](https://www.npmjs.com/package/@stylusnexus/agentarmor)** | **[GitHub](https://github.com/stylusnexus/agent-armor)**
+**[agentarmor.dev](https://agentarmor.dev)** | **[API Reference](https://agentarmor.dev/api)** | **[npm](https://www.npmjs.com/package/@stylusnexus/agentarmor)** | **[GitHub](https://github.com/stylusnexus/agent-armor)**
 
 Open-source security framework for AI agents. Detects and defends against **AI Agent Traps** — adversarial content designed to manipulate, deceive, or exploit autonomous AI agents.
 

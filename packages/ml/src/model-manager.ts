@@ -17,10 +17,15 @@ import {
 } from './constants';
 import { AgentArmorModelError } from './errors';
 
+/** Resolved on-disk paths to the ONNX model and its supporting files. */
 export interface ModelArtifacts {
+  /** Path to `model_quantized.onnx`. */
   modelPath: string;
+  /** Path to `tokenizer.json`. */
   tokenizerPath: string;
+  /** Path to `label_map.json`. */
   labelMapPath: string;
+  /** Directory containing all resolved model files. */
   modelDir: string;
 }
 

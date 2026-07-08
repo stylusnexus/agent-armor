@@ -14,6 +14,8 @@ It detects threats based on the Google DeepMind Agent Trap taxonomy (Franklin et
 npm install @stylusnexus/agentarmor
 ```
 
+Full API reference: https://agentarmor.dev/api (ML package: https://agentarmor.dev/api/ml)
+
 ## What it detects
 
 - Content Injection: hidden HTML instructions, metadata injection, dynamic cloaking, syntactic masking

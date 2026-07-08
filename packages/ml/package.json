@@ -19,7 +19,8 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "docs:build": "typedoc"
   },
   "keywords": ["ai-security", "agent-safety", "ml-classifier", "onnx", "agent-armor"],
   "author": "StylusNexus",
@@ -33,6 +34,7 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "tsup": "^8.5.0",
+    "typedoc": "^0.28.20",
     "typescript": "^6.0.0",
     "vitest": "^4.1.0"
   },
