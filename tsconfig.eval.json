@@ -5,5 +5,5 @@
     "rootDir": ".",
     "types": ["node"]
   },
-  "include": ["scripts/eval/**/*", "src/**/*"]
+  "include": ["scripts/**/*", "src/**/*"]
 }
