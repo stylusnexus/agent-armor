@@ -15,7 +15,7 @@
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">interface</span> <span class="tsd-kind-interface">ScanResult</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#clean">clean</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#durationms">durationMs</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#risklevel">riskLevel</a><span class="tsd-signature-symbol">:</span> <a href="../types/RiskLevel.html" class="tsd-signature-type tsd-kind-type-alias">RiskLevel</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#sanitized">sanitized</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#stats">stats</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{</span><br/>        <span class="tsd-kind-property">detectorsRun</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">highestSeverity</span><span class="tsd-signature-symbol">:</span> <a href="../types/Severity.html" class="tsd-signature-type tsd-kind-type-alias">Severity</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">threatsFound</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#threats">threats</a><span class="tsd-signature-symbol">:</span> <a href="Threat.html" class="tsd-signature-type tsd-kind-interface">Threat</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L125">src/types/index.ts:125</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L125">src/types/index.ts:125</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -39,14 +39,14 @@
 <div class="tsd-comment tsd-typography"><p>Whether any threats were found</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L127">src/types/index.ts:127</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L127">src/types/index.ts:127</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="durationms"><span>duration<wbr/>Ms</span><a href="#durationms" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">durationMs</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>Time taken in milliseconds</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L133">src/types/index.ts:133</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L133">src/types/index.ts:133</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="risklevel"><span>risk<wbr/>Level</span><a href="#risklevel" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">riskLevel</span><span class="tsd-signature-symbol">:</span> <a href="../types/RiskLevel.html" class="tsd-signature-type tsd-kind-type-alias">RiskLevel</a></div>
@@ -55,28 +55,28 @@ when <code>clean</code> is true. Lets integrators decide with one comparison
 (<code>if (result.riskLevel === 'critical') block()</code>).</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L139">src/types/index.ts:139</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L139">src/types/index.ts:139</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="sanitized"><span>sanitized</span><a href="#sanitized" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">sanitized</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>Sanitized version of the content with threats neutralized</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L131">src/types/index.ts:131</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L131">src/types/index.ts:131</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="stats"><span>stats</span><a href="#stats" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">stats</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{</span><br/>    <span class="tsd-kind-property">detectorsRun</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">highestSeverity</span><span class="tsd-signature-symbol">:</span> <a href="../types/Severity.html" class="tsd-signature-type tsd-kind-type-alias">Severity</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">threatsFound</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div>
 <div class="tsd-comment tsd-typography"><p>Summary stats</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L141">src/types/index.ts:141</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L141">src/types/index.ts:141</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="threats"><span>threats</span><a href="#threats" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">threats</span><span class="tsd-signature-symbol">:</span> <a href="Threat.html" class="tsd-signature-type tsd-kind-interface">Threat</a><span class="tsd-signature-symbol">[]</span></div>
 <div class="tsd-comment tsd-typography"><p>All detected threats, sorted by severity desc</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L129">src/types/index.ts:129</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L129">src/types/index.ts:129</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">

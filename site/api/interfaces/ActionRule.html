@@ -19,7 +19,7 @@ constraint present on that rule. Constraints left undefined are unconstrained
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">interface</span> <span class="tsd-kind-interface">ActionRule</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#hosts">hosts</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#mode">mode</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">&quot;read-only&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;read-write&quot;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#paths">paths</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#tool">tool</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L295">src/types/index.ts:295</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L295">src/types/index.ts:295</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -47,7 +47,7 @@ FQDN dot is ignored. If set and no host can be determined, the request is
 denied.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L307">src/types/index.ts:307</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L307">src/types/index.ts:307</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="mode"><code class="tsd-tag">Optional</code><span>mode</span><a href="#mode" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">mode</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">&quot;read-only&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;read-write&quot;</span></div>
@@ -58,7 +58,7 @@ GET/HEAD/OPTIONS. This is a known-signal check, not content inspection — it
 does not parse SQL/command bodies. <code>'read-write'</code> imposes no mode constraint.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L323">src/types/index.ts:323</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L323">src/types/index.ts:323</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="paths"><code class="tsd-tag">Optional</code><span>paths</span><a href="#paths" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">paths</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></div>
@@ -69,14 +69,14 @@ non-ASCII (it never resolves paths against a trusted base). If set and
 <code>args.path</code> is absent or matches none, the request is denied.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L315">src/types/index.ts:315</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L315">src/types/index.ts:315</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="tool"><span>tool</span><a href="#tool" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">tool</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>Exact tool / operation name this rule permits (e.g. <code>'http.get'</code>).</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L297">src/types/index.ts:297</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L297">src/types/index.ts:297</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">

@@ -25,7 +25,8 @@
     "eval:multi-turn": "tsx scripts/eval/run-multi-turn-eval.ts",
     "eval:action-gate": "tsx scripts/eval/action-gate-fuzz.ts",
     "check:docs": "tsx scripts/check-doc-drift.ts",
-    "docs:build": "typedoc"
+    "docs:build": "typedoc",
+    "docs:build:all": "npm run docs:build && npm --prefix packages/ml run docs:build"
   },
   "keywords": [
     "ai-security",
