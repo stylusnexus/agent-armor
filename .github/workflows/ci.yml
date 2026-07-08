@@ -1,0 +1,91 @@
+# CI: static/build checks that complement eval.yml's detection-quality
+# gate. Before this workflow existed, three of these five checks were
+# either not wired to anything (lint had no working config at all) or
+# only ran if a developer happened to have the right local setup (the
+# action-gate fuzz needs a SecLists checkout; packages/ml had no CI job).
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  docs-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run check:docs
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Build ML package
+        working-directory: packages/ml
+        run: |
+          npm ci
+          npm run build
+
+  ml-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install, typecheck, and test the ML package
+        working-directory: packages/ml
+        run: |
+          npm ci
+          npm run typecheck
+          npm run test
+
+  action-gate-fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Restore SecLists LFI corpus cache
+        id: cache-seclists
+        uses: actions/cache@v4
+        with:
+          path: ../SecLists
+          key: seclists-lfi-v1
+      - name: Sparse-clone SecLists (Fuzzing/LFI only)
+        if: steps.cache-seclists.outputs.cache-hit != 'true'
+        run: |
+          git clone --filter=blob:none --depth 1 --sparse https://github.com/danielmiessler/SecLists ../SecLists
+          git -C ../SecLists sparse-checkout set Fuzzing/LFI
+      - run: npm run eval:action-gate
