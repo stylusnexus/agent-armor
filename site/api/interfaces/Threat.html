@@ -10,9 +10,12 @@
 <ul class="tsd-breadcrumb" aria-label="Breadcrumb">
 <li><a href="" aria-current="page">Threat</a></li></ul>
 <h1>Interface Threat</h1></div>
+<section class="tsd-panel tsd-comment">
+<div class="tsd-comment tsd-typography"><p>A single detected threat within scanned content.</p>
+</div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">interface</span> <span class="tsd-kind-interface">Threat</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#category">category</a><span class="tsd-signature-symbol">:</span> <a href="../types/TrapCategory.html" class="tsd-signature-type tsd-kind-type-alias">TrapCategory</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#confidence">confidence</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#description">description</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#detectorid">detectorId</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#evidence">evidence</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#location">location</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">length</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">offset</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span> <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#severity">severity</a><span class="tsd-signature-symbol">:</span> <a href="../types/Severity.html" class="tsd-signature-type tsd-kind-type-alias">Severity</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#source">source</a><span class="tsd-signature-symbol">:</span> <a href="../types/ThreatSource.html" class="tsd-signature-type tsd-kind-type-alias">ThreatSource</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#type">type</a><span class="tsd-signature-symbol">:</span> <a href="../types/TrapType.html" class="tsd-signature-type tsd-kind-type-alias">TrapType</a><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/caae10fd8323cb347e63f4014405800552a5493b/src/types/index.ts#L88">src/types/index.ts:88</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L99">src/types/index.ts:99</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -39,63 +42,63 @@
 <div class="tsd-comment tsd-typography"><p>Which category from the DeepMind taxonomy</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/caae10fd8323cb347e63f4014405800552a5493b/src/types/index.ts#L90">src/types/index.ts:90</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L101">src/types/index.ts:101</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="confidence"><span>confidence</span><a href="#confidence" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">confidence</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>How confident the detector is (0-1)</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/caae10fd8323cb347e63f4014405800552a5493b/src/types/index.ts#L96">src/types/index.ts:96</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L107">src/types/index.ts:107</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="description"><span>description</span><a href="#description" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">description</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>Human-readable description of the threat</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/caae10fd8323cb347e63f4014405800552a5493b/src/types/index.ts#L98">src/types/index.ts:98</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L109">src/types/index.ts:109</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="detectorid"><span>detector<wbr/>Id</span><a href="#detectorid" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">detectorId</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>Which detector found this</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/caae10fd8323cb347e63f4014405800552a5493b/src/types/index.ts#L104">src/types/index.ts:104</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L115">src/types/index.ts:115</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="evidence"><span>evidence</span><a href="#evidence" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">evidence</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>The offending content snippet (truncated)</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/caae10fd8323cb347e63f4014405800552a5493b/src/types/index.ts#L100">src/types/index.ts:100</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L111">src/types/index.ts:111</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="location"><code class="tsd-tag">Optional</code><span>location</span><a href="#location" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">location</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">length</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">offset</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span> <span class="tsd-signature-symbol">}</span></div>
 <div class="tsd-comment tsd-typography"><p>Byte offset or line number in the original content, if applicable</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/caae10fd8323cb347e63f4014405800552a5493b/src/types/index.ts#L102">src/types/index.ts:102</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L113">src/types/index.ts:113</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="severity"><span>severity</span><a href="#severity" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">severity</span><span class="tsd-signature-symbol">:</span> <a href="../types/Severity.html" class="tsd-signature-type tsd-kind-type-alias">Severity</a></div>
 <div class="tsd-comment tsd-typography"><p>How dangerous this threat is if exploited</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/caae10fd8323cb347e63f4014405800552a5493b/src/types/index.ts#L94">src/types/index.ts:94</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L105">src/types/index.ts:105</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="source"><span>source</span><a href="#source" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">source</span><span class="tsd-signature-symbol">:</span> <a href="../types/ThreatSource.html" class="tsd-signature-type tsd-kind-type-alias">ThreatSource</a></div>
 <div class="tsd-comment tsd-typography"><p>Where this threat was detected: pattern (regex), ml (classifier), or custom</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/caae10fd8323cb347e63f4014405800552a5493b/src/types/index.ts#L106">src/types/index.ts:106</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L117">src/types/index.ts:117</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="type"><span>type</span><a href="#type" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">type</span><span class="tsd-signature-symbol">:</span> <a href="../types/TrapType.html" class="tsd-signature-type tsd-kind-type-alias">TrapType</a></div>
 <div class="tsd-comment tsd-typography"><p>Specific trap type within the category</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/caae10fd8323cb347e63f4014405800552a5493b/src/types/index.ts#L92">src/types/index.ts:92</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L103">src/types/index.ts:103</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">

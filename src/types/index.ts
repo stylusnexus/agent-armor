@@ -17,6 +17,7 @@ export type TrapCategory =
   | "human-in-the-loop"
   | "transport-integrity";
 
+/** Content Injection trap subtypes (perception-layer attacks). */
 export type ContentInjectionType =
   | "hidden-html"
   | "metadata-injection"
@@ -24,21 +25,25 @@ export type ContentInjectionType =
   | "steganographic-payload"
   | "syntactic-masking";
 
+/** Semantic Manipulation trap subtypes (reasoning-layer attacks). */
 export type SemanticManipulationType =
   | "biased-framing"
   | "oversight-evasion"
   | "persona-hyperstition";
 
+/** Cognitive State trap subtypes (memory-layer attacks). */
 export type CognitiveStateType =
   | "rag-knowledge-poisoning"
   | "latent-memory-poisoning"
   | "contextual-learning-trap";
 
+/** Behavioural Control trap subtypes (action-layer attacks). */
 export type BehaviouralControlType =
   | "embedded-jailbreak"
   | "data-exfiltration"
   | "sub-agent-spawning";
 
+/** Systemic trap subtypes (multi-agent-layer attacks). */
 export type SystemicType =
   | "congestion-trap"
   | "interdependence-cascade"
@@ -46,14 +51,17 @@ export type SystemicType =
   | "compositional-fragment"
   | "sybil-attack";
 
+/** Human-in-the-Loop trap subtypes (overseer-layer attacks). */
 export type HumanInTheLoopType = "approval-fatigue" | "social-engineering";
 
+/** Transport Integrity trap subtypes (malicious-intermediary attacks, Liu et al. 2026). */
 export type TransportIntegrityType =
   | "tool-call-tampering"
   | "credential-exposure"
   | "dependency-substitution"
   | "response-anomaly";
 
+/** Union of every specific trap subtype across all seven categories. */
 export type TrapType =
   | ContentInjectionType
   | SemanticManipulationType
@@ -67,6 +75,7 @@ export type TrapType =
 // Severity & confidence
 // ---------------------------------------------------------------------------
 
+/** How dangerous a threat is if exploited, independent of detector confidence. */
 export type Severity = "low" | "medium" | "high" | "critical";
 
 /**
@@ -79,12 +88,14 @@ export type RiskLevel = "none" | "low" | "medium" | "high" | "critical";
 /** 0-1 confidence score from a detector */
 export type Confidence = number;
 
+/** Where a threat was detected: pattern (regex), ml (classifier), or custom. */
 export type ThreatSource = "pattern" | "ml" | "custom";
 
 // ---------------------------------------------------------------------------
 // Threat descriptor
 // ---------------------------------------------------------------------------
 
+/** A single detected threat within scanned content. */
 export interface Threat {
   /** Which category from the DeepMind taxonomy */
   category: TrapCategory;
@@ -110,6 +121,7 @@ export interface Threat {
 // Scan results
 // ---------------------------------------------------------------------------
 
+/** The result of scanning one piece of content for agent traps. */
 export interface ScanResult {
   /** Whether any threats were found */
   clean: boolean;
@@ -190,6 +202,7 @@ export interface SessionScanResult {
 // Detector interface
 // ---------------------------------------------------------------------------
 
+/** The interface every detector (pattern-based, ML, or custom) implements. */
 export interface Detector {
   /** Unique identifier for this detector */
   id: string;
@@ -208,12 +221,15 @@ export interface Detector {
   ): Promise<DetectorResult>;
 }
 
+/** Per-scan options passed to a detector. */
 export interface DetectorOptions {
   /** Override default strictness */
   strictness?: Strictness;
 }
 
+/** What a single detector's scan pass returns. */
 export interface DetectorResult {
+  /** Threats this detector found in the scanned content. */
   threats: Threat[];
 }
 
@@ -221,6 +237,7 @@ export interface DetectorResult {
 // ML configuration
 // ---------------------------------------------------------------------------
 
+/** Error codes {@link AgentArmorModelError} can carry when ML model resolution fails. */
 export type ModelErrorCode =
   | "MODEL_NOT_FOUND"
   | "CHECKSUM_MISMATCH"
@@ -229,6 +246,7 @@ export type ModelErrorCode =
   | "DISK_FULL"
   | "LOCK_TIMEOUT";
 
+/** Options controlling how the ML model is downloaded on first use. */
 export interface MLDownloadConfig {
   /** Download timeout in ms (default: 120_000) */
   timeoutMs?: number;
@@ -238,6 +256,7 @@ export interface MLDownloadConfig {
   onProgress?: (bytesReceived: number, totalBytes: number) => void;
 }
 
+/** ML classifier configuration, passed as `config.ml` to {@link AgentArmor.create}. */
 export interface MLConfig {
   /** Enable ML classifier (downloads model on first use) */
   enabled?: boolean;
@@ -259,6 +278,7 @@ export interface MLConfig {
 // Configuration
 // ---------------------------------------------------------------------------
 
+/** Confidence-threshold preset controlling how aggressively detectors report. */
 export type Strictness = "permissive" | "balanced" | "strict";
 
 // ---------------------------------------------------------------------------
@@ -324,7 +344,9 @@ export interface ActionVerdict {
   matchedRule?: ActionRule;
 }
 
+/** Configuration passed to {@link AgentArmor.regexOnly} or {@link AgentArmor.create}. */
 export interface AgentArmorConfig {
+  /** Confidence-threshold preset. Default: `'balanced'`. */
   strictness?: Strictness;
   /**
    * Positive allowlist for the pre-execution action gate (#57). When set,
@@ -340,27 +362,32 @@ export interface AgentArmorConfig {
    * Default: true.
    */
   normalizeUnicode?: boolean;
+  /** Per-detector toggles within the Content Injection category. All default true. */
   contentInjection?: {
     hiddenHTML?: boolean;
     metadataInjection?: boolean;
     dynamicCloaking?: boolean;
     syntacticMasking?: boolean;
   };
+  /** Per-detector toggles within the Behavioural Control category. All default true. */
   behaviouralControl?: {
     jailbreakPatterns?: boolean;
     exfiltrationURLs?: boolean;
     privilegeEscalation?: boolean;
   };
+  /** Per-detector toggles within the Cognitive State category. All default true. */
   cognitiveState?: {
     ragPoisoning?: boolean;
     memoryPoisoning?: boolean;
     contextualLearning?: boolean;
   };
+  /** Per-detector toggles within the Semantic Manipulation category. All default true. */
   semanticManipulation?: {
     biasedFraming?: boolean;
     oversightEvasion?: boolean;
     personaHyperstition?: boolean;
   };
+  /** Per-detector toggles within the Transport Integrity category. All default true. */
   transportIntegrity?: {
     toolCallTampering?: boolean;
     credentialExposure?: boolean;
@@ -375,6 +402,7 @@ export interface AgentArmorConfig {
   session?: SessionConfig;
 }
 
+/** Multi-turn / session scanning configuration, passed as `config.session` (#35). */
 export interface SessionConfig {
   /**
    * Max recent turns kept in the cross-turn window for split-payload detection.

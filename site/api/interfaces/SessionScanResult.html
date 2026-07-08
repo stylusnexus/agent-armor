@@ -19,7 +19,7 @@ on each entry in <code>turns</code>; cross-turn threats are advisory.</p>
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">interface</span> <span class="tsd-kind-interface">SessionScanResult</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#clean">clean</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#crossturnthreats">crossTurnThreats</a><span class="tsd-signature-symbol">:</span> <a href="CrossTurnThreat.html" class="tsd-signature-type tsd-kind-interface">CrossTurnThreat</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#durationms">durationMs</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#stats">stats</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{</span><br/>        <span class="tsd-kind-property">crossTurnThreatsFound</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">highestSeverity</span><span class="tsd-signature-symbol">:</span> <a href="../types/Severity.html" class="tsd-signature-type tsd-kind-type-alias">Severity</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">threatsFound</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">turnsScanned</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">windowChars</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#turns">turns</a><span class="tsd-signature-symbol">:</span> <a href="ScanResult.html" class="tsd-signature-type tsd-kind-interface">ScanResult</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/caae10fd8323cb347e63f4014405800552a5493b/src/types/index.ts#L169">src/types/index.ts:169</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L181">src/types/index.ts:181</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -42,21 +42,21 @@ on each entry in <code>turns</code>; cross-turn threats are advisory.</p>
 <div class="tsd-comment tsd-typography"><p>Whether the session is free of both per-turn and cross-turn threats.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/caae10fd8323cb347e63f4014405800552a5493b/src/types/index.ts#L171">src/types/index.ts:171</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L183">src/types/index.ts:183</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="crossturnthreats"><span>cross<wbr/>Turn<wbr/>Threats</span><a href="#crossturnthreats" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">crossTurnThreats</span><span class="tsd-signature-symbol">:</span> <a href="CrossTurnThreat.html" class="tsd-signature-type tsd-kind-interface">CrossTurnThreat</a><span class="tsd-signature-symbol">[]</span></div>
 <div class="tsd-comment tsd-typography"><p>Threats that only emerge when turns are considered together.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/caae10fd8323cb347e63f4014405800552a5493b/src/types/index.ts#L175">src/types/index.ts:175</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L187">src/types/index.ts:187</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="durationms"><span>duration<wbr/>Ms</span><a href="#durationms" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">durationMs</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>Time taken in milliseconds for the whole session scan.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/caae10fd8323cb347e63f4014405800552a5493b/src/types/index.ts#L177">src/types/index.ts:177</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L189">src/types/index.ts:189</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="stats"><span>stats</span><a href="#stats" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">stats</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{</span><br/>    <span class="tsd-kind-property">crossTurnThreatsFound</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">highestSeverity</span><span class="tsd-signature-symbol">:</span> <a href="../types/Severity.html" class="tsd-signature-type tsd-kind-type-alias">Severity</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">threatsFound</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">turnsScanned</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">windowChars</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div>
@@ -78,14 +78,14 @@ on each entry in <code>turns</code>; cross-turn threats are advisory.</p>
 <div class="tsd-comment tsd-typography"><p>Total chars considered in the cross-turn split-payload window.</p>
 </div></li></ul></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/caae10fd8323cb347e63f4014405800552a5493b/src/types/index.ts#L179">src/types/index.ts:179</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L191">src/types/index.ts:191</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="turns"><span>turns</span><a href="#turns" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">turns</span><span class="tsd-signature-symbol">:</span> <a href="ScanResult.html" class="tsd-signature-type tsd-kind-interface">ScanResult</a><span class="tsd-signature-symbol">[]</span></div>
 <div class="tsd-comment tsd-typography"><p>Per-turn scan results, in the order the turns were supplied.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/caae10fd8323cb347e63f4014405800552a5493b/src/types/index.ts#L173">src/types/index.ts:173</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/ec21c035c7e1cba04e1ca1f7e5c4c9ba273913d9/src/types/index.ts#L185">src/types/index.ts:185</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
