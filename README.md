@@ -84,7 +84,7 @@ npm install @stylusnexus/agentarmor-ml
 
 ### Eval Suite
 
-106 curated samples (68 adversarial, 38 benign) covering all 10 shipped detector types across 4 attack categories, including homoglyph-obfuscated payloads and scanner-directed verdict suppression:
+105 curated samples (67 adversarial, 38 benign) covering all 10 shipped detector types across 4 attack categories, including homoglyph-obfuscated payloads and scanner-directed verdict suppression:
 
 | Strictness   | Detection Rate (regex) | False Positive Rate |
 | ------------ | ---------------------- | ------------------- |
