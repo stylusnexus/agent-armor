@@ -605,9 +605,13 @@ export class AgentArmor {
             : result.threats)
         );
       } catch (err) {
-        console.warn(
-          `[AgentArmor] Detector "${detector.id}" threw during scan: ${err instanceof Error ? err.message : String(err)}`
-        );
+        const error = err instanceof Error ? err : new Error(String(err));
+        const message = `[AgentArmor] Detector "${detector.id}" threw during scan: ${error.message}`;
+        if (this.config.on?.error) {
+          this.config.on.error({ message, error, context: { detectorId: detector.id } });
+        } else {
+          console.warn(message);
+        }
       }
     }
 
@@ -678,9 +682,13 @@ export class AgentArmor {
           );
         }
       } catch (err) {
-        console.warn(
-          `[AgentArmor] Detector "${detector.id}" threw during scan: ${err instanceof Error ? err.message : String(err)}`
-        );
+        const error = err instanceof Error ? err : new Error(String(err));
+        const message = `[AgentArmor] Detector "${detector.id}" threw during scan: ${error.message}`;
+        if (this.config.on?.error) {
+          this.config.on.error({ message, error, context: { detectorId: detector.id } });
+        } else {
+          console.warn(message);
+        }
       }
     }
 
