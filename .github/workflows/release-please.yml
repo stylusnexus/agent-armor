@@ -35,7 +35,9 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     outputs:
-      core_released: ${{ steps.release.outputs['.--release_created'] }}
+      # release-please-action only prefixes non-root paths (`${path}--${key}`);
+      # for path "." it sets the bare key (see its src/index.ts setPathOutput).
+      core_released: ${{ steps.release.outputs.release_created }}
       ml_released: ${{ steps.release.outputs['packages/ml--release_created'] }}
     steps:
       - uses: googleapis/release-please-action@v4
