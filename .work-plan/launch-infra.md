@@ -11,13 +11,14 @@ github:
     - 66
     - 67
     - 70
-  branches: []
+  branches: [feat/70-npm-provenance]
 depends_on: []
-last_touched: 2026-07-08T22:15
-last_handoff: 2026-07-08T22:15
-next_up:
-  - 70
-blockers: []
+last_touched: 2026-07-08T19:53
+last_handoff: 2026-07-08T19:53
+next_up: []
+blockers:
+  - "npmjs.com Trusted Publisher registration for both packages (manual, only Eve can do this)"
+  - "GitHub npm-publish Environment required-reviewer rule (manual, repo settings)"
 ---
 # Launch Infra & Adoption
 
@@ -31,7 +32,7 @@ Pre-launch credibility polish (CI gates the security fuzz test doesn't run yet, 
 | #65 | chore(docs): fix README/site drift and add a doc-consistency gate to CI | — | ✅ Shipped |
 | #66 | feat: agentarmor CLI with JSON/SARIF output for CI scanning | — | ✅ Shipped |
 | #67 | docs: generated API reference (TypeDoc) published to agentarmor.dev | — | ✅ Shipped |
-| #70 | ci: automated npm publish with provenance via release-please (trusted publishing) | — | 🔲 Open |
+| #70 | ci: automated npm publish with provenance via release-please (trusted publishing) | — | ✅ Automation shipped — first live publish not yet proven |
 
 ## Session log
 
@@ -98,3 +99,15 @@ Pre-launch credibility polish (CI gates the security fuzz test doesn't run yet, 
 - Verified live post-merge: `https://agentarmor.dev/api/` and `https://agentarmor.dev/api/ml/` both return 200.
 - Local/remote feature branch deleted, main synced.
 - Next up in this track: #70 (npm provenance) is the only remaining open issue in launch-infra. Separately, issue #24 (enterprise-readiness track) is queued next per user request — the `marywang-aiops` comment on it (event record / evidence package / control claim layering, already captured verbatim in the issue thread) is the design to carry forward when that work starts.
+
+### Session — 2026-07-08 19:53 (branch feat/70-npm-provenance, #70 implemented)
+
+- Implemented #70 per `docs/superpowers/plans/2026-07-09-npm-provenance.md`. Not yet merged.
+- **Real scope finding**: `release-please-config.json` only tracked the root package — `packages/ml` wasn't tracked at all, contradicting the issue text's implication both were already covered. Added `packages/ml` as a second monorepo component (own tag scheme `agentarmor-ml-v<version>` via `include-component-in-tag: true` + `component`, verified against release-please's own docs — no collision with root's unprefixed `vX.Y.Z` tags) — necessary for "the ML package publishes independently only when its own version changes."
+- **Live-verified npm Trusted Publishing requirements** (not assumed from training data, fetched from npm's current docs): npm CLI ≥11.5.1, Node ≥22.14 in the publish job, `id-token: write` permission, no `NPM_TOKEN` secret, provenance automatic (no `--provenance` flag needed). `npm publish --dry-run` locally confirmed scoped packages still need explicit `--access public` (default access is restricted, provenance being automatic doesn't change that).
+- **Design decision made with explicit user input**: the issue's literal acceptance criterion says "no manual step" between merging a release-please PR and npm publish. User chose to add a manual-approval gate (a GitHub Environment `npm-publish` with a required-reviewer protection rule) instead, matching this workspace's standing rule that irreversible actions get a human check — a deliberate, recorded divergence from the issue's literal wording, not an oversight.
+- Two new jobs (`publish-core`, `publish-ml`) added to the existing `.github/workflows/release-please.yml` (not a new file) using `needs:`-based per-package release outputs (`'.--release_created'`, `'packages/ml--release_created'`) — verified exact output naming live via release-please-action's own docs. Each re-runs build/typecheck/test(+eval for core) before `npm publish --access public`.
+- **This is the first issue this session that can't be fully verified end-to-end** — triggering a real release-please release has real, hard-to-reverse consequences (a real tag, GitHub release, and publish attempt), so nothing safely testable was skipped, but the actual OIDC publish path is genuinely unproven until a real release happens. Validated everything that IS safely checkable: JSON/YAML syntax, and the exact command sequences both publish jobs will run (`typecheck && test:run && eval:gate && build` for core, `typecheck && test && build` for ml) — both pass locally right now.
+- **Two manual one-time steps block this from doing anything even after merge**, and only Eve can do them: (1) npmjs.com → Trusted Publisher → GitHub Actions, for both `@stylusnexus/agentarmor` and `@stylusnexus/agentarmor-ml`, workflow filename exactly `release-please.yml`; (2) GitHub → Settings → Environments → `npm-publish` → add a required-reviewer rule. Recorded as `blockers` in this track's frontmatter, not silently left implicit.
+- Updated `CONTRIBUTING.md`'s Releases section (committed) and local `CLAUDE.md`'s Publishing section (gitignored, not committed) to describe the new flow — the manual `npm run build && npm publish --access public` fallback is explicitly kept, not deleted, since "retire manual instructions once verified" hasn't been earned yet.
+- Next: open the PR with the two manual steps flagged prominently at the top of the description — burying them would be a real usability failure of the PR itself.

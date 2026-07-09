@@ -19,6 +19,26 @@
         { "type": "test", "section": "Misc", "hidden": true },
         { "type": "build", "section": "Misc", "hidden": true }
       ]
+    },
+    "packages/ml": {
+      "release-type": "node",
+      "package-name": "@stylusnexus/agentarmor-ml",
+      "component": "agentarmor-ml",
+      "changelog-path": "CHANGELOG.md",
+      "include-component-in-tag": true,
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "changelog-sections": [
+        { "type": "feat", "section": "Added" },
+        { "type": "fix", "section": "Fixed" },
+        { "type": "perf", "section": "Performance" },
+        { "type": "refactor", "section": "Changed" },
+        { "type": "docs", "section": "Documentation" },
+        { "type": "chore", "section": "Misc", "hidden": true },
+        { "type": "ci", "section": "Misc", "hidden": true },
+        { "type": "test", "section": "Misc", "hidden": true },
+        { "type": "build", "section": "Misc", "hidden": true }
+      ]
     }
   }
 }

@@ -94,11 +94,21 @@ These titles feed the changelog automation below, so write them as the user-faci
 
 ## Releases
 
-`CHANGELOG.md` and version bumps are automated by [release-please](https://github.com/googleapis/release-please). You do **not** edit `CHANGELOG.md` by hand.
+Releases are automated end-to-end via [release-please](https://github.com/googleapis/release-please):
 
-1. Merge PRs to `main` with Conventional Commit titles (squash-merge keeps the title as the commit subject).
-2. release-please opens/updates a **release PR** that accumulates the changelog and bumps the version in `package.json` + `.release-please-manifest.json`.
-3. Merging the release PR tags the release (`vX.Y.Z`) and creates a GitHub release.
-4. Publishing to npm is still manual: `npm run build && npm publish --access public`.
+1. Every PR merged to `main` with a Conventional Commit title (`feat:`, `fix:`, etc.) gets picked up by release-please.
+2. release-please maintains a standing "release PR" per package (root `@stylusnexus/agentarmor` and `packages/ml`'s `@stylusnexus/agentarmor-ml`, versioned and tagged independently) that accumulates changelog entries and the next version bump.
+3. Merging a release PR tags the release and creates a GitHub release, which triggers that package's publish job.
+4. The publish job re-runs build/typecheck/test (and the eval gate, for the core package) as a defense-in-depth check, then waits for a manual approval in the `npm-publish` GitHub Environment before running `npm publish --access public`.
+5. Publishing uses npm Trusted Publishing (OIDC) — no `NPM_TOKEN` secret exists in this repo. Provenance is generated automatically.
+
+**One-time setup** (already done if you're reading this after #70 shipped — documented here for anyone re-provisioning the repo):
+
+- On npmjs.com, for each package (`@stylusnexus/agentarmor`, `@stylusnexus/agentarmor-ml`): Settings → Trusted Publisher → GitHub Actions → Organization `stylusnexus`, Repository `agent-armor`, Workflow filename `release-please.yml`, Allowed actions: npm publish.
+- On GitHub: Settings → Environments → `npm-publish` → add a required-reviewer protection rule.
+
+**CHANGELOG.md is bot-managed** — never hand-edit it (see the file's own header comment). Write good Conventional Commit titles instead.
+
+If the automated publish is ever unavailable (e.g. before the one-time setup above is complete), fall back to a manual publish: `npm run build && npm publish --access public` from a clean `main` checkout, run once per package that needs it.
 
 Pre-1.0 bump policy: a breaking change (`feat!:` / `BREAKING CHANGE:`) bumps the **minor** version; `feat:`/`fix:` bump the **patch** version.

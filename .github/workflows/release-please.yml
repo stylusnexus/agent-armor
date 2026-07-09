@@ -1,8 +1,17 @@
-# Automates CHANGELOG.md + version bumps from Conventional Commit messages.
+# Automates CHANGELOG.md + version bumps from Conventional Commit messages,
+# AND (as of #70) automates npm publish once a release-please PR is merged.
 # On each push to main, release-please opens/updates a "release PR" that
-# accumulates changelog entries and bumps the version. Merging that PR tags
-# the release (vX.Y.Z) and creates a GitHub release. npm publish stays manual
-# (see CONTRIBUTING / CLAUDE.md) until a publish job + NPM_TOKEN are added.
+# accumulates changelog entries and bumps the version(s) for both packages
+# (root ".", and "packages/ml" tracked independently — see
+# release-please-config.json). Merging that PR tags the release(s) and
+# creates GitHub release(s), which trigger publish-core / publish-ml below.
+#
+# Publishing uses npm Trusted Publishing (OIDC) — no stored NPM_TOKEN. Two
+# one-time manual setup steps are required (see CONTRIBUTING.md "Releasing"):
+#   1. A "Trusted Publisher" registered on npmjs.com for each package,
+#      pointing at this exact workflow filename (release-please.yml).
+#   2. A required-reviewer protection rule on the "npm-publish" GitHub
+#      Environment, so a human approves before the actual npm publish runs.
 #
 # Pre-1.0 bump policy (matches the /version-check skill):
 #   breaking change -> minor   (bump-minor-pre-major)
@@ -25,8 +34,64 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    outputs:
+      core_released: ${{ steps.release.outputs['.--release_created'] }}
+      ml_released: ${{ steps.release.outputs['packages/ml--release_created'] }}
     steps:
       - uses: googleapis/release-please-action@v4
+        id: release
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  # Publishes @stylusnexus/agentarmor via npm Trusted Publishing (OIDC) — no
+  # stored NPM_TOKEN. Requires a one-time "Trusted Publisher" registration on
+  # npmjs.com (org: stylusnexus, repo: agent-armor, workflow: release-please.yml)
+  # and a required-reviewer protection rule on the npm-publish Environment —
+  # both are manual steps documented in CONTRIBUTING.md (#70).
+  publish-core:
+    needs: release-please
+    if: needs.release-please.outputs.core_released == 'true'
+    runs-on: ubuntu-latest
+    environment: npm-publish
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run test:run
+      - run: npm run eval:gate
+      - run: npm run build
+      - run: npm publish --access public
+
+  # Publishes @stylusnexus/agentarmor-ml the same way, independently — only
+  # runs when packages/ml's own version bumped.
+  publish-ml:
+    needs: release-please
+    if: needs.release-please.outputs.ml_released == 'true'
+    runs-on: ubuntu-latest
+    environment: npm-publish
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: packages/ml
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: packages/ml/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run build
+      - run: npm publish --access public
