@@ -7,6 +7,13 @@ This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor 
 <!-- New entries are generated automatically by release-please from Conventional
 Commit messages on merge to main. Do not edit unreleased entries by hand. -->
 
+## [0.2.13](https://github.com/stylusnexus/agent-armor/compare/v0.2.12...v0.2.13) (2026-07-09)
+
+
+### Documentation
+
+* mark [#70](https://github.com/stylusnexus/agent-armor/issues/70)'s manual npm-publish blockers cleared in launch-infra track ([#91](https://github.com/stylusnexus/agent-armor/issues/91)) ([8bd169d](https://github.com/stylusnexus/agent-armor/commit/8bd169dcb771a879d1237c6906cf596e4e91647b))
+
 ## [0.2.12](https://github.com/stylusnexus/agent-armor/compare/v0.2.11...v0.2.12) (2026-07-09)
 
 
