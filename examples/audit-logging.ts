@@ -1,99 +1,24 @@
 /**
- * Example: Enterprise audit logging and policy enforcement
+ * Example: Enterprise audit logging with Agent Armor's built-in audit records
  *
- * For compliance-conscious teams: every scan result gets logged with full
- * threat details, timestamps, and source tracking. This gives you an audit
- * trail of every piece of content your agents processed and what was found.
+ * Every scan decision is captured as a structured AuditRecord via the `on.audit`
+ * callback (#75) — no hand-rolled logging needed. This gives you an audit trail
+ * of every piece of content your agents processed, what was found, and Agent
+ * Armor's own allow/sanitize/block/exception classification.
  *
- * Useful for SOC2, ISO 27001, or internal security reviews where you need
- * to demonstrate that AI agent inputs are validated and threats are tracked.
+ * Useful for SOC2, ISO 27001, or internal security reviews where you need to
+ * demonstrate that AI agent inputs are validated and threats are tracked.
  *
  * Run: npx tsx examples/audit-logging.ts
  */
-import { AgentArmor, type ScanResult, type Threat } from '@stylusnexus/agentarmor';
+import { AgentArmor, type AuditRecord } from '@stylusnexus/agentarmor';
 
-const armor = AgentArmor.regexOnly({ strictness: 'strict' });
+const auditLog: AuditRecord[] = [];
 
-// --- Audit log entry structure ---
-
-interface AuditEntry {
-  timestamp: string;
-  source: string;
-  contentHash: string;
-  scanDurationMs: number;
-  clean: boolean;
-  threatsFound: number;
-  highestSeverity: string | null;
-  threats: Array<{
-    category: string;
-    type: string;
-    severity: string;
-    confidence: number;
-    detectorId: string;
-    evidencePreview: string;
-  }>;
-  action: 'allowed' | 'sanitized' | 'blocked';
-}
-
-// Simple hash for content fingerprinting (use crypto.createHash in production)
-function simpleHash(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash |= 0;
-  }
-  return Math.abs(hash).toString(16).padStart(8, '0');
-}
-
-// --- Policy engine ---
-
-type PolicyAction = 'allow' | 'sanitize' | 'block';
-
-function enforcePolicy(result: ScanResult): PolicyAction {
-  if (result.clean) return 'allow';
-
-  // Block anything critical or high severity
-  const hasHighSeverity = result.threats.some(
-    (t) => t.severity === 'critical' || t.severity === 'high'
-  );
-  if (hasHighSeverity) return 'block';
-
-  // Sanitize medium threats
-  const hasMedium = result.threats.some((t) => t.severity === 'medium');
-  if (hasMedium) return 'sanitize';
-
-  // Allow low-severity with logging
-  return 'allow';
-}
-
-// --- Create audit entry from scan result ---
-
-function createAuditEntry(
-  content: string,
-  source: string,
-  result: ScanResult,
-  action: PolicyAction
-): AuditEntry {
-  return {
-    timestamp: new Date().toISOString(),
-    source,
-    contentHash: simpleHash(content),
-    scanDurationMs: result.durationMs,
-    clean: result.clean,
-    threatsFound: result.stats.threatsFound,
-    highestSeverity: result.stats.highestSeverity,
-    threats: result.threats.map((t: Threat) => ({
-      category: t.category,
-      type: t.type,
-      severity: t.severity,
-      confidence: t.confidence,
-      detectorId: t.detectorId,
-      evidencePreview: t.evidence.slice(0, 100),
-    })),
-    action: action === 'allow' ? 'allowed' : action === 'sanitize' ? 'sanitized' : 'blocked',
-  };
-}
+const armor = AgentArmor.regexOnly({
+  strictness: 'strict',
+  on: { audit: (record) => auditLog.push(record) },
+});
 
 // --- Simulated content from multiple agent data sources ---
 
@@ -123,20 +48,16 @@ const incomingContent = [
   },
 ];
 
-// --- Run scan pipeline with audit logging ---
+// --- Run scan pipeline — audit records accumulate automatically via on.audit ---
 
 console.log('=== Enterprise Audit Scan Pipeline ===\n');
 
-const auditLog: AuditEntry[] = [];
-
 for (const item of incomingContent) {
   const result = armor.scanSync(item.content);
-  const action = enforcePolicy(result);
-  const entry = createAuditEntry(item.content, item.source, result, action);
+  const record = auditLog[auditLog.length - 1];
 
-  auditLog.push(entry);
-
-  const icon = action === 'allow' ? '[ALLOW]' : action === 'sanitize' ? '[SANITIZE]' : '[BLOCK]';
+  const icon =
+    record.decision === 'allow' ? '[ALLOW]' : record.decision === 'sanitize' ? '[SANITIZE]' : '[BLOCK]';
   console.log(`  ${icon} ${item.source}`);
 
   if (!result.clean) {
@@ -145,17 +66,17 @@ for (const item of incomingContent) {
     }
   }
 
-  console.log(`    Scanned in ${result.durationMs}ms`);
+  console.log(`    Scanned in ${result.durationMs.toFixed(2)}ms`);
 }
 
 // --- Summary report ---
 
 console.log('\n=== Audit Summary ===\n');
 
-const blocked = auditLog.filter((e) => e.action === 'blocked').length;
-const sanitized = auditLog.filter((e) => e.action === 'sanitized').length;
-const allowed = auditLog.filter((e) => e.action === 'allowed').length;
-const totalThreats = auditLog.reduce((sum, e) => sum + e.threatsFound, 0);
+const allowed = auditLog.filter((r) => r.decision === 'allow').length;
+const sanitized = auditLog.filter((r) => r.decision === 'sanitize').length;
+const blocked = auditLog.filter((r) => r.decision === 'block').length;
+const totalThreats = auditLog.reduce((sum, r) => sum + r.threats.length, 0);
 
 console.log(`  Total scans:     ${auditLog.length}`);
 console.log(`  Allowed:         ${allowed}`);
@@ -163,6 +84,10 @@ console.log(`  Sanitized:       ${sanitized}`);
 console.log(`  Blocked:         ${blocked}`);
 console.log(`  Total threats:   ${totalThreats}`);
 
-// In production, write auditLog to your SIEM, database, or log aggregator
-console.log('\n  Audit log (JSON):');
-console.log(JSON.stringify(auditLog, null, 2));
+// In production, write auditLog entries (one JSON object per line) to your
+// SIEM, database, or log aggregator as they arrive — see audit-evidence-package.ts
+// for aggregating a batch of them into a verifiable evidence package.
+console.log('\n  Audit log (JSONL):');
+for (const record of auditLog) {
+  console.log(JSON.stringify(record));
+}
