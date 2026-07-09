@@ -1,4 +1,4 @@
-<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>computeRiskLevel | Agent Armor API Reference</title><meta name="description" content="Documentation for Agent Armor API Reference"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script><script async src="../assets/hierarchy.js" id="tsd-hierarchy-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>verifyEvidencePackage | Agent Armor API Reference</title><meta name="description" content="Documentation for Agent Armor API Reference"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script><script async src="../assets/hierarchy.js" id="tsd-hierarchy-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
 <div class="tsd-toolbar-contents container"><a href="../index.html" class="title">Agent Armor API Reference</a>
 <div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
 <ul role="listbox" id="tsd-search-results"></ul>
@@ -8,62 +8,25 @@
 <div class="col-content">
 <div class="tsd-page-title">
 <ul class="tsd-breadcrumb" aria-label="Breadcrumb">
-<li><a href="" aria-current="page">computeRiskLevel</a></li></ul>
-<h1>Function computeRiskLevel</h1></div>
+<li><a href="" aria-current="page">verifyEvidencePackage</a></li></ul>
+<h1>Function verifyEvidencePackage</h1></div>
 <section class="tsd-panel">
 <ul class="tsd-signatures">
 <li class="">
-<div class="tsd-signature tsd-anchor-link" id="computerisklevel"><span class="tsd-kind-call-signature">computeRiskLevel</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">severity</span><span class="tsd-signature-symbol">:</span> <a href="../types/Severity.html" class="tsd-signature-type tsd-kind-type-alias">Severity</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">,</span> <span class="tsd-kind-parameter">confidence</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <a href="../types/RiskLevel.html" class="tsd-signature-type tsd-kind-type-alias">RiskLevel</a><a href="#computerisklevel" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-signature tsd-anchor-link" id="verifyevidencepackage"><span class="tsd-kind-call-signature">verifyEvidencePackage</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">records</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/AuditRecord.html" class="tsd-signature-type tsd-kind-interface">AuditRecord</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">,</span> <span class="tsd-kind-parameter">pkg</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/EvidencePackage.html" class="tsd-signature-type tsd-kind-interface">EvidencePackage</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><a href="#verifyevidencepackage" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
 <div class="tsd-description">
-<div class="tsd-comment tsd-typography"><p>Roll up a scan to a single <a href="../types/RiskLevel.html" class="tsd-kind-type-alias">RiskLevel</a> from its dominant threat.</p>
-<p><code>severity</code> is the highest severity present; <code>confidence</code> is that dominant
-threat's confidence (0-1). Confidence buckets: high (&gt;= 0.8), medium
-(0.5-0.8), low (&lt; 0.5). Returns <code>none</code> when there is no threat.</p>
-<table>
-<thead>
-<tr>
-<th>severity \ confidence</th>
-<th>&gt;= 0.8</th>
-<th>0.5-0.8</th>
-<th>&lt; 0.5</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>critical</td>
-<td>critical</td>
-<td>high</td>
-<td>medium</td>
-</tr>
-<tr>
-<td>high</td>
-<td>high</td>
-<td>high</td>
-<td>medium</td>
-</tr>
-<tr>
-<td>medium</td>
-<td>medium</td>
-<td>medium</td>
-<td>low</td>
-</tr>
-<tr>
-<td>low</td>
-<td>low</td>
-<td>low</td>
-<td>low</td>
-</tr>
-</tbody>
-</table>
+<div class="tsd-comment tsd-typography"><p>Re-derives an <a href="../interfaces/EvidencePackage.html" class="tsd-kind-interface">EvidencePackage</a> from <code>records</code> and checks it against <code>pkg</code>.
+Returns false if the record set has been altered in any way since the package
+was built — a single edited/added/removed/reordered record changes the digest.</p>
 </div>
 <div class="tsd-parameters">
 <h4 class="tsd-parameters-title">Parameters</h4>
 <ul class="tsd-parameter-list">
-<li><span><span class="tsd-kind-parameter">severity</span>: <a href="../types/Severity.html" class="tsd-signature-type tsd-kind-type-alias">Severity</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></span></li>
-<li><span><span class="tsd-kind-parameter">confidence</span>: <span class="tsd-signature-type">number</span></span></li></ul></div>
-<h4 class="tsd-returns-title">Returns <a href="../types/RiskLevel.html" class="tsd-signature-type tsd-kind-type-alias">RiskLevel</a></h4><aside class="tsd-sources">
+<li><span><span class="tsd-kind-parameter">records</span>: <a href="../interfaces/AuditRecord.html" class="tsd-signature-type tsd-kind-interface">AuditRecord</a><span class="tsd-signature-symbol">[]</span></span></li>
+<li><span><span class="tsd-kind-parameter">pkg</span>: <a href="../interfaces/EvidencePackage.html" class="tsd-signature-type tsd-kind-interface">EvidencePackage</a></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/agent-armor.ts#L97">src/agent-armor.ts:97</a></li></ul></aside></div></li></ul></section></div>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/audit-evidence.ts#L57">src/audit-evidence.ts:57</a></li></ul></aside></div></li></ul></section></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">

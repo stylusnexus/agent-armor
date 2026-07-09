@@ -1,4 +1,4 @@
-import { LABELS } from './constants';
+import { LABELS, MODEL_VERSION } from './constants';
 import { Tokenizer } from './tokenizer';
 import type { ModelArtifacts } from './model-manager';
 
@@ -80,6 +80,8 @@ export class MLDetector implements Detector {
   readonly name = 'ML Classifier (DeBERTa-v3-small)';
   /** Trap category this detector's labels currently map into. */
   readonly category = 'content-injection';
+  /** Model version — surfaced on AuditRecord.mlModelVersion when this detector ran (#75). */
+  readonly version = MODEL_VERSION;
 
   private session: OrtSession;
   private tokenizer: Tokenizer;

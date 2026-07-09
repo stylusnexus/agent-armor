@@ -374,6 +374,101 @@ export interface DetectorSkippedEvent {
   reason: "config-disabled" | "no-patterns";
 }
 
+/** One threat as recorded on an {@link AuditRecord} — never the raw snippet unless `includeEvidence` was set. */
+export interface AuditThreatSummary {
+  category: TrapCategory;
+  type: TrapType;
+  severity: Severity;
+  confidence: Confidence;
+  detectorId: string;
+  source: ThreatSource;
+  location?: { offset: number; length: number };
+  /** sha256 of the threat's evidence snippet, e.g. `"sha256:ab12..."`. */
+  evidenceHash: string;
+  /** The raw evidence snippet — present only when the scan call passed `includeEvidence: true`. */
+  evidence?: string;
+}
+
+/**
+ * A durable, structured record of one scan decision — the substrate for
+ * SOC2/ISO27001-style audit trails (#38). `decision` is Agent Armor's own
+ * classification derived from `riskLevel`, NOT a guarantee of what your
+ * application actually did with the `ScanResult` — that decision happens in
+ * your code, after the scan call returns, where the SDK can't observe it.
+ */
+export interface AuditRecord {
+  /** Record format version, for forward compatibility. */
+  schemaVersion: "audit-record.v1";
+  /** ISO 8601 timestamp of when this scan decision completed. */
+  timestamp: string;
+  /** Unique id for this specific decision (one per chunk/turn, not per API call). */
+  scanId: string;
+  /** Shared across every record from the same top-level call (e.g. all chunks in one scanRAGChunks call). Undefined for single-content calls. */
+  batchId?: string;
+  /** Which SDK entry point produced this record. */
+  source: "scanSync" | "scan" | "scanRAGChunks" | "scanOutput" | "scanSession";
+  /** Chunk index (scanRAGChunks) or turn index (scanSession). Undefined for single-content calls. */
+  index?: number;
+  /** Agent Armor's classification of this scan — see the interface doc comment above. */
+  decision: "allow" | "sanitize" | "block" | "exception";
+  /** Confidence-threshold preset active for this scan. */
+  strictness: Strictness;
+  /** Pattern database version that produced this decision. */
+  patternDbVersion: string;
+  /** ML model version, present only when the ML classifier ran for this scan. */
+  mlModelVersion?: string;
+  /** Unique categories among detected threats. */
+  categories: TrapCategory[];
+  /** Per-threat summaries — see {@link AuditThreatSummary}. */
+  threats: AuditThreatSummary[];
+  /** Populated only when `decision === 'exception'` — both fields required (cannot omit reason or actor). */
+  exception?: { reason: string; actor: string };
+  /** Scan duration in ms. */
+  durationMs: number;
+}
+
+/**
+ * Options accepted by every scan method (`scanSync`, `scan`, `scanRAGChunks(Sync)`,
+ * `scanOutput(Sync)`, `scanSession(Async)`) as an optional second/last parameter.
+ */
+export interface ScanOptions {
+  /**
+   * Marks this scan as a known, intentional override — you've already decided
+   * to let this content through despite risk, and want that decision captured
+   * on the audit record instead of the auto-derived allow/sanitize/block.
+   */
+  exception?: { reason: string; actor: string };
+  /**
+   * Include the raw offending snippet (not just its hash) on the audit record.
+   * Opt-in only — carries the data-handling responsibility of storing content
+   * in your audit sink. Default: false.
+   */
+  includeEvidence?: boolean;
+}
+
+/**
+ * Aggregates many {@link AuditRecord}s into a single tamper-evident summary
+ * for a reporting period — built by {@link buildEvidencePackage}, checked by
+ * {@link verifyEvidencePackage}. See #75 / the marywang-aiops design comment
+ * on #24 for the three-layer model this implements (event record / evidence
+ * package / control claim).
+ */
+export interface EvidencePackage {
+  schemaVersion: "audit-evidence-package.v1";
+  periodStart: string;
+  periodEnd: string;
+  recordCount: number;
+  decisionCounts: Record<AuditRecord["decision"], number>;
+  /** e.g. `["patterns@0.6.0", "ml@v1"]` — every distinct version combination seen. */
+  detectorVersions: string[];
+  /** scanIds of every exception-decision record, for quick review. */
+  exceptionRecordIds: string[];
+  /** True if any record in the package has `includeEvidence`-populated raw evidence. */
+  rawContentStored: boolean;
+  /** sha256 over the records in order — any edit to any record changes this. */
+  packageDigest: string;
+}
+
 /**
  * Diagnostics callbacks, passed as `config.on`. Routes internal diagnostics to your
  * own logging/alerting instead of `console.warn`. Fully opt-in: with no `on` config,
@@ -387,6 +482,8 @@ export interface DiagnosticsConfig {
   error?: (event: ErrorEvent) => void;
   /** A detector was not loaded into the pipeline. */
   detectorSkipped?: (event: DetectorSkippedEvent) => void;
+  /** One durable record per scan decision — see {@link AuditRecord}. */
+  audit?: (record: AuditRecord) => void;
 }
 
 /** Configuration passed to {@link AgentArmor.regexOnly} or {@link AgentArmor.create}. */

@@ -384,6 +384,36 @@ const armor = AgentArmor.regexOnly({
 
 `onUnavailable` on the ML config is unchanged and still controls *whether* to throw/warn/skip when the ML classifier is unavailable — `on.warn` controls *where* that warning goes.
 
+### Audit-Evidence Records
+
+Every scan decision can also produce a durable `AuditRecord` via `on.audit` — the substrate for SOC2/ISO27001-style audit trails. `decision` (`allow`/`sanitize`/`block`/`exception`) is Agent Armor's own classification derived from `riskLevel`, not a guarantee of what your application did with the result — that decision happens in your code, after the scan call returns.
+
+```typescript
+const auditLog: AuditRecord[] = [];
+const armor = AgentArmor.regexOnly({
+  on: { audit: (record) => auditLog.push(record) },
+});
+
+armor.scanSync(content);
+// Or, to record a known override:
+armor.scanSync(content, { exception: { reason: 'reviewed, false positive', actor: 'security-team' } });
+```
+
+- Fires once per scan decision — once per call for `scanSync`/`scan`/`scanOutput`, once per chunk for `scanRAGChunks`, once per turn for `scanSession`.
+- No raw content by default — threats carry `evidenceHash` (sha256), not the snippet. Pass `{ includeEvidence: true }` to include it (opt-in, carries the data-handling responsibility).
+- `exception` records require both `reason` and `actor` — enforced at the type level.
+
+Aggregate a batch of records (e.g. read from a JSONL sink) into a tamper-evident summary:
+
+```typescript
+import { buildEvidencePackage, verifyEvidencePackage } from '@stylusnexus/agentarmor';
+
+const pkg = buildEvidencePackage(records, { periodStart, periodEnd });
+verifyEvidencePackage(records, pkg); // false if any record was edited/added/removed/reordered since
+```
+
+See `examples/audit-logging.ts` and `examples/audit-evidence-package.ts` for full working examples.
+
 ## Architecture
 
 Agent Armor operates as a middleware pipeline with three interception points:
