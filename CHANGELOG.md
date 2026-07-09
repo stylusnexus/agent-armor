@@ -7,6 +7,29 @@ This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor 
 <!-- New entries are generated automatically by release-please from Conventional
 Commit messages on merge to main. Do not edit unreleased entries by hand. -->
 
+## [0.2.8](https://github.com/stylusnexus/agent-armor/compare/v0.2.7...v0.2.8) (2026-07-09)
+
+
+### Added
+
+* add computed riskLevel roll-up to ScanResult ([#34](https://github.com/stylusnexus/agent-armor/issues/34)) ([#60](https://github.com/stylusnexus/agent-armor/issues/60)) ([1a63340](https://github.com/stylusnexus/agent-armor/commit/1a63340856232e58145899bbc14690ab8d1063a5))
+* agentarmor CLI with JSON/SARIF output for CI scanning ([#73](https://github.com/stylusnexus/agent-armor/issues/73)) ([5331e14](https://github.com/stylusnexus/agent-armor/commit/5331e14d0f57420a6dcd4a8bdca0e21af4572121))
+* allowlist-based pre-execution action gate ([#57](https://github.com/stylusnexus/agent-armor/issues/57)) ([#61](https://github.com/stylusnexus/agent-armor/issues/61)) ([766af56](https://github.com/stylusnexus/agent-armor/commit/766af562d9edbb516394cdc4b199836729789b11))
+* audit-evidence records (AuditRecord + evidence-package aggregation) ([#77](https://github.com/stylusnexus/agent-armor/issues/77)) ([cc024b2](https://github.com/stylusnexus/agent-armor/commit/cc024b25e8ccb3ddbb731d1dac73f8b9cca4b849))
+* extensible diagnostics/event system (warn, error, detectorSkipped) ([#76](https://github.com/stylusnexus/agent-armor/issues/76)) ([d65871c](https://github.com/stylusnexus/agent-armor/commit/d65871c148f03100e3973850359453cfb21088dd))
+
+
+### Fixed
+
+* **action-gate:** deny home-directory (~) and URL/stream-wrapper paths; pin SecLists LFI fuzz eval ([#63](https://github.com/stylusnexus/agent-armor/issues/63)) ([0611b24](https://github.com/stylusnexus/agent-armor/commit/0611b24b0fe96b8c861c4dadc26c541139e5e61c))
+
+
+### Documentation
+
+* add deterministic-vs-probabilistic positioning to README and llms.txt ([#58](https://github.com/stylusnexus/agent-armor/issues/58)) ([637a4d4](https://github.com/stylusnexus/agent-armor/commit/637a4d4d2ddb6c059fcea0b0521a2222b793813c))
+* generated API reference (TypeDoc) published to agentarmor.dev ([#74](https://github.com/stylusnexus/agent-armor/issues/74)) ([39b349c](https://github.com/stylusnexus/agent-armor/commit/39b349c4d7078ec48747e6f5e1c1e0f9b204f580))
+* **site:** refresh llms.txt + landing for 0.2.7 (eval numbers, multi-turn) ([#55](https://github.com/stylusnexus/agent-armor/issues/55)) ([cd6fb9d](https://github.com/stylusnexus/agent-armor/commit/cd6fb9d622979d3482e23a04b386f09a13da66b7))
+
 ## [0.2.7](https://github.com/stylusnexus/agent-armor/compare/v0.2.6...v0.2.7) (2026-06-13)
 
 
