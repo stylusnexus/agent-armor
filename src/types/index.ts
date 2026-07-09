@@ -559,14 +559,17 @@ export interface SessionConfig {
    */
   windowChars?: number;
   /**
-   * Reserved for cross-turn signal accumulation — gradual memory poisoning and
+   * Cross-turn signal accumulation — gradual memory poisoning and
    * contextual-learning drift. Default: false.
    *
-   * NOT AVAILABLE in the regex SDK: a regex signal cannot separate a malicious
-   * standing "always downplay risk" rule from legitimate reassurance scripting
-   * without an unacceptable false-positive rate (the distinction is semantic,
-   * not lexical). This is planned for the ML classifier. Enabling it here has no
-   * effect and emits a one-time warning; split-payload detection is unaffected.
+   * Handled by the ML classifier, NOT regex: a regex signal cannot separate a
+   * malicious standing "always downplay risk" rule from legitimate reassurance
+   * scripting without an unacceptable false-positive rate (the distinction is
+   * semantic, not lexical). When enabled AND the ML classifier is active, the
+   * async path (`scanSessionAsync`) shows the model a sliding window of recent
+   * turns so accumulated signal can surface on its accumulation labels. On the
+   * regex-only SDK or the sync path the flag is inert and warns once;
+   * split-payload detection is unaffected either way.
    */
   accumulation?: boolean;
   /**

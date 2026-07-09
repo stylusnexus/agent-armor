@@ -55,7 +55,7 @@ const clean = armor.scanRAGChunksSync(chunks)
 
 ## Multi-turn / session scanning
 
-`scanSession(turns)` scans a conversation (an array of {role, content} turns). Beyond scanning each turn on its own, it catches cross-turn split payloads: a single instruction chopped across a turn boundary (e.g. "ignore all previous" + "instructions...") that no per-turn scan would see. Cross-turn threats name their contributing turns. Cross-turn semantic accumulation (gradual memory poisoning) is deferred to the ML classifier because regex cannot separate it from legitimate scripting without false positives.
+`scanSession(turns)` scans a conversation (an array of {role, content} turns). Beyond scanning each turn on its own, it catches cross-turn split payloads: a single instruction chopped across a turn boundary (e.g. "ignore all previous" + "instructions...") that no per-turn scan would see. Cross-turn threats name their contributing turns. Cross-turn semantic accumulation (gradual memory poisoning, contextual drift) is handled by the ML classifier, not regex: enable `session.accumulation` and call `scanSessionAsync()` with the ML classifier on, and the model is shown a sliding window of recent turns so accumulated signal invisible per-turn can surface on its memory-poisoning / contextual-learning labels. On the regex-only SDK or the sync path the flag is inert and warns once.
 
 ## Pre-execution action gate
 
