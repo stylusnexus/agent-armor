@@ -19,7 +19,7 @@ your code, after the scan call returns, where the SDK can't observe it.</p>
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">interface</span> <span class="tsd-kind-interface">AuditRecord</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#batchid">batchId</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#categories">categories</a><span class="tsd-signature-symbol">:</span> <a href="../types/TrapCategory.html" class="tsd-signature-type tsd-kind-type-alias">TrapCategory</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#decision">decision</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">&quot;allow&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;sanitize&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;block&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;exception&quot;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#durationms">durationMs</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#exception">exception</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">actor</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">reason</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#index">index</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#mlmodelversion">mlModelVersion</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#patterndbversion">patternDbVersion</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#scanid">scanId</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#schemaversion">schemaVersion</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">&quot;audit-record.v1&quot;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#source">source</a><span class="tsd-signature-symbol">:</span><br/>        <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;scanSync&quot;</span><br/>        <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;scan&quot;</span><br/>        <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;scanRAGChunks&quot;</span><br/>        <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;scanOutput&quot;</span><br/>        <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;scanSession&quot;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#strictness">strictness</a><span class="tsd-signature-symbol">:</span> <a href="../types/Strictness.html" class="tsd-signature-type tsd-kind-type-alias">Strictness</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#threats">threats</a><span class="tsd-signature-symbol">:</span> <a href="AuditThreatSummary.html" class="tsd-signature-type tsd-kind-interface">AuditThreatSummary</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#timestamp">timestamp</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in src/types/index.ts:399</li></ul></aside>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L399">src/types/index.ts:399</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -51,98 +51,98 @@ your code, after the scan call returns, where the SDK can't observe it.</p>
 <div class="tsd-comment tsd-typography"><p>Shared across every record from the same top-level call (e.g. all chunks in one scanRAGChunks call). Undefined for single-content calls.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in src/types/index.ts:407</li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L407">src/types/index.ts:407</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="categories"><span>categories</span><a href="#categories" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">categories</span><span class="tsd-signature-symbol">:</span> <a href="../types/TrapCategory.html" class="tsd-signature-type tsd-kind-type-alias">TrapCategory</a><span class="tsd-signature-symbol">[]</span></div>
 <div class="tsd-comment tsd-typography"><p>Unique categories among detected threats.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in src/types/index.ts:421</li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L421">src/types/index.ts:421</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="decision"><span>decision</span><a href="#decision" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">decision</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">&quot;allow&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;sanitize&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;block&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;exception&quot;</span></div>
 <div class="tsd-comment tsd-typography"><p>Agent Armor's classification of this scan — see the interface doc comment above.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in src/types/index.ts:413</li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L413">src/types/index.ts:413</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="durationms"><span>duration<wbr/>Ms</span><a href="#durationms" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">durationMs</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>Scan duration in ms.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in src/types/index.ts:427</li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L427">src/types/index.ts:427</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="exception"><code class="tsd-tag">Optional</code><span>exception</span><a href="#exception" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">exception</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">actor</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">reason</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">}</span></div>
 <div class="tsd-comment tsd-typography"><p>Populated only when <code>decision === 'exception'</code> — both fields required (cannot omit reason or actor).</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in src/types/index.ts:425</li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L425">src/types/index.ts:425</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="index"><code class="tsd-tag">Optional</code><span>index</span><a href="#index" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">index</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>Chunk index (scanRAGChunks) or turn index (scanSession). Undefined for single-content calls.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in src/types/index.ts:411</li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L411">src/types/index.ts:411</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="mlmodelversion"><code class="tsd-tag">Optional</code><span>ml<wbr/>Model<wbr/>Version</span><a href="#mlmodelversion" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">mlModelVersion</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>ML model version, present only when the ML classifier ran for this scan.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in src/types/index.ts:419</li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L419">src/types/index.ts:419</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="patterndbversion"><span>pattern<wbr/>Db<wbr/>Version</span><a href="#patterndbversion" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">patternDbVersion</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>Pattern database version that produced this decision.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in src/types/index.ts:417</li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L417">src/types/index.ts:417</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="scanid"><span>scan<wbr/>Id</span><a href="#scanid" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">scanId</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>Unique id for this specific decision (one per chunk/turn, not per API call).</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in src/types/index.ts:405</li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L405">src/types/index.ts:405</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="schemaversion"><span>schema<wbr/>Version</span><a href="#schemaversion" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">schemaVersion</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">&quot;audit-record.v1&quot;</span></div>
 <div class="tsd-comment tsd-typography"><p>Record format version, for forward compatibility.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in src/types/index.ts:401</li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L401">src/types/index.ts:401</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="source"><span>source</span><a href="#source" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">source</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">&quot;scanSync&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;scan&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;scanRAGChunks&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;scanOutput&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;scanSession&quot;</span></div>
 <div class="tsd-comment tsd-typography"><p>Which SDK entry point produced this record.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in src/types/index.ts:409</li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L409">src/types/index.ts:409</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="strictness"><span>strictness</span><a href="#strictness" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">strictness</span><span class="tsd-signature-symbol">:</span> <a href="../types/Strictness.html" class="tsd-signature-type tsd-kind-type-alias">Strictness</a></div>
 <div class="tsd-comment tsd-typography"><p>Confidence-threshold preset active for this scan.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in src/types/index.ts:415</li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L415">src/types/index.ts:415</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="threats"><span>threats</span><a href="#threats" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">threats</span><span class="tsd-signature-symbol">:</span> <a href="AuditThreatSummary.html" class="tsd-signature-type tsd-kind-interface">AuditThreatSummary</a><span class="tsd-signature-symbol">[]</span></div>
 <div class="tsd-comment tsd-typography"><p>Per-threat summaries — see <a href="AuditThreatSummary.html" class="tsd-kind-interface">AuditThreatSummary</a>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in src/types/index.ts:423</li></ul></aside></section>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L423">src/types/index.ts:423</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="timestamp"><span>timestamp</span><a href="#timestamp" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">timestamp</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>ISO 8601 timestamp of when this scan decision completed.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in src/types/index.ts:403</li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/types/index.ts#L403">src/types/index.ts:403</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
