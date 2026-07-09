@@ -65,6 +65,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - run: npm install -g npm@^11.5.1 # npm's OIDC Trusted Publishing needs npm >=11.5.1; Node 22's bundled npm predates it
       - run: npm ci
       - run: npm run typecheck
       - run: npm run test:run
@@ -92,6 +93,7 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: packages/ml/package-lock.json
+      - run: npm install -g npm@^11.5.1 # npm's OIDC Trusted Publishing needs npm >=11.5.1; Node 22's bundled npm predates it
       - run: npm ci
       - run: npm run typecheck
       - run: npm run test
