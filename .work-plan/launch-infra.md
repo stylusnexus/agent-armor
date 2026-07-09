@@ -11,10 +11,10 @@ github:
     - 66
     - 67
     - 70
-  branches: [feat/70-npm-provenance]
+  branches: []
 depends_on: []
-last_touched: 2026-07-08T19:53
-last_handoff: 2026-07-08T19:53
+last_touched: 2026-07-09T01:02
+last_handoff: 2026-07-09T01:02
 next_up: []
 blockers:
   - "npmjs.com Trusted Publisher registration for both packages (manual, only Eve can do this)"
@@ -111,3 +111,9 @@ Pre-launch credibility polish (CI gates the security fuzz test doesn't run yet, 
 - **Two manual one-time steps block this from doing anything even after merge**, and only Eve can do them: (1) npmjs.com → Trusted Publisher → GitHub Actions, for both `@stylusnexus/agentarmor` and `@stylusnexus/agentarmor-ml`, workflow filename exactly `release-please.yml`; (2) GitHub → Settings → Environments → `npm-publish` → add a required-reviewer rule. Recorded as `blockers` in this track's frontmatter, not silently left implicit.
 - Updated `CONTRIBUTING.md`'s Releases section (committed) and local `CLAUDE.md`'s Publishing section (gitignored, not committed) to describe the new flow — the manual `npm run build && npm publish --access public` fallback is explicitly kept, not deleted, since "retire manual instructions once verified" hasn't been earned yet.
 - Next: open the PR with the two manual steps flagged prominently at the top of the description — burying them would be a real usability failure of the PR itself.
+
+### Session — 2026-07-09 01:02 (merged, #70 shipped)
+
+- PR #78 opened, all 7 expected checks green on the first run — `publish-core`/`publish-ml` correctly did not fire (gated on release-please's own `release_created` output, absent on a normal PR), confirming that design assumption held. Merged via `gh pr merge --squash --admin` (user confirmed the bypass) — commit `a59e0ce`. #70 auto-closed cleanly.
+- All 5 issues in this track are now GitHub-closed, but the track stays **active, not closed** — the two manual blockers (npmjs.com Trusted Publisher registration for both packages, `npm-publish` Environment required-reviewer rule) are real open work only Eve can do, and the automated publish path is unproven until a real release goes through it. Local/remote feature branch deleted, main synced.
+- Next: Eve completes the two manual steps, then the next real release-please PR merge is the actual end-to-end test — watch that first run.
