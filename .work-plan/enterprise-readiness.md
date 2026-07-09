@@ -9,12 +9,12 @@ github:
     - 24
     - 38
     - 75
-  branches: []
+  branches: [feat/75-audit-records]
 depends_on: []
-last_touched: 2026-07-08T23:08
-last_handoff: 2026-07-08T23:08
+last_touched: 2026-07-08T19:20
+last_handoff: 2026-07-08T19:20
 next_up:
-  - 75
+  - 38
 blockers: []
 ---
 # Enterprise Readiness
@@ -29,7 +29,7 @@ Reprioritized P3 → P1 on 2026-07-07: #24 is the most actively-discussed open i
 |---|---|---|---|
 | #24 | feat: extensible diagnostics/event system (warn, error, detectorSkipped) | — | ✅ Shipped |
 | #38 | Compliance control mapping (SOC 2 / ISO 27001 crosswalk) — deferred | — | 🔲 Open |
-| #75 | feat: audit-evidence records (AuditRecord + evidence-package aggregation) | — | 🔲 Open (unblocked, ready to plan) |
+| #75 | feat: audit-evidence records (AuditRecord + evidence-package aggregation) | — | ✅ Shipped |
 
 
 ## Session log
@@ -62,3 +62,16 @@ Reprioritized P3 → P1 on 2026-07-07: #24 is the most actively-discussed open i
 - Verified live post-merge: `agentarmor.dev/api/interfaces/DiagnosticsConfig.html` resolves 200 (after Cloudflare's normal trailing-redirect).
 - Local/remote feature branch deleted, main synced.
 - #75 (audit-evidence records) is now unblocked and next up in this track.
+
+### Session — 2026-07-08 19:20 (#75 implemented, not yet merged)
+
+- Implemented #75 per `docs/superpowers/plans/2026-07-08-audit-records.md` on branch `feat/75-audit-records`, carrying forward the marywang-aiops design and prior granularity decision without re-deriving.
+- Two genuinely open design questions resolved with user input before writing the plan (AskUserQuestion): `decision` (allow/sanitize/block/exception) is derived from `riskLevel` via a fixed, documented mapping — explicitly labeled as Agent Armor's own classification, not proof of what the caller's application actually did, since the SDK returns a `ScanResult` and the caller decides what to do with it after the call returns, in code the SDK never sees. `exception` records are supplied via a new optional 2nd parameter on every scan method (`scanSync(content, { exception: { reason, actor } })`) with both fields required at the type level — not a separate stateful `recordException()` call.
+- New `on.audit` callback (5th key alongside #24's warn/error/detectorSkipped) fires once per scan decision: once per call for `scanSync`/`scan`/`scanOutput(Sync)`, once per chunk for `scanRAGChunks(Sync)` (shared `batchId`, sequential `index`), once per turn for `scanSession`/`scanSessionAsync` (same pattern). No raw content by default — threats carry `evidenceHash` (sha256), raw `evidence` only with `includeEvidence: true`.
+- New `src/audit-evidence.ts`: `buildEvidencePackage`/`verifyEvidencePackage` — sha256 digest over the record set, order-sensitive, so any edit/add/remove/reorder after the fact fails verification. Reuses `node:crypto`'s `createHash`, already a codebase precedent from `packages/ml/src/model-manager.ts`.
+- Real finding mid-planning: `examples/audit-logging.ts` already existed and hand-rolled almost exactly this feature (`AuditEntry`, `simpleHash`, `enforcePolicy`) — updated it to use the real `on.audit` + built-in `decision` instead of creating a duplicate example. Added `examples/audit-evidence-package.ts` for the aggregate/verify side. Both run for real (`npx tsx`) and produce correct output, including a live tamper-detection demo (untampered records verify true, a single flipped decision verifies false).
+- Real bug caught before commit: both examples import the package by its own name (`@stylusnexus/agentarmor`, resolved via `package.json`'s self-reference to `dist/`) — the first run threw `Cannot read properties of undefined (reading 'decision')` because `dist/` was stale from before today's changes. Not a code bug; `npm run build` first fixed it. Worth remembering for any future example-verification step on this repo.
+- `MLDetector.version` (new, exposes `MODEL_VERSION` for `AuditRecord.mlModelVersion`) required zero core-package changes beyond a narrow duck-typed read (`'version' in this.mlDetector`) — didn't widen the shared `Detector` interface, since pattern/custom detectors have no meaningful version concept.
+- 14 new tests (203 total, up from 189), all passing on first run — including the `scanSession`/`scanSessionAsync` per-turn firing tests, which needed no correction against the plan's assumed loop structure (verified identical before wiring).
+- Full verification: typecheck/lint/test clean, both builds clean, CLI backward-compat confirmed live (`node dist/cli.js scan` still `[ok]`/exit 0 — the new optional `ScanOptions` 2nd parameter doesn't break the CLI's single-argument calls), `eval:gate` unaffected, docs regenerated under Node 20 with all 5 new symbols (`AuditRecord`, `EvidencePackage`, `ScanOptions`, `AuditThreatSummary`, `buildEvidencePackage`, `verifyEvidencePackage`) confirmed present.
+- Next: open the PR, merge once green. User asked to thank `marywang-aiops` in a comment once #75 is implemented — do this on the PR/issue after merge, crediting the 2026-06-18 design comment on #24 that this directly implements (the three-layer split and the six test cases both carried straight through). Then #38 (SOC2/ISO crosswalk) is the last open issue in this track, still correctly deferred until its own dependencies are ready.
