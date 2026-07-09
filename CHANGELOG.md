@@ -7,6 +7,13 @@ This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor 
 <!-- New entries are generated automatically by release-please from Conventional
 Commit messages on merge to main. Do not edit unreleased entries by hand. -->
 
+## [0.2.11](https://github.com/stylusnexus/agent-armor/compare/v0.2.10...v0.2.11) (2026-07-09)
+
+
+### Fixed
+
+* **ci:** set separate-pull-requests to fix stuck root-only releases ([#85](https://github.com/stylusnexus/agent-armor/issues/85)) ([#86](https://github.com/stylusnexus/agent-armor/issues/86)) ([218310c](https://github.com/stylusnexus/agent-armor/commit/218310c17d60e145f0be8b12091d430088bc247f))
+
 ## [0.2.10](https://github.com/stylusnexus/agent-armor/compare/v0.2.9...v0.2.10) (2026-07-09)
 
 
