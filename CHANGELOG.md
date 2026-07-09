@@ -7,6 +7,18 @@ This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor 
 <!-- New entries are generated automatically by release-please from Conventional
 Commit messages on merge to main. Do not edit unreleased entries by hand. -->
 
+## [0.2.9](https://github.com/stylusnexus/agent-armor/compare/v0.2.8...v0.2.9) (2026-07-09)
+
+
+### Added
+
+* cross-turn ML accumulation windowing in session scan ([#35](https://github.com/stylusnexus/agent-armor/issues/35) step 1) ([#62](https://github.com/stylusnexus/agent-armor/issues/62)) ([b83ed1b](https://github.com/stylusnexus/agent-armor/commit/b83ed1bdd77d122c1e3ad2937f84f4166e0a35fb))
+
+
+### Fixed
+
+* **ci:** correct release-please output key for publish-core ([#81](https://github.com/stylusnexus/agent-armor/issues/81)) ([#82](https://github.com/stylusnexus/agent-armor/issues/82)) ([d881d30](https://github.com/stylusnexus/agent-armor/commit/d881d30f5632a0592a2b77aead9eb44b23bf4ee4))
+
 ## [0.2.8](https://github.com/stylusnexus/agent-armor/compare/v0.2.7...v0.2.8) (2026-07-09)
 
 
