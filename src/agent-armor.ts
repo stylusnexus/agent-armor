@@ -418,8 +418,13 @@ export class AgentArmor {
   /**
    * Scan retrieved RAG chunks before prompt assembly (sync).
    */
-  scanRAGChunksSync(chunks: string[]): ScanResult[] {
-    return chunks.map((chunk) => this.runScanPipeline(chunk));
+  scanRAGChunksSync(chunks: string[], options?: ScanOptions): ScanResult[] {
+    const batchId = randomUUID();
+    return chunks.map((chunk, index) => {
+      const result = this.runScanPipeline(chunk);
+      this.emitAudit(this.buildAuditRecord(result, 'scanRAGChunks', options, { batchId, index }));
+      return result;
+    });
   }
 
   /**
@@ -444,8 +449,15 @@ export class AgentArmor {
   /**
    * Scan retrieved RAG chunks before prompt assembly (async).
    */
-  async scanRAGChunks(chunks: string[]): Promise<ScanResult[]> {
-    return Promise.all(chunks.map((chunk) => this.runScanPipelineAsync(chunk)));
+  async scanRAGChunks(chunks: string[], options?: ScanOptions): Promise<ScanResult[]> {
+    const batchId = randomUUID();
+    return Promise.all(
+      chunks.map(async (chunk, index) => {
+        const result = await this.runScanPipelineAsync(chunk);
+        this.emitAudit(this.buildAuditRecord(result, 'scanRAGChunks', options, { batchId, index }));
+        return result;
+      })
+    );
   }
 
   /**
@@ -468,7 +480,12 @@ export class AgentArmor {
   scanSession(turns: ConversationTurn[]): SessionScanResult {
     this.warnIfAccumulationRequested();
     const start = performance.now();
-    const perTurn = turns.map((turn) => this.runScanPipeline(turn.content));
+    const batchId = randomUUID();
+    const perTurn = turns.map((turn, index) => {
+      const result = this.runScanPipeline(turn.content);
+      this.emitAudit(this.buildAuditRecord(result, 'scanSession', undefined, { batchId, index }));
+      return result;
+    });
     const { crossTurnThreats, windowChars } = this.scanCrossTurn(turns);
     return this.assembleSession(
       perTurn,
@@ -485,9 +502,12 @@ export class AgentArmor {
   async scanSessionAsync(turns: ConversationTurn[]): Promise<SessionScanResult> {
     this.warnIfAccumulationRequested();
     const start = performance.now();
+    const batchId = randomUUID();
     const perTurn: ScanResult[] = [];
-    for (const turn of turns) {
-      perTurn.push(await this.runScanPipelineAsync(turn.content));
+    for (let index = 0; index < turns.length; index++) {
+      const result = await this.runScanPipelineAsync(turns[index].content);
+      this.emitAudit(this.buildAuditRecord(result, 'scanSession', undefined, { batchId, index }));
+      perTurn.push(result);
     }
     // Cross-turn split-payload detection is pattern-based (needs match offsets
     // to prove a span crosses a turn boundary); the sync window scan is reused.
