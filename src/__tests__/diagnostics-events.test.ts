@@ -16,7 +16,7 @@ describe('diagnostics events — backward compatibility (no `on` config)', () =>
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const armor = new AgentArmor({ session: { accumulation: true } });
     armor.scanSession([{ role: 'user', content: 'hello' }]);
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('session.accumulation is not available'));
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('enable the ML classifier'));
   });
 
   it('a detector throwing during scan still logs via console.warn exactly as before', () => {
@@ -59,7 +59,7 @@ describe('diagnostics events — on.warn', () => {
     const armor = new AgentArmor({ session: { accumulation: true }, on: { warn: onWarn } });
     armor.scanSession([{ role: 'user', content: 'hello' }]);
     expect(onWarn).toHaveBeenCalledWith(
-      expect.objectContaining({ message: expect.stringContaining('session.accumulation is not available') })
+      expect.objectContaining({ message: expect.stringContaining('enable the ML classifier') })
     );
     expect(warnSpy).not.toHaveBeenCalled();
   });
