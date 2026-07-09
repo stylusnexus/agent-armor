@@ -13,12 +13,10 @@ github:
     - 70
   branches: []
 depends_on: []
-last_touched: 2026-07-09T01:02
-last_handoff: 2026-07-09T01:02
+last_touched: 2026-07-09T12:35
+last_handoff: 2026-07-09T12:35
 next_up: []
-blockers:
-  - "npmjs.com Trusted Publisher registration for both packages (manual, only Eve can do this)"
-  - "GitHub npm-publish Environment required-reviewer rule (manual, repo settings)"
+blockers: []
 ---
 # Launch Infra & Adoption
 
@@ -32,7 +30,7 @@ Pre-launch credibility polish (CI gates the security fuzz test doesn't run yet, 
 | #65 | chore(docs): fix README/site drift and add a doc-consistency gate to CI | — | ✅ Shipped |
 | #66 | feat: agentarmor CLI with JSON/SARIF output for CI scanning | — | ✅ Shipped |
 | #67 | docs: generated API reference (TypeDoc) published to agentarmor.dev | — | ✅ Shipped |
-| #70 | ci: automated npm publish with provenance via release-please (trusted publishing) | — | ✅ Automation shipped — first live publish not yet proven |
+| #70 | ci: automated npm publish with provenance via release-please (trusted publishing) | — | ✅ Shipped and both manual blockers cleared (Trusted Publisher registered for both packages, npm-publish reviewer rule set) |
 
 ## Session log
 
@@ -117,3 +115,11 @@ Pre-launch credibility polish (CI gates the security fuzz test doesn't run yet, 
 - PR #78 opened, all 7 expected checks green on the first run — `publish-core`/`publish-ml` correctly did not fire (gated on release-please's own `release_created` output, absent on a normal PR), confirming that design assumption held. Merged via `gh pr merge --squash --admin` (user confirmed the bypass) — commit `a59e0ce`. #70 auto-closed cleanly.
 - All 5 issues in this track are now GitHub-closed, but the track stays **active, not closed** — the two manual blockers (npmjs.com Trusted Publisher registration for both packages, `npm-publish` Environment required-reviewer rule) are real open work only Eve can do, and the automated publish path is unproven until a real release goes through it. Local/remote feature branch deleted, main synced.
 - Next: Eve completes the two manual steps, then the next real release-please PR merge is the actual end-to-end test — watch that first run.
+
+### Session — 2026-07-09 12:35 (both manual blockers cleared, three real bugs found and fixed testing this end-to-end)
+
+- Eve registered the npmjs.com Trusted Publisher for both packages and confirmed via chat; the `npm-publish` GitHub Environment required-reviewer rule was set programmatically (both `evemcgivern` and `maneumeyer-chs` as reviewers, either can approve) — both frontmatter blockers cleared.
+- Testing the real end-to-end path (not just checking config) surfaced three separate real bugs, each root-caused against actual upstream source rather than guessed at: (1) #81 — `publish-core`'s output-key check referenced a key release-please-action never sets for the root path, so it silently never fired since #70 shipped; (2) #85 — root-only release cycles got permanently stuck (`getBranchComponent()` ignores `include-component-in-tag`, expects a component-suffixed branch that combined-PR mode doesn't provide), fixed via `separate-pull-requests: true`; (3) #88 — npm's OIDC Trusted Publishing needs npm CLI ≥11.5.1, but Node 22's bundled npm predates it, so the CLI never attempted OIDC and failed `ENEEDAUTH`.
+- Two stuck release PRs (#80 → v0.2.9, #84 → v0.2.10) needed manual tag/release + label recovery mid-session — documented in [[project_npm_publish_status]] as a repeatable unstick procedure, though it shouldn't be needed again after #85's fix.
+- Still not 100% proven: every attempt to get a clean run where `publish-core` both gets approved and completes hit a GitHub Actions runner-queue cancellation first (jobs cancelled at exactly 15m1s waiting for a runner) rather than an actual publish failure — confirmed via `gh run view --json jobs` showing `conclusion: cancelled`, not a real error. The underlying fixes are code-reviewed against real source, not just hopeful config changes, but final confirmation that `npm publish` reaches the registry successfully is still pending the next real cycle.
+- Next: watch the next real release-please PR merge through to a completed (not cancelled) `publish-core`/`publish-ml` run.
