@@ -7,6 +7,13 @@ This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor 
 <!-- New entries are generated automatically by release-please from Conventional
 Commit messages on merge to main. Do not edit unreleased entries by hand. -->
 
+## [0.2.10](https://github.com/stylusnexus/agent-armor/compare/v0.2.9...v0.2.10) (2026-07-09)
+
+
+### Documentation
+
+* fix stale eval numbers in README prose (103-&gt;105, 81.8/90.9-&gt;82.1/91.0) ([#83](https://github.com/stylusnexus/agent-armor/issues/83)) ([96fd9fa](https://github.com/stylusnexus/agent-armor/commit/96fd9fa8991f4bb37c2f994e1fc11c6ea63cf53f))
+
 ## [0.2.9](https://github.com/stylusnexus/agent-armor/compare/v0.2.8...v0.2.9) (2026-07-09)
 
 
