@@ -9,10 +9,10 @@ github:
     - 24
     - 38
     - 75
-  branches: [feat/75-audit-records]
+  branches: []
 depends_on: []
-last_touched: 2026-07-08T19:20
-last_handoff: 2026-07-08T19:20
+last_touched: 2026-07-09T00:33
+last_handoff: 2026-07-09T00:33
 next_up:
   - 38
 blockers: []
@@ -75,3 +75,11 @@ Reprioritized P3 → P1 on 2026-07-07: #24 is the most actively-discussed open i
 - 14 new tests (203 total, up from 189), all passing on first run — including the `scanSession`/`scanSessionAsync` per-turn firing tests, which needed no correction against the plan's assumed loop structure (verified identical before wiring).
 - Full verification: typecheck/lint/test clean, both builds clean, CLI backward-compat confirmed live (`node dist/cli.js scan` still `[ok]`/exit 0 — the new optional `ScanOptions` 2nd parameter doesn't break the CLI's single-argument calls), `eval:gate` unaffected, docs regenerated under Node 20 with all 5 new symbols (`AuditRecord`, `EvidencePackage`, `ScanOptions`, `AuditThreatSummary`, `buildEvidencePackage`, `verifyEvidencePackage`) confirmed present.
 - Next: open the PR, merge once green. User asked to thank `marywang-aiops` in a comment once #75 is implemented — do this on the PR/issue after merge, crediting the 2026-06-18 design comment on #24 that this directly implements (the three-layer split and the six test cases both carried straight through). Then #38 (SOC2/ISO crosswalk) is the last open issue in this track, still correctly deferred until its own dependencies are ready.
+
+### Session — 2026-07-09 00:33 (merged, #75 shipped)
+
+- PR #77 opened, all 7 checks green on the first run — neither known trap recurred. Merged via `gh pr merge --squash --admin` (user confirmed the bypass) — commit `cc024b2`. #75 auto-closed cleanly.
+- Posted the thank-you comment to `marywang-aiops` on #75, crediting their 2026-06-18 design comment on #24. **Caught and fixed a real mistake in the process:** the comment's first draft linked to a fabricated GitHub comment URL (guessed an anchor instead of looking it up) — caught immediately, fetched the real comment URL via `gh api`, and edited the posted comment to the correct link before moving on. Lesson: never guess a GitHub comment permalink; always resolve it via the API first.
+- Verified live post-merge: `agentarmor.dev/api/interfaces/AuditRecord.html` resolves 200.
+- Local/remote feature branch deleted, main synced.
+- Enterprise-readiness track is now down to #38 (SOC2/ISO crosswalk) as the sole open issue, correctly deferred.
