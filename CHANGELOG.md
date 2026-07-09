@@ -7,6 +7,13 @@ This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor 
 <!-- New entries are generated automatically by release-please from Conventional
 Commit messages on merge to main. Do not edit unreleased entries by hand. -->
 
+## [0.2.12](https://github.com/stylusnexus/agent-armor/compare/v0.2.11...v0.2.12) (2026-07-09)
+
+
+### Fixed
+
+* **ci:** upgrade npm before publish so OIDC Trusted Publishing works ([#88](https://github.com/stylusnexus/agent-armor/issues/88)) ([#89](https://github.com/stylusnexus/agent-armor/issues/89)) ([e164658](https://github.com/stylusnexus/agent-armor/commit/e16465872bbc5731860b1ec94a57b5dd7bd674d8))
+
 ## [0.2.11](https://github.com/stylusnexus/agent-armor/compare/v0.2.10...v0.2.11) (2026-07-09)
 
 
