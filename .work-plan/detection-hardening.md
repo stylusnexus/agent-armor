@@ -14,13 +14,12 @@ github:
     - 69
   branches: []
 depends_on: []
-last_touched: 2026-07-07T21:07
-last_handoff: 2026-07-07T21:07
+last_touched: 2026-07-09T02:00
+last_handoff: 2026-07-09T02:00
 next_up:
   - 37
   - 68
   - 69
-  - 35
 blockers: []
 ---
 # Detection Hardening
@@ -34,7 +33,7 @@ Reprioritized 2026-07-07 (down from P0, alongside a value pass across all tracks
 | # | Title | Assignee | Status |
 |---|---|---|---|
 | #34 | Add computed riskLevel roll-up to ScanResult | — | ✅ Shipped |
-| #35 | ML-based semantic accumulation detection across turns (mt-mem/mt-ctx blind spots) — rescoped 2026-07-07, structural half shipped via #50/#53 | — | 🔲 Open (blocked on #25 ML retrain) |
+| #35 | ML-based semantic accumulation detection across turns (mt-mem/mt-ctx blind spots) — structural half shipped via #50/#53, ML-windowing half shipped via #62 (2026-07-09) | — | ✅ Shipped (step 2 sharper-label retrain rides with #25) |
 | #37 | Long-context attention-dilution detection | — | 🔲 Open |
 | #57 | feat: allowlist-based pre-execution action gate (`checkAction`) | — | ✅ Shipped |
 | #68 | feat(action-gate): policy ergonomics and hardening | — | 🔲 Open |
@@ -75,3 +74,9 @@ Reprioritized 2026-07-07 (down from P0, alongside a value pass across all tracks
 - #35 retitled/rescoped per its 2026-06-13 status comment: structural half shipped (#50/#53), remaining scope is ML-only semantic accumulation, blocked on the #25 retrain.
 - Reordered next_up by leverage: #37 (real open detection gap) > #68 (security-relevant hardening of a freshly-shipped feature) > #69 (protects regression-test integrity) > #35 (blocked, lowest near-term actionability).
 - Track priority P0 → P1: the two shippable P0 items landed; launch-infra now carries the highest-leverage near-term work.
+
+### Session — 2026-07-09 02:00
+
+- Touched: feat: cross-turn ML accumulation windowing in session scan (#35 step 1) (#62) (b83ed1b) — rebased 6-week-stale PR onto main, reconciling with #24 (diagnostics events) and #75 (audit records) which had modified the same two functions (`warnIfAccumulationRequested`, `scanSessionAsync`) since #62 was authored.
+- #35 marked shipped: ML-based cross-turn semantic accumulation now runs via `scanSessionAsync` when `session.accumulation` + ML classifier are both enabled. Only the cross-turn-structured model retrain (#35 step 2) remains, and that rides with #25, not this track.
+- Removed #35 from next_up (shipped).
