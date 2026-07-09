@@ -2,11 +2,13 @@ import type {
   ActionRequest,
   ActionVerdict,
   AgentArmorConfig,
+  AuditRecord,
   ConversationTurn,
   CrossTurnThreat,
   Detector,
   MLConfig,
   RiskLevel,
+  ScanOptions,
   ScanResult,
   SessionScanResult,
   Severity,
@@ -15,6 +17,7 @@ import type {
   TrapCategory,
   TrapType,
 } from './types';
+import { createHash, randomUUID } from 'node:crypto';
 import { evaluateAction } from './action-gate';
 import type { PatternDatabase } from './patterns/pattern-db';
 import { DEFAULT_PATTERNS } from './patterns/default-patterns';
@@ -406,8 +409,10 @@ export class AgentArmor {
   /**
    * Scan arbitrary content for agent traps (sync).
    */
-  scanSync(content: string): ScanResult {
-    return this.runScanPipeline(content);
+  scanSync(content: string, options?: ScanOptions): ScanResult {
+    const result = this.runScanPipeline(content);
+    this.emitAudit(this.buildAuditRecord(result, 'scanSync', options));
+    return result;
   }
 
   /**
@@ -420,16 +425,20 @@ export class AgentArmor {
   /**
    * Scan agent output before it reaches the user (sync).
    */
-  scanOutputSync(output: string): ScanResult {
-    return this.runScanPipeline(output);
+  scanOutputSync(output: string, options?: ScanOptions): ScanResult {
+    const result = this.runScanPipeline(output);
+    this.emitAudit(this.buildAuditRecord(result, 'scanOutput', options));
+    return result;
   }
 
   /**
    * Scan arbitrary content for agent traps (async).
    * Prefers scanAsync on detectors that support it.
    */
-  async scan(content: string): Promise<ScanResult> {
-    return this.runScanPipelineAsync(content);
+  async scan(content: string, options?: ScanOptions): Promise<ScanResult> {
+    const result = await this.runScanPipelineAsync(content);
+    this.emitAudit(this.buildAuditRecord(result, 'scan', options));
+    return result;
   }
 
   /**
@@ -442,8 +451,10 @@ export class AgentArmor {
   /**
    * Scan agent output before it reaches the user (async).
    */
-  async scanOutput(output: string): Promise<ScanResult> {
-    return this.runScanPipelineAsync(output);
+  async scanOutput(output: string, options?: ScanOptions): Promise<ScanResult> {
+    const result = await this.runScanPipelineAsync(output);
+    this.emitAudit(this.buildAuditRecord(result, 'scanOutput', options));
+    return result;
   }
 
   /**
@@ -734,6 +745,64 @@ export class AgentArmor {
         highestSeverity: allThreats[0]?.severity ?? null,
       },
     };
+  }
+
+  /** sha256 of a string, formatted as `sha256:<hex>` (matches EvidencePackage.packageDigest's format). */
+  private hashContent(content: string): string {
+    return `sha256:${createHash('sha256').update(content).digest('hex')}`;
+  }
+
+  private deriveDecision(
+    riskLevel: RiskLevel,
+    exception?: { reason: string; actor: string }
+  ): AuditRecord['decision'] {
+    if (exception) return 'exception';
+    if (riskLevel === 'none') return 'allow';
+    if (riskLevel === 'low' || riskLevel === 'medium') return 'sanitize';
+    return 'block';
+  }
+
+  private buildAuditRecord(
+    result: ScanResult,
+    source: AuditRecord['source'],
+    options?: ScanOptions,
+    extra?: { batchId?: string; index?: number }
+  ): AuditRecord {
+    const mlModelVersion =
+      this.mlDetector && 'version' in this.mlDetector
+        ? (this.mlDetector as { version: string }).version
+        : undefined;
+
+    return {
+      schemaVersion: 'audit-record.v1',
+      timestamp: new Date().toISOString(),
+      scanId: randomUUID(),
+      batchId: extra?.batchId,
+      source,
+      index: extra?.index,
+      decision: this.deriveDecision(result.riskLevel, options?.exception),
+      strictness: this.config.strictness,
+      patternDbVersion: this.patternDb.version,
+      mlModelVersion,
+      categories: [...new Set(result.threats.map((t) => t.category))],
+      threats: result.threats.map((t) => ({
+        category: t.category,
+        type: t.type,
+        severity: t.severity,
+        confidence: t.confidence,
+        detectorId: t.detectorId,
+        source: t.source,
+        location: t.location,
+        evidenceHash: this.hashContent(t.evidence),
+        evidence: options?.includeEvidence ? t.evidence : undefined,
+      })),
+      exception: options?.exception,
+      durationMs: result.durationMs,
+    };
+  }
+
+  private emitAudit(record: AuditRecord): void {
+    this.config.on?.audit?.(record);
   }
 
   /**
