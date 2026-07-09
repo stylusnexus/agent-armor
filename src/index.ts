@@ -1,5 +1,8 @@
 export { AgentArmor, computeRiskLevel } from './agent-armor';
 
+// Audit-evidence records (#75)
+export { buildEvidencePackage, verifyEvidencePackage } from './audit-evidence';
+
 // Pre-execution action gate (#57)
 export { ActionBlockedError, evaluateAction } from './action-gate';
 export { matchGlob, globToRegExp } from './glob';
