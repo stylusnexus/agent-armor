@@ -7,10 +7,11 @@ import type { PatternDatabase } from './pattern-db';
  * Version history:
  *   0.1.0 — Initial patterns extracted from hardcoded detectors
  *   0.5.0 — Scanner-directed verdict-suppression patterns (oversight-evasion)
+ *   0.7.0 — Transport Integrity: credential-exposure patterns (AC-2, #28)
  */
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.6.0',
-  updatedAt: '2026-06-13',
+  version: '0.7.0',
+  updatedAt: '2026-08-05',
   detectors: {
     'hidden-html': [
       {
@@ -1004,6 +1005,191 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         label: 'Pipeline/workflow injection',
         boostOnInstructions: true,
         requireInstructions: true,
+      },
+    ],
+
+    // ── Transport Integrity ────────────────────────────────────────────────
+    // AC-2 (passive secret exfiltration), Liu et al. 2026. Any intermediary on
+    // the path — a malicious API router, a proxy, a logging sidecar — sees this
+    // content in plaintext. Flagging secrets BEFORE they enter agent context is
+    // what shrinks that exposure window.
+    //
+    // Two design notes that apply to every entry below:
+    //  1. No `requireInstructions`. A leaked key is dangerous on its own; there
+    //     is no instruction-like language to wait for.
+    //  2. Every entry carries placeholder/example exclusions inline. This is the
+    //     highest false-positive-risk detector in the group, and its benign
+    //     neighbours (API docs, setup guides, .env.example files) are exactly the
+    //     content agents ingest most. `EXAMPLE`-suffixed keys are AWS's own
+    //     published canonical values.
+    'credential-exposure': [
+      {
+        id: 'ce-aws-access-key-id',
+        regex: '\\bAKIA(?![0-9A-Z]*EXAMPLE\\b)[0-9A-Z]{16}\\b',
+        flags: 'g',
+        category: 'transport-integrity',
+        type: 'credential-exposure',
+        severity: 'critical',
+        confidence: 0.95,
+        label: 'AWS access key ID',
+      },
+      {
+        id: 'ce-aws-secret-access-key',
+        regex: 'aws_?secret_?access_?key\\s*[=:]\\s*["\']?(?![A-Za-z0-9/+=]*EXAMPLE)([A-Za-z0-9/+=]{40})\\b',
+        flags: 'gi',
+        category: 'transport-integrity',
+        type: 'credential-exposure',
+        severity: 'critical',
+        confidence: 0.9,
+        label: 'AWS secret access key',
+      },
+      {
+        id: 'ce-openai-key',
+        regex: '\\bsk-(?:proj-)?(?![A-Za-z0-9_-]*(?:EXAMPLE|example|xxxx|XXXX|your|YOUR|placeholder|redacted|REDACTED))[A-Za-z0-9_-]{20,}\\b',
+        flags: 'g',
+        category: 'transport-integrity',
+        type: 'credential-exposure',
+        severity: 'critical',
+        confidence: 0.85,
+        label: 'OpenAI API key',
+      },
+      {
+        id: 'ce-anthropic-key',
+        regex: '\\bsk-ant-(?:api\\d{2}-)?(?![A-Za-z0-9_-]*(?:EXAMPLE|example|xxxx|XXXX|your|YOUR|placeholder|redacted|REDACTED))[A-Za-z0-9_-]{20,}\\b',
+        flags: 'g',
+        category: 'transport-integrity',
+        type: 'credential-exposure',
+        severity: 'critical',
+        confidence: 0.9,
+        label: 'Anthropic API key',
+      },
+      {
+        id: 'ce-github-token',
+        regex: '\\bgh[pousr]_[A-Za-z0-9]{36}\\b',
+        flags: 'g',
+        category: 'transport-integrity',
+        type: 'credential-exposure',
+        severity: 'high',
+        confidence: 0.9,
+        label: 'GitHub personal access token',
+      },
+      {
+        id: 'ce-github-fine-grained-pat',
+        regex: '\\bgithub_pat_[A-Za-z0-9]{22}_[A-Za-z0-9]{59}\\b',
+        flags: 'g',
+        category: 'transport-integrity',
+        type: 'credential-exposure',
+        severity: 'high',
+        confidence: 0.9,
+        label: 'GitHub fine-grained PAT',
+      },
+      {
+        id: 'ce-gitlab-pat',
+        regex: '\\bglpat-[A-Za-z0-9_-]{20,}\\b',
+        flags: 'g',
+        category: 'transport-integrity',
+        type: 'credential-exposure',
+        severity: 'high',
+        confidence: 0.85,
+        label: 'GitLab personal access token',
+      },
+      {
+        id: 'ce-slack-token',
+        regex: '\\bxox[baprs]-[A-Za-z0-9]{10,}(?:-[A-Za-z0-9]{10,}){1,3}\\b',
+        flags: 'g',
+        category: 'transport-integrity',
+        type: 'credential-exposure',
+        severity: 'high',
+        confidence: 0.85,
+        label: 'Slack API token',
+      },
+      {
+        id: 'ce-stripe-live-key',
+        regex: '\\b[sr]k_live_[A-Za-z0-9]{20,}\\b',
+        flags: 'g',
+        category: 'transport-integrity',
+        type: 'credential-exposure',
+        severity: 'critical',
+        confidence: 0.95,
+        label: 'Stripe live secret key',
+      },
+      {
+        id: 'ce-google-api-key',
+        regex: '\\bAIza[0-9A-Za-z_-]{35}\\b',
+        flags: 'g',
+        category: 'transport-integrity',
+        type: 'credential-exposure',
+        severity: 'high',
+        confidence: 0.9,
+        label: 'Google API key',
+      },
+      {
+        id: 'ce-npm-token',
+        regex: '\\bnpm_[A-Za-z0-9]{36}\\b',
+        flags: 'g',
+        category: 'transport-integrity',
+        type: 'credential-exposure',
+        severity: 'high',
+        confidence: 0.9,
+        label: 'npm access token',
+      },
+      {
+        id: 'ce-private-key-block',
+        regex: '-----BEGIN\\s+(?:RSA|DSA|EC|OPENSSH|PGP|ENCRYPTED)?\\s*PRIVATE KEY(?:\\s+BLOCK)?-----',
+        flags: 'g',
+        category: 'transport-integrity',
+        type: 'credential-exposure',
+        severity: 'critical',
+        confidence: 0.95,
+        label: 'PEM private key block',
+      },
+      {
+        // Placeholder credentials in connection strings are near-universal in
+        // setup docs, so the common stand-ins are excluded by name rather than
+        // by length — `postgres://user:password@host` is documentation.
+        id: 'ce-db-connection-string',
+        regex: '\\b(?:postgres(?:ql)?|mongodb(?:\\+srv)?|mysql|mariadb|redis|amqp|clickhouse)://(?![^\\s:@/]*(?:user|username|admin|root|<|\\$\\{)[^\\s:@/]*:)[^\\s:@/]{3,}:(?!(?:password|passwd|pass|secret|changeme|placeholder|xxx+|\\*+|<|\\$\\{))[^\\s:@/]{6,}@[^\\s/]+',
+        flags: 'gi',
+        category: 'transport-integrity',
+        type: 'credential-exposure',
+        severity: 'high',
+        confidence: 0.75,
+        label: 'Database connection string with embedded credentials',
+      },
+      {
+        // Bare 64-hex is far too common (hashes, digests, object IDs) to flag on
+        // its own — the wallet/private-key context is what makes it a finding.
+        id: 'ce-crypto-private-key',
+        regex: '(?:private[_\\s-]?key|privkey|wallet[_\\s-]?key|mnemonic)\\s*[=:]\\s*["\']?(?:0x)?[a-fA-F0-9]{64}\\b',
+        flags: 'gi',
+        category: 'transport-integrity',
+        type: 'credential-exposure',
+        severity: 'high',
+        confidence: 0.85,
+        label: 'Cryptocurrency private key',
+      },
+      {
+        // Deliberately below the balanced threshold (0.5): example JWTs and
+        // `Bearer <token>` snippets are everywhere in API documentation. Per the
+        // issue's strictness guidance, these surface only at `strict`.
+        id: 'ce-bearer-token',
+        regex: '\\bBearer\\s+(?![A-Za-z0-9_.-]*(?:EXAMPLE|example|xxxx|XXXX|your|YOUR|placeholder|token|TOKEN))[A-Za-z0-9_.-]{20,}\\b',
+        flags: 'g',
+        category: 'transport-integrity',
+        type: 'credential-exposure',
+        severity: 'medium',
+        confidence: 0.45,
+        label: 'Bearer token in content',
+      },
+      {
+        id: 'ce-jwt',
+        regex: '\\beyJ[A-Za-z0-9_-]{10,}\\.eyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\b',
+        flags: 'g',
+        category: 'transport-integrity',
+        type: 'credential-exposure',
+        severity: 'medium',
+        confidence: 0.45,
+        label: 'JSON Web Token',
       },
     ],
   },

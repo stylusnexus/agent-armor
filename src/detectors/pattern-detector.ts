@@ -8,6 +8,23 @@ const INSTRUCTION_SIGNALS =
 
 const CONFIDENCE_BOOST = 0.35;
 
+/** Characters of the match kept in redacted evidence — enough to identify the
+ *  credential format (`AKIA`, `ghp_`, `sk-p`), never enough to use it. */
+const EVIDENCE_PREFIX_CHARS = 4;
+
+/**
+ * Reduce a matched secret to a non-usable fingerprint: a short format-identifying
+ * prefix plus the original length. Provider key prefixes are format identifiers,
+ * not secret material — GitHub, AWS and Stripe all publish theirs — so keeping
+ * four characters aids triage ("which key leaked?") without carrying the value.
+ */
+export function redactSecret(match: string): string {
+  const trimmed = match.trim();
+  if (trimmed.length <= EVIDENCE_PREFIX_CHARS) return '[REDACTED]';
+  const prefix = trimmed.slice(0, EVIDENCE_PREFIX_CHARS);
+  return `${prefix}[REDACTED ${trimmed.length} chars]`;
+}
+
 /**
  * Generic detector driven by the pattern database.
  * Replaces all hardcoded detector classes for pattern-based detection.
@@ -21,6 +38,7 @@ export class PatternDetector extends BaseDetector {
   private readonly compiled: Array<{ entry: PatternEntry; regex: RegExp }>;
   private readonly sanitizeMode: 'remove' | 'replace' | 'none';
   private readonly replaceText?: string;
+  private readonly maskEvidence: boolean;
 
   constructor(opts: {
     id: string;
@@ -30,6 +48,9 @@ export class PatternDetector extends BaseDetector {
     patterns: PatternEntry[];
     sanitizeMode?: 'remove' | 'replace' | 'none';
     replaceText?: string;
+    /** Redact matched text in `Threat.evidence`. Set for detectors whose
+     *  matches are secrets, so a scan can't leak what it just found. */
+    maskEvidence?: boolean;
   }) {
     super();
     this.id = opts.id;
@@ -42,6 +63,11 @@ export class PatternDetector extends BaseDetector {
     }));
     this.sanitizeMode = opts.sanitizeMode ?? 'remove';
     this.replaceText = opts.replaceText;
+    this.maskEvidence = opts.maskEvidence ?? false;
+  }
+
+  protected override redactEvidence(match: string): string {
+    return this.maskEvidence ? redactSecret(match) : match;
   }
 
   findPatterns(content: string): PatternMatch[] {

@@ -84,13 +84,13 @@ npm install @stylusnexus/agentarmor-ml
 
 ### Eval Suite
 
-105 curated samples (67 adversarial, 38 benign) covering all 10 shipped detector types across 4 attack categories, including homoglyph-obfuscated payloads and scanner-directed verdict suppression:
+115 curated samples (73 adversarial, 42 benign) covering all 11 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
 
 | Strictness   | Detection Rate (regex) | False Positive Rate |
 | ------------ | ---------------------- | ------------------- |
-| Permissive   | 82.1%                  | 0.0%                |
-| **Balanced** | **91.0%**              | **0.0%**            |
-| Strict       | 91.0%                  | 0.0%                |
+| Permissive   | 83.6%                  | 0.0%                |
+| **Balanced** | **91.8%**              | **0.0%**            |
+| Strict       | 91.8%                  | 0.0%                |
 
 The eval suite includes 10 adversarial samples drawn from real-world incidents (2025-2026): MCP tool poisoning, RAG vector DB saturation, covert exfiltration via image proxies, supply chain prompt injection, memory poisoning, and HITL dialog forgery. Regex catches 5 of these; the remaining 5 (pure social engineering and context-dependent attacks) measure the gap that the [ML classifier](#ml-classifier-optional) closes. On the original 49 adversarial samples, regex detection is 100% at balanced strictness.
 
@@ -124,7 +124,7 @@ Run it: `npx tsx examples/real-world-validation.ts`
 | **Semantic Manipulation** | Reasoning    | Shipped | Biased framing/priming, oversight evasion, persona hyperstition                                                                                                            |
 | **Systemic**              | Multi-Agent  | Planned | Congestion traps, interdependence cascades, tacit collusion, compositional fragments, sybil attacks                                                                        |
 | **Human-in-the-Loop**     | Overseer     | Planned | Approval fatigue induction, social engineering via compromised agent                                                                                                       |
-| **Transport Integrity**   | Supply Chain | Planned | Tool-call tampering (AC-1), credential exposure (AC-2), dependency substitution (AC-1.a), response anomaly screening ([Liu et al. 2026](https://arxiv.org/abs/2604.08407)) |
+| **Transport Integrity**   | Supply Chain | Partial | Credential exposure (AC-2) shipped; tool-call tampering (AC-1), dependency substitution (AC-1.a), response anomaly screening planned ([Liu et al. 2026](https://arxiv.org/abs/2604.08407)) |
 
 ## Configuration
 
@@ -142,8 +142,8 @@ const armor = await AgentArmor.create({
     exfiltrationURLs: true, // Data exfiltration patterns
     privilegeEscalation: true, // Sub-agent spawning triggers
   },
-  // 'permissive' = only high-confidence threats (82.1% detection)
-  // 'balanced'   = recommended default (91.0% detection, 0% FP)
+  // 'permissive' = only high-confidence threats (83.6% detection)
+  // 'balanced'   = recommended default (91.8% detection, 0% FP)
   // 'strict'     = maximum coverage, catches subtle attacks
   strictness: "balanced",
 
@@ -450,6 +450,14 @@ Each interception point has both sync and async methods:
 - **ExfiltrationDetector** — Flags instructions that attempt to locate, encode, and transmit context data to external endpoints
 - **SubAgentSpawningDetector** — Detects instructions that try to instantiate new agents, escalate tool permissions, or inject pipeline steps
 
+### Transport Integrity (Partial)
+
+- **CredentialExposureDetector** — Flags secrets present in scanned content (AWS keys, provider API keys, GitHub/GitLab/Slack tokens, PEM private key blocks, connection strings with embedded passwords, crypto private keys). Any intermediary on the path — a malicious API router, a proxy, a logging sidecar — sees ingested content in plaintext, so catching a secret before it enters agent context is what shrinks the exposure window ([Liu et al. 2026](https://arxiv.org/abs/2604.08407), AC-2).
+
+  Matched secrets are **redacted in `Threat.evidence`** (`AKIA[REDACTED 20 chars]`), so a scan can't leak the credential it just found into CI logs, SARIF reports, or audit records. Sanitization is unaffected — it removes the secret from the content itself.
+
+  Published example keys (`AKIAIOSFODNN7EXAMPLE`), placeholders (`sk-your-key-here`), and masked references (`AKIA****`) are excluded by design. Low-confidence formats that are common in API documentation — bare bearer tokens and JWTs — surface only at `strict`.
+
 ## Performance
 
 The core regex detectors have zero dependencies and run with sub-millisecond latency. When the ML classifier is enabled, scan times increase but remain practical for real-time use:
@@ -516,7 +524,7 @@ armor.loadPatterns(latestPatterns);
 armor.loadPatterns(myCustomPatterns);
 
 // Check current pattern version
-console.log(armor.patternVersion); // '0.6.0'
+console.log(armor.patternVersion); // '0.7.0'
 ```
 
 ## Framework Agnostic
@@ -555,7 +563,7 @@ npx tsx examples/rag-pipeline.ts
 
 ## Roadmap & Research Opportunities
 
-Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy. Here's what's shipped, what's next, and where the open questions are.
+Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy, plus the first detector in the Transport Integrity category (Liu et al. 2026). Here's what's shipped, what's next, and where the open questions are.
 
 ### Shipped
 
@@ -563,11 +571,11 @@ Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy. Here's
 - **Cognitive State** (3 detectors) and **Semantic Manipulation** (3 detectors) since v0.2.0
 - **Pre-execution action gate** — deterministic allowlist admissibility check (`checkAction()`)
 - ML classifier (DeBERTa-v3-small, ONNX) as optional companion package
-- Pattern database v0.6.0 with 83 pattern entries
+- Pattern database v0.7.0 with 99 pattern entries
 
 ### In Progress
 
-- **Expanded eval dataset.** 105 samples is a start, not a finish. Integrating larger public datasets ([deepset/prompt-injections](https://huggingface.co/datasets/deepset/prompt-injections) at 662 samples, [Giskard-AI](https://huggingface.co/datasets/Giskard-AI/prompt-injections)) to stress-test detection and false positive rates at scale.
+- **Expanded eval dataset.** 115 samples is a start, not a finish. Integrating larger public datasets ([deepset/prompt-injections](https://huggingface.co/datasets/deepset/prompt-injections) at 662 samples, [Giskard-AI](https://huggingface.co/datasets/Giskard-AI/prompt-injections)) to stress-test detection and false positive rates at scale.
 - **Honeypot/canary system.** Behavioral baseline approach for detecting novel attacks that bypass pattern matching. Measures response distribution drift rather than relying on known signatures.
 - **Pattern update API.** Continuous pattern improvements delivered without requiring an npm upgrade.
 
