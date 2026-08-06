@@ -510,6 +510,7 @@ export interface AgentArmorConfig {
     metadataInjection?: boolean;
     dynamicCloaking?: boolean;
     syntacticMasking?: boolean;
+    steganographicPayload?: boolean;
   };
   /** Per-detector toggles within the Behavioural Control category. All default true. */
   behaviouralControl?: {

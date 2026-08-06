@@ -84,13 +84,13 @@ npm install @stylusnexus/agentarmor-ml
 
 ### Eval Suite
 
-115 curated samples (73 adversarial, 42 benign) covering all 11 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
+122 curated samples (77 adversarial, 45 benign) covering all 12 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
 
 | Strictness   | Detection Rate (regex) | False Positive Rate |
 | ------------ | ---------------------- | ------------------- |
-| Permissive   | 83.6%                  | 0.0%                |
-| **Balanced** | **91.8%**              | **0.0%**            |
-| Strict       | 91.8%                  | 0.0%                |
+| Permissive   | 84.4%                  | 0.0%                |
+| **Balanced** | **92.2%**              | **0.0%**            |
+| Strict       | 92.2%                  | 0.0%                |
 
 The eval suite includes 10 adversarial samples drawn from real-world incidents (2025-2026): MCP tool poisoning, RAG vector DB saturation, covert exfiltration via image proxies, supply chain prompt injection, memory poisoning, and HITL dialog forgery. Regex catches 5 of these; the remaining 5 (pure social engineering and context-dependent attacks) measure the gap that the [ML classifier](#ml-classifier-optional) closes. On the original 49 adversarial samples, regex detection is 100% at balanced strictness.
 
@@ -118,7 +118,7 @@ Run it: `npx tsx examples/real-world-validation.ts`
 
 | Category                  | Target       | Status  | What It Detects                                                                                                                                                            |
 | ------------------------- | ------------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Content Injection**     | Perception   | Shipped | Hidden HTML/CSS instructions, metadata injection, dynamic cloaking artifacts, syntactic masking                                                                            |
+| **Content Injection**     | Perception   | Shipped | Hidden HTML/CSS instructions, metadata injection, dynamic cloaking artifacts, syntactic masking, steganographic payloads (ASCII smuggling)                                 |
 | **Behavioural Control**   | Action       | Shipped | Embedded jailbreak sequences, data exfiltration patterns, sub-agent spawning traps                                                                                         |
 | **Cognitive State**       | Memory       | Shipped | RAG knowledge poisoning, latent memory poisoning, contextual learning manipulation                                                                                         |
 | **Semantic Manipulation** | Reasoning    | Shipped | Biased framing/priming, oversight evasion, persona hyperstition                                                                                                            |
@@ -142,8 +142,8 @@ const armor = await AgentArmor.create({
     exfiltrationURLs: true, // Data exfiltration patterns
     privilegeEscalation: true, // Sub-agent spawning triggers
   },
-  // 'permissive' = only high-confidence threats (83.6% detection)
-  // 'balanced'   = recommended default (91.8% detection, 0% FP)
+  // 'permissive' = only high-confidence threats (84.4% detection)
+  // 'balanced'   = recommended default (92.2% detection, 0% FP)
   // 'strict'     = maximum coverage, catches subtle attacks
   strictness: "balanced",
 
@@ -442,7 +442,10 @@ Each interception point has both sync and async methods:
 - **HiddenHTMLDetector** — Finds instructions hidden via CSS (`display:none`, `visibility:hidden`, off-screen positioning)
 - **MetadataInjectionDetector** — Scans HTML comments, `aria-label`, `alt` attributes, `meta` tags for injected instructions
 - **DynamicCloakingDetector** — Detects JavaScript patterns that serve different content to agents vs humans
-- **SyntacticMaskingDetector** — Identifies payloads hidden in Markdown link text, LaTeX commands, zero-width characters, or bidi overrides
+- **SyntacticMaskingDetector** — Identifies payloads hidden in Markdown link text, LaTeX commands, zero-width characters (U+200B/200C/200D/FEFF), or bidi overrides
+- **SteganographicPayloadDetector** — Catches **ASCII smuggling**: instructions re-encoded into invisible codepoints so they render as nothing to a human reviewer while the model still reads them. Covers the Unicode Tags block (U+E0000–E007F, deprecated in 2015 and absent from legitimate modern text) and consecutive variation-selector runs. Matches are removed during sanitization, not just flagged — an unremoved carrier reaches the model verbatim.
+
+  Keys on the *carrier* (a run of invisible codepoints), never on entropy or encoding. Base64 data URIs, JWTs, and git SHAs are ordinary agent-ingested content and must not fire. Legitimate single selectors — CJK ideographic variation sequences, emoji VS16 — sit below the run threshold by design.
 
 ### Behavioural Control (Shipped)
 
@@ -524,7 +527,7 @@ armor.loadPatterns(latestPatterns);
 armor.loadPatterns(myCustomPatterns);
 
 // Check current pattern version
-console.log(armor.patternVersion); // '0.7.0'
+console.log(armor.patternVersion); // '0.8.0'
 ```
 
 ## Framework Agnostic
@@ -567,15 +570,15 @@ Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy, plus t
 
 ### Shipped
 
-- **Content Injection** (4 detectors) and **Behavioural Control** (3 detectors) since v0.1.0
+- **Content Injection** (5 detectors) and **Behavioural Control** (3 detectors) since v0.1.0
 - **Cognitive State** (3 detectors) and **Semantic Manipulation** (3 detectors) since v0.2.0
 - **Pre-execution action gate** — deterministic allowlist admissibility check (`checkAction()`)
 - ML classifier (DeBERTa-v3-small, ONNX) as optional companion package
-- Pattern database v0.7.0 with 99 pattern entries
+- Pattern database v0.8.0 with 101 pattern entries
 
 ### In Progress
 
-- **Expanded eval dataset.** 115 samples is a start, not a finish. Integrating larger public datasets ([deepset/prompt-injections](https://huggingface.co/datasets/deepset/prompt-injections) at 662 samples, [Giskard-AI](https://huggingface.co/datasets/Giskard-AI/prompt-injections)) to stress-test detection and false positive rates at scale.
+- **Expanded eval dataset.** 122 samples is a start, not a finish. Integrating larger public datasets ([deepset/prompt-injections](https://huggingface.co/datasets/deepset/prompt-injections) at 662 samples, [Giskard-AI](https://huggingface.co/datasets/Giskard-AI/prompt-injections)) to stress-test detection and false positive rates at scale.
 - **Honeypot/canary system.** Behavioral baseline approach for detecting novel attacks that bypass pattern matching. Measures response distribution drift rather than relying on known signatures.
 - **Pattern update API.** Continuous pattern improvements delivered without requiring an npm upgrade.
 
