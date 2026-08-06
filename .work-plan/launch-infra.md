@@ -1,6 +1,6 @@
 ---
 track: launch-infra
-status: active
+status: shipped
 launch_priority: P0
 milestone_alignment: v1.0.0
 github:
@@ -13,8 +13,8 @@ github:
     - 70
   branches: []
 depends_on: []
-last_touched: 2026-07-09T12:35
-last_handoff: 2026-07-09T12:35
+last_touched: 2026-08-05T23:05
+last_handoff: 2026-08-05T23:05
 next_up: []
 blockers: []
 ---
@@ -30,7 +30,7 @@ Pre-launch credibility polish (CI gates the security fuzz test doesn't run yet, 
 | #65 | chore(docs): fix README/site drift and add a doc-consistency gate to CI | — | ✅ Shipped |
 | #66 | feat: agentarmor CLI with JSON/SARIF output for CI scanning | — | ✅ Shipped |
 | #67 | docs: generated API reference (TypeDoc) published to agentarmor.dev | — | ✅ Shipped |
-| #70 | ci: automated npm publish with provenance via release-please (trusted publishing) | — | ✅ Shipped and both manual blockers cleared (Trusted Publisher registered for both packages, npm-publish reviewer rule set) |
+| #70 | ci: automated npm publish with provenance via release-please (trusted publishing) | — | ✅ Shipped, blockers cleared, and **proven end-to-end** (v0.2.13 2026-07-09, v0.2.14 2026-08-05) |
 
 ## Session log
 
@@ -123,3 +123,23 @@ Pre-launch credibility polish (CI gates the security fuzz test doesn't run yet, 
 - Two stuck release PRs (#80 → v0.2.9, #84 → v0.2.10) needed manual tag/release + label recovery mid-session — documented in [[project_npm_publish_status]] as a repeatable unstick procedure, though it shouldn't be needed again after #85's fix.
 - Still not 100% proven: every attempt to get a clean run where `publish-core` both gets approved and completes hit a GitHub Actions runner-queue cancellation first (jobs cancelled at exactly 15m1s waiting for a runner) rather than an actual publish failure — confirmed via `gh run view --json jobs` showing `conclusion: cancelled`, not a real error. The underlying fixes are code-reviewed against real source, not just hopeful config changes, but final confirmation that `npm publish` reaches the registry successfully is still pending the next real cycle.
 - Next: watch the next real release-please PR merge through to a completed (not cancelled) `publish-core`/`publish-ml` run.
+
+### Session — 2026-08-05 23:05 (publish path proven; track closed)
+
+- **The open question from 2026-07-09 is answered: the automated publish works.** That session ended
+  "final confirmation that `npm publish` reaches the registry successfully is still pending the next
+  real cycle" because every run died to a GitHub Actions runner-queue cancellation at 15m1s. It has
+  now completed cleanly twice: `v0.2.13` (2026-07-09T13:31Z) and `v0.2.14` (2026-08-05), the latter
+  watched start to finish this session. No cancellation recurred; approval to published took ~30s.
+- Verified against the registry rather than the workflow log: `@stylusnexus/agentarmor@0.2.14` is
+  `latest`, carries a SLSA v1 provenance attestation (so OIDC Trusted Publishing genuinely ran, not
+  a token fallback), and a clean-room `npm install` in an empty directory detects, redacts, and
+  sanitizes correctly through both the SDK and the `agentarmor` CLI.
+- `publish-ml` correctly **skipped** on this release — `packages/ml`'s version was unchanged. That
+  exercises the per-package component split (`include-component-in-tag` + separate tag scheme) added
+  in #70, which had never actually been observed skipping on a real root-only release before.
+- Track moved `active` → `shipped`. All 5 issues closed, both manual blockers cleared, and the one
+  thing that kept it open — an unproven publish path — is now proven twice over.
+- Anything still describing this as unproven is stale. Corrected in local `CLAUDE.md` (gitignored)
+  in the same pass. `CONTRIBUTING.md` needed no change: it documents the flow accurately, and its
+  manual-publish fallback is a deliberate hedge for re-provisioning, not a claim about status.
