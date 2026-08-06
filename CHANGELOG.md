@@ -7,6 +7,23 @@ This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor 
 <!-- New entries are generated automatically by release-please from Conventional
 Commit messages on merge to main. Do not edit unreleased entries by hand. -->
 
+## [0.2.15](https://github.com/stylusnexus/agent-armor/compare/v0.2.14...v0.2.15) (2026-08-06)
+
+
+### Added
+
+* **content-injection:** steganographic-payload detector — closes ASCII smuggling bypass ([#69](https://github.com/stylusnexus/agent-armor/issues/69)) ([#102](https://github.com/stylusnexus/agent-armor/issues/102)) ([0aa2ecc](https://github.com/stylusnexus/agent-armor/commit/0aa2ecc075daf1d424a1fe46a9225683835daa75))
+
+
+### Fixed
+
+* **ml:** raise typed errors from Tokenizer.fromFile on a malformed tokenizer.json ([#104](https://github.com/stylusnexus/agent-armor/issues/104)) ([2ba996b](https://github.com/stylusnexus/agent-armor/commit/2ba996b0b583d65e6016c39b1a8bd2eccdf0733b)), closes [#103](https://github.com/stylusnexus/agent-armor/issues/103)
+
+
+### Documentation
+
+* **work-plan:** mark launch-infra shipped — publish path proven end-to-end ([#95](https://github.com/stylusnexus/agent-armor/issues/95)) ([ee73267](https://github.com/stylusnexus/agent-armor/commit/ee7326713b223132807c69ed0ffca945cd3313de))
+
 ## [0.2.14](https://github.com/stylusnexus/agent-armor/compare/v0.2.13...v0.2.14) (2026-08-06)
 
 
