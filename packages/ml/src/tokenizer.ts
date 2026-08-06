@@ -1,14 +1,19 @@
 import { readFile } from 'fs/promises';
+import { AgentArmorModelError } from './errors';
 
 /**
  * Shape of the HuggingFace tokenizer.json we care about.
  * Full spec is much larger; we only read vocab + added_tokens.
+ *
+ * Both fields are optional here on purpose: this describes a file we did not
+ * write and cannot assume is well-formed (users may point `modelDir` at their
+ * own directory). `fromFile` validates rather than trusting the annotation.
  */
 interface TokenizerJson {
-  model: {
-    vocab: Record<string, number>;
+  model?: {
+    vocab?: Record<string, number>;
   };
-  added_tokens: Array<{
+  added_tokens?: Array<{
     id: number;
     content: string;
   }>;
@@ -50,13 +55,37 @@ export class Tokenizer {
    */
   static async fromFile(path: string): Promise<Tokenizer> {
     const raw = await readFile(path, 'utf-8');
-    const json: TokenizerJson = JSON.parse(raw);
+
+    let json: TokenizerJson;
+    try {
+      json = JSON.parse(raw) as TokenizerJson;
+    } catch (err) {
+      throw new AgentArmorModelError(
+        'MODEL_NOT_FOUND',
+        `Tokenizer file at ${path} is not valid JSON. The model directory is corrupt or incomplete; re-download or point modelDir at a complete set of artifacts.`,
+        err instanceof Error ? err : undefined
+      );
+    }
+
+    // A truncated or hand-assembled tokenizer.json used to fail here with a bare
+    // TypeError from deep inside this function, escaping the typed-error contract
+    // every other load path in this package honours. MODEL_NOT_FOUND is the right
+    // code even though the file exists: the correct recovery is the same one — go
+    // get the artifacts again.
+    if (!json.model?.vocab) {
+      throw new AgentArmorModelError(
+        'MODEL_NOT_FOUND',
+        `Tokenizer file at ${path} is missing "model.vocab". The model directory is corrupt or incomplete; re-download or point modelDir at a complete set of artifacts.`
+      );
+    }
 
     const vocab = new Map<string, number>(Object.entries(json.model.vocab));
 
-    // Merge added_tokens into vocab so special tokens are resolvable
+    // `added_tokens` absent is tolerated rather than fatal — the special tokens
+    // it usually supplies fall back to DEFAULT_SPECIAL, so the tokenizer is still
+    // usable. Only a missing vocab makes it unusable.
     const specialTokens: Record<string, number> = { ...DEFAULT_SPECIAL };
-    for (const token of json.added_tokens) {
+    for (const token of json.added_tokens ?? []) {
       vocab.set(token.content, token.id);
       if (token.content in DEFAULT_SPECIAL) {
         specialTokens[token.content] = token.id;
