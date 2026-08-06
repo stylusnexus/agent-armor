@@ -3,6 +3,7 @@ import { mkdtemp, writeFile, rm } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { Tokenizer } from '../src/tokenizer';
+import { AgentArmorModelError } from '../src/errors';
 
 // Tokenizer's constructor is `private` at the TS level only (plain fields,
 // not `#private`), so tests build instances directly against a controlled
@@ -166,16 +167,39 @@ describe('Tokenizer.fromFile', () => {
     expect(inputIds[3]).toBe(2n); // [SEP] id from added_tokens
   });
 
-  // BUG FINDING (not fixed — see final report): fromFile() does
-  // `for (const token of json.added_tokens)` with no `?? []` fallback. A
-  // tokenizer.json missing the `added_tokens` key throws an unguarded
-  // TypeError ("undefined is not iterable") instead of a typed
-  // AgentArmorModelError, which is what every other load-failure path in
-  // this package raises. src/tokenizer.ts:59.
-  it('throws an unguarded TypeError when added_tokens is missing from the file', async () => {
+  // Was a bug (#103): this threw a bare TypeError from inside fromFile,
+  // escaping the typed-error contract every other load path honours. Missing
+  // added_tokens is now tolerated — the special tokens it normally supplies
+  // fall back to DEFAULT_SPECIAL, so the tokenizer remains usable.
+  it('tolerates a missing added_tokens key, falling back to the default special tokens', async () => {
     const path = join(tempDir, 'tokenizer.json');
     await writeFile(path, JSON.stringify({ model: { vocab: { hello: 3 } } }));
 
-    await expect(Tokenizer.fromFile(path)).rejects.toThrow();
+    const tokenizer = await Tokenizer.fromFile(path);
+    const { inputIds } = tokenizer.encode('hello', 8);
+
+    // DEFAULT_SPECIAL in src/tokenizer.ts — [CLS]=1, [SEP]=2. These are the
+    // module's own fallbacks, not the mock ids used elsewhere in this file.
+    expect(inputIds).toBeInstanceOf(BigInt64Array);
+    expect(Array.from(inputIds.slice(0, 3))).toEqual([1n, 3n, 2n]);
+  });
+
+  it('raises a typed AgentArmorModelError when model.vocab is missing', async () => {
+    // MODEL_NOT_FOUND even though the file exists: the correct recovery is the
+    // same one — go get a complete set of artifacts.
+    const path = join(tempDir, 'tokenizer.json');
+    await writeFile(path, JSON.stringify({ added_tokens: [] }));
+
+    await expect(Tokenizer.fromFile(path)).rejects.toThrow(AgentArmorModelError);
+    await expect(Tokenizer.fromFile(path)).rejects.toMatchObject({
+      code: 'MODEL_NOT_FOUND',
+    });
+  });
+
+  it('raises a typed AgentArmorModelError when the file is not valid JSON', async () => {
+    const path = join(tempDir, 'tokenizer.json');
+    await writeFile(path, '{ this is not json');
+
+    await expect(Tokenizer.fromFile(path)).rejects.toThrow(AgentArmorModelError);
   });
 });
