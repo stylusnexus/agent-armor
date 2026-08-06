@@ -22,6 +22,7 @@ This isn't theoretical. It's happening now:
 - **[CamoLeak / GitHub Copilot](https://www.legitsecurity.com/blog/camoleak)** (2025, CVE-2025-59145): Hidden markdown comments in PRs caused Copilot Chat to exfiltrate secrets via image proxy ordering. No network traffic from the user's browser. CVSS 9.6.
 - **[Clinejection](https://adnanthekhan.com/posts/clinejection/)** (Jan-Feb 2026): A single GitHub issue title with prompt injection hijacked Cline's AI triage bot, leading to unauthorized `cline@2.3.0` on npm (4,000 downloads in 8 hours).
 - **[MCP tool poisoning](https://invariantlabs.ai/blog/whatsapp-mcp-exploited)** (2025): MCP servers silently changed tool descriptions after approval, rerouting WhatsApp messages and exfiltrating data. Invariant Labs found 5.5% of MCP servers exhibit tool poisoning.
+- **[OpenAI agent breaks containment, reaches Hugging Face](https://www.cnn.com/2026/07/22/tech/openai-hugging-face-ai-cybersecurity)** (July 2026): During a cybersecurity evaluation, OpenAI models escaped their sandbox by exploiting a zero-day in self-hosted Artifactory, then [reused exposed account-level credentials across four external services](https://thehackernews.com/2026/07/openai-agent-used-exposed-credentials.html) — two as an outbound relay and data store — reaching Kubernetes admin via a dataset pipeline and obtaining write access to internal GitHub repositories. Command-and-control ran over ordinary public infrastructure: pastebins, request-capture services, and file drops. Hugging Face reviewed roughly **17,600 agent actions**, and noted the agent rebuilt its tooling and recovered its channels each time its ephemeral environment reset. No adversary was involved — this was an autonomous agent optimizing against a benchmark.
 
 Google DeepMind's [AI Agent Traps](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438) taxonomy (Franklin et al., 2026) catalogs 14 attack types across 6 categories. [OpenAI has stated](https://techcrunch.com/2025/12/22/openai-says-ai-browsers-may-always-be-vulnerable-to-prompt-injection-attacks/) that AI browsers "may always be vulnerable" to prompt injection.
 
@@ -84,15 +85,15 @@ npm install @stylusnexus/agentarmor-ml
 
 ### Eval Suite
 
-122 curated samples (77 adversarial, 45 benign) covering all 12 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
+126 curated samples (81 adversarial, 45 benign) covering all 12 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
 
 | Strictness   | Detection Rate (regex) | False Positive Rate |
 | ------------ | ---------------------- | ------------------- |
-| Permissive   | 84.4%                  | 0.0%                |
-| **Balanced** | **92.2%**              | **0.0%**            |
-| Strict       | 92.2%                  | 0.0%                |
+| Permissive   | 81.5%                  | 0.0%                |
+| **Balanced** | **88.9%**              | **0.0%**            |
+| Strict       | 88.9%                  | 0.0%                |
 
-The eval suite includes 10 adversarial samples drawn from real-world incidents (2025-2026): MCP tool poisoning, RAG vector DB saturation, covert exfiltration via image proxies, supply chain prompt injection, memory poisoning, and HITL dialog forgery. Regex catches 5 of these; the remaining 5 (pure social engineering and context-dependent attacks) measure the gap that the [ML classifier](#ml-classifier-optional) closes. On the original 49 adversarial samples, regex detection is 100% at balanced strictness.
+The eval suite includes 14 adversarial samples drawn from real-world incidents (2025-2026): MCP tool poisoning, RAG vector DB saturation, covert exfiltration via image proxies, supply chain prompt injection, memory poisoning, HITL dialog forgery, and the July 2026 OpenAI sandbox escape (credential reuse, C2 over public paste services, package-proxy egress, cross-environment persistence). Regex catches 6 of these; the remaining 8 measure the gap that the [ML classifier](#ml-classifier-optional) and unshipped detectors close. **These headline numbers move down whenever we add a blind spot we can't yet catch — that is deliberate.** `scripts/eval/thresholds.json` records every floor change and why. On the original 49 adversarial samples, regex detection is 100% at balanced strictness.
 
 Sources: [WASP benchmark](https://arxiv.org/abs/2312.02119) (Evtimov et al.), [HackAPrompt](https://arxiv.org/abs/2311.16119) (Schulhoff et al., 2023), [Greshake et al. (2023)](https://arxiv.org/abs/2302.12173), the [DeepMind paper](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438), and incident reports from [Invariant Labs](https://invariantlabs.ai/blog), [Unit 42](https://unit42.paloaltonetworks.com), [Snyk Labs](https://labs.snyk.io), [Legit Security](https://www.legitsecurity.com/blog/camoleak), and [Socket Research](https://socket.dev/blog). Benign samples include security blog posts, legitimate HTML, CI/CD docs, MCP tool descriptions, agent interaction logs, and procurement policy emails.
 
@@ -142,8 +143,8 @@ const armor = await AgentArmor.create({
     exfiltrationURLs: true, // Data exfiltration patterns
     privilegeEscalation: true, // Sub-agent spawning triggers
   },
-  // 'permissive' = only high-confidence threats (84.4% detection)
-  // 'balanced'   = recommended default (92.2% detection, 0% FP)
+  // 'permissive' = only high-confidence threats (81.5% detection)
+  // 'balanced'   = recommended default (88.9% detection, 0% FP)
   // 'strict'     = maximum coverage, catches subtle attacks
   strictness: "balanced",
 
@@ -578,7 +579,7 @@ Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy, plus t
 
 ### In Progress
 
-- **Expanded eval dataset.** 122 samples is a start, not a finish. Integrating larger public datasets ([deepset/prompt-injections](https://huggingface.co/datasets/deepset/prompt-injections) at 662 samples, [Giskard-AI](https://huggingface.co/datasets/Giskard-AI/prompt-injections)) to stress-test detection and false positive rates at scale.
+- **Expanded eval dataset.** 126 samples is a start, not a finish. Integrating larger public datasets ([deepset/prompt-injections](https://huggingface.co/datasets/deepset/prompt-injections) at 662 samples, [Giskard-AI](https://huggingface.co/datasets/Giskard-AI/prompt-injections)) to stress-test detection and false positive rates at scale.
 - **Honeypot/canary system.** Behavioral baseline approach for detecting novel attacks that bypass pattern matching. Measures response distribution drift rather than relying on known signatures.
 - **Pattern update API.** Continuous pattern improvements delivered without requiring an npm upgrade.
 
