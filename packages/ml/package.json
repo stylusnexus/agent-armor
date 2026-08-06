@@ -20,7 +20,10 @@
     "dev": "tsup --watch",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "docs:build": "typedoc"
+    "docs:build": "typedoc",
+    "check:model": "tsx scripts/check-model-integrity.ts",
+    "check:model:deep": "tsx scripts/check-model-integrity.ts --deep",
+    "typecheck:scripts": "tsc -p tsconfig.scripts.json"
   },
   "keywords": [
     "ai-security",
@@ -40,6 +43,7 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "tsup": "^8.5.0",
+    "tsx": "^4.20.6",
     "typedoc": "^0.28.20",
     "typescript": "^6.0.0",
     "vitest": "^4.1.0"

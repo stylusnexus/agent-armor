@@ -109,6 +109,22 @@ Releases are automated end-to-end via [release-please](https://github.com/google
 
 **CHANGELOG.md is bot-managed** — never hand-edit it (see the file's own header comment). Write good Conventional Commit titles instead.
 
+### Model integrity (ML package)
+
+`packages/ml` pins the model's SHA-256 in `MODEL_CHECKSUM` (`src/constants.ts`) and enforces it on download. That constant is maintained by hand during the model-update lifecycle, so a check confirms it still matches the artifacts hosted on HuggingFace:
+
+```bash
+cd packages/ml
+npm run check:model        # fast — reads HuggingFace LFS metadata, ~1s
+npm run check:model:deep   # downloads and hashes the real bytes, ~5s
+```
+
+It verifies the model digest, that every required file is present and non-empty, that `tokenizer.json` isn't truncated, and that the hosted `label_map.json` matches `LABELS` **index for index** — the model emits one sigmoid output per index, so a reordered label space would mislabel everything while still looking healthy.
+
+It runs weekly (`.github/workflows/model-integrity.yml`), on any PR touching `packages/ml/src/constants.ts` or `packages/ml/scripts/`, and as a blocking step in the `publish-ml` job. **If you update the model, run it before opening the PR** — otherwise the publish job will stop the release.
+
+No secrets required; the HuggingFace repo is public and access is read-only.
+
 If the automated publish is ever unavailable (e.g. before the one-time setup above is complete), fall back to a manual publish: `npm run build && npm publish --access public` from a clean `main` checkout, run once per package that needs it.
 
 Pre-1.0 bump policy: a breaking change (`feat!:` / `BREAKING CHANGE:`) bumps the **minor** version; `feat:`/`fix:` bump the **patch** version.
