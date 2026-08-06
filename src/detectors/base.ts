@@ -40,6 +40,22 @@ export abstract class BaseDetector implements Detector {
   abstract findPatterns(content: string): PatternMatch[];
   abstract sanitize(content: string, threats: Threat[]): string;
 
+  /**
+   * Last chance to alter matched text before it becomes `Threat.evidence`.
+   *
+   * Evidence travels: into `ScanResult`, the CLI's JSON/SARIF output, audit
+   * records, and whatever the caller logs. For most detectors the matched text
+   * IS the finding and must be preserved verbatim. For a detector whose matches
+   * are themselves secrets, echoing them would leak the credential into exactly
+   * the CI logs and audit trails the scan was meant to protect. Override to
+   * redact; the default is identity.
+   *
+   * Sanitization is unaffected — it works from `Threat.location`, not evidence.
+   */
+  protected redactEvidence(match: string): string {
+    return match;
+  }
+
   scan(content: string, options?: DetectorOptions): DetectorResult {
     const strictness = options?.strictness ?? 'balanced';
     const threshold = CONFIDENCE_THRESHOLDS[strictness];
@@ -54,7 +70,7 @@ export abstract class BaseDetector implements Detector {
         severity: m.severity,
         confidence: m.confidence,
         description: m.description,
-        evidence: truncate(m.match, 200),
+        evidence: truncate(this.redactEvidence(m.match), 200),
         location: { offset: m.index, length: m.length },
         detectorId: this.id,
         source: 'pattern' as const,

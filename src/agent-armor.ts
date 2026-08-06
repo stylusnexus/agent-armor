@@ -124,6 +124,9 @@ const DETECTOR_REGISTRY: Array<{
   trapType: TrapType;
   sanitizeMode: 'remove' | 'replace' | 'none';
   replaceText?: string;
+  /** Redact matched text before it becomes `Threat.evidence` — for detectors
+   *  whose matches are themselves secrets. */
+  maskEvidence?: boolean;
 }> = [
   // Content Injection
   {
@@ -276,6 +279,20 @@ const DETECTOR_REGISTRY: Array<{
     sanitizeMode: 'replace',
     replaceText:
       '[BLOCKED: persona manipulation content removed by AgentArmor]',
+  },
+  // Transport Integrity
+  {
+    configGroup: 'transportIntegrity',
+    configKey: 'credentialExposure',
+    patternDbKey: 'credential-exposure',
+    id: 'credential-exposure',
+    name: 'Credential Exposure Detector',
+    category: 'transport-integrity',
+    trapType: 'credential-exposure',
+    sanitizeMode: 'replace',
+    replaceText:
+      '[REDACTED: potential credential removed by AgentArmor]',
+    maskEvidence: true,
   },
 ];
 
@@ -590,6 +607,7 @@ export class AgentArmor {
           patterns,
           sanitizeMode: reg.sanitizeMode,
           replaceText: reg.replaceText,
+          maskEvidence: reg.maskEvidence,
         })
       );
 

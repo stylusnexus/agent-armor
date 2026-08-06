@@ -22,7 +22,7 @@ but parsed by LLMs. This is the most common content injection vector.</p>
 <li>Opacity:0 elements</li>
 </ul>
 </div></section>
-<section class="tsd-panel tsd-hierarchy" data-refl="237">
+<section class="tsd-panel tsd-hierarchy" data-refl="245">
 <h4>Hierarchy (<a href="../hierarchy.html#HiddenHTMLDetector">View Summary</a>)</h4>
 <ul class="tsd-hierarchy">
 <li class="tsd-hierarchy-item"><a href="BaseDetector.html" class="tsd-signature-type tsd-kind-class">BaseDetector</a>
@@ -49,6 +49,7 @@ but parsed by LLMs. This is the most common content injection vector.</p>
 <section class="tsd-index-section">
 <h3 class="tsd-index-heading tsd-anchor-link" id="methods">Methods<a href="#methods" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-index-list"><a href="#findpatterns" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>find<wbr/>Patterns</span></a>
+<a href="#redactevidence" class="tsd-index-link tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>redact<wbr/>Evidence</span></a>
 <a href="#sanitize" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>sanitize</span></a>
 <a href="#scan" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>scan</span></a>
 </div></section></div></details></section></section>
@@ -113,6 +114,29 @@ but parsed by LLMs. This is the most common content injection vector.</p>
 <p>Overrides <a href="BaseDetector.html">BaseDetector</a>.<a href="BaseDetector.html#findpatterns">findPatterns</a></p>
 <ul>
 <li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/detectors/content-injection/hidden-html.ts#L81">src/detectors/content-injection/hidden-html.ts:81</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member tsd-is-protected tsd-is-inherited">
+<h3 class="tsd-anchor-link" id="redactevidence"><code class="tsd-tag">Protected</code><span>redact<wbr/>Evidence</span><a href="#redactevidence" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures tsd-is-protected tsd-is-inherited">
+<li class="tsd-is-inherited">
+<div class="tsd-signature tsd-anchor-link" id="redactevidence-1"><span class="tsd-kind-call-signature">redactEvidence</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">match</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><a href="#redactevidence-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Last chance to alter matched text before it becomes <code>Threat.evidence</code>.</p>
+<p>Evidence travels: into <code>ScanResult</code>, the CLI's JSON/SARIF output, audit
+records, and whatever the caller logs. For most detectors the matched text
+IS the finding and must be preserved verbatim. For a detector whose matches
+are themselves secrets, echoing them would leak the credential into exactly
+the CI logs and audit trails the scan was meant to protect. Override to
+redact; the default is identity.</p>
+<p>Sanitization is unaffected — it works from <code>Threat.location</code>, not evidence.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">match</span>: <span class="tsd-signature-type">string</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4><aside class="tsd-sources">
+<p>Inherited from <a href="BaseDetector.html">BaseDetector</a>.<a href="BaseDetector.html#redactevidence">redactEvidence</a></p>
+<ul>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/detectors/base.ts#L55">src/detectors/base.ts:55</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="sanitize"><span>sanitize</span><a href="#sanitize" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -146,7 +170,7 @@ but parsed by LLMs. This is the most common content injection vector.</p>
 <h4 class="tsd-returns-title">Returns <a href="../interfaces/DetectorResult.html" class="tsd-signature-type tsd-kind-interface">DetectorResult</a></h4><aside class="tsd-sources">
 <p>Inherited from <a href="BaseDetector.html">BaseDetector</a>.<a href="BaseDetector.html#scan">scan</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/detectors/base.ts#L43">src/detectors/base.ts:43</a></li></ul></aside></div></li></ul></section></section></details></div>
+<li>Defined in <a href="https://github.com/stylusnexus/agent-armor/blob/main/src/detectors/base.ts#L59">src/detectors/base.ts:59</a></li></ul></aside></div></li></ul></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
@@ -167,7 +191,7 @@ but parsed by LLMs. This is the most common content injection vector.</p>
 <details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Properties</summary>
 <div><a href="#category"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>category</span></a><a href="#id"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>id</span></a><a href="#name"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>name</span></a><a href="#traptype" class="tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>trap<wbr/>Type</span></a></div></details>
 <details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Methods"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Methods</summary>
-<div><a href="#findpatterns"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>find<wbr/>Patterns</span></a><a href="#sanitize"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>sanitize</span></a><a href="#scan" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>scan</span></a></div></details></div></details></div>
+<div><a href="#findpatterns"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>find<wbr/>Patterns</span></a><a href="#redactevidence" class="tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>redact<wbr/>Evidence</span></a><a href="#sanitize"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>sanitize</span></a><a href="#scan" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>scan</span></a></div></details></div></details></div>
 <div class="site-menu">
 <nav class="tsd-navigation"><a href="../index.html">Agent Armor API Reference</a>
 <ul class="tsd-small-nested-navigation" id="tsd-nav-container">
