@@ -8,9 +8,11 @@ import type { PatternDatabase } from './pattern-db';
  *   0.1.0 — Initial patterns extracted from hardcoded detectors
  *   0.5.0 — Scanner-directed verdict-suppression patterns (oversight-evasion)
  *   0.7.0 — Transport Integrity: credential-exposure patterns (AC-2, #28)
+ *   0.8.0 — steganographic-payload: ASCII smuggling via Unicode Tags and
+ *           variation-selector runs (#69 item 1)
  */
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.7.0',
+  version: '0.8.0',
   updatedAt: '2026-08-05',
   detectors: {
     'hidden-html': [
@@ -241,6 +243,57 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         severity: 'medium',
         confidence: 0.7,
         label: 'Headless browser fingerprinting',
+      },
+    ],
+
+    // ASCII smuggling: the payload is re-encoded into invisible codepoints so
+    // it renders as nothing to a human reviewer while the model still reads it.
+    //
+    // Verified live before writing these: the same jailbreak string that fires
+    // `jb-ignore-instructions` at 0.95 in plain ASCII returned clean with ZERO
+    // threats when re-encoded into either range below, and passed through
+    // `sanitize()` byte-for-byte intact — nothing was flagged, so nothing was
+    // removed. Existing patterns cannot reach it: `sm-zero-width` matches
+    // exactly four codepoints (U+200B/200C/200D/FEFF), `sm-bidi-override` only
+    // the bidi controls, and every `hh-*` pattern requires an HTML style
+    // attribute.
+    //
+    // Normalization does not help either. The Tags block is absent from
+    // `src/normalize/unicode.ts` entirely, and variation selectors are stripped
+    // only from the detection skeleton — `sanitize()` operates on raw content,
+    // so an unflagged run survives. Detection has to happen here.
+    //
+    // NOTE: deliberately no `requireInstructions`/`boostOnInstructions`.
+    // `findPatterns` tests instruction signals against the MATCHED text, which
+    // by construction contains no ASCII, so `hasInstruction` is always false —
+    // either flag would permanently suppress these. Presence of the carrier is
+    // itself the signal.
+    'steganographic-payload': [
+      {
+        // Unicode Tags (U+E0000-E007F) mirror ASCII 1:1 and were deprecated in
+        // 2015. A run of them in modern text is not an encoding accident.
+        id: 'sp-unicode-tags',
+        regex: '[\\u{E0000}-\\u{E007F}]{4,}',
+        flags: 'gu',
+        category: 'content-injection',
+        type: 'steganographic-payload',
+        severity: 'critical',
+        confidence: 0.9,
+        label: 'Unicode Tags block payload (ASCII smuggling)',
+      },
+      {
+        // Variation selectors legitimately appear as ONE selector after a base
+        // character (emoji presentation, CJK ideographic variation sequences).
+        // A consecutive run of 8+ is a carrier, not typography — the run length
+        // is what keeps IVD and emoji text out of the false-positive column.
+        id: 'sp-variation-selector-run',
+        regex: '[\\u{FE00}-\\u{FE0F}\\u{E0100}-\\u{E01EF}]{8,}',
+        flags: 'gu',
+        category: 'content-injection',
+        type: 'steganographic-payload',
+        severity: 'high',
+        confidence: 0.75,
+        label: 'Variation-selector run payload',
       },
     ],
 

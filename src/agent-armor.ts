@@ -37,6 +37,7 @@ const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
     metadataInjection: true,
     dynamicCloaking: true,
     syntacticMasking: true,
+    steganographicPayload: true,
   },
   behaviouralControl: {
     jailbreakPatterns: true,
@@ -167,6 +168,18 @@ const DETECTOR_REGISTRY: Array<{
     name: 'Syntactic Masking Detector',
     category: 'content-injection',
     trapType: 'syntactic-masking',
+    sanitizeMode: 'remove',
+  },
+  {
+    // 'remove' is the whole point: an encoded run carries no visible text, so
+    // leaving it in place would hand the payload straight to the model.
+    configGroup: 'contentInjection',
+    configKey: 'steganographicPayload',
+    patternDbKey: 'steganographic-payload',
+    id: 'steganographic-payload',
+    name: 'Steganographic Payload Detector',
+    category: 'content-injection',
+    trapType: 'steganographic-payload',
     sanitizeMode: 'remove',
   },
   // Behavioural Control
