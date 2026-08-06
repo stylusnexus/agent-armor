@@ -7,6 +7,18 @@ This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor 
 <!-- New entries are generated automatically by release-please from Conventional
 Commit messages on merge to main. Do not edit unreleased entries by hand. -->
 
+## [0.2.14](https://github.com/stylusnexus/agent-armor/compare/v0.2.13...v0.2.14) (2026-08-06)
+
+
+### Added
+
+* **transport-integrity:** credential exposure detector ([#28](https://github.com/stylusnexus/agent-armor/issues/28)) ([#94](https://github.com/stylusnexus/agent-armor/issues/94)) ([0505bc7](https://github.com/stylusnexus/agent-armor/commit/0505bc709ff987fdaa1b060d533d65acf4655408))
+
+
+### Fixed
+
+* update status of [#35](https://github.com/stylusnexus/agent-armor/issues/35) to reflect completion ([442409d](https://github.com/stylusnexus/agent-armor/commit/442409de6d56989f7b53850f38db4d18410f4273))
+
 ## [0.2.13](https://github.com/stylusnexus/agent-armor/compare/v0.2.12...v0.2.13) (2026-07-09)
 
 
