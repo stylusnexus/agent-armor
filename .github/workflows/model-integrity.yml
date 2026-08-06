@@ -1,0 +1,49 @@
+# Model integrity: confirms MODEL_CHECKSUM and LABELS in packages/ml still
+# agree with the artifacts actually hosted on HuggingFace.
+#
+# The checksum is maintained by hand during the model-update lifecycle
+# (retrain -> export -> update constant -> push to HF -> publish npm). Nothing
+# used to close that loop, so drift was discovered by end users hitting
+# CHECKSUM_MISMATCH on first download. This runs weekly instead.
+#
+# Needs no secrets: the HuggingFace repo is public and this is read-only.
+name: model-integrity
+
+on:
+  schedule:
+    # Mondays 06:00 UTC — a mismatch surfaces within a week of appearing.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      deep:
+        description: 'Download and hash the full model instead of trusting HuggingFace LFS metadata'
+        type: boolean
+        default: false
+  # Also run when the constants or the check itself change, so a bad checksum
+  # is caught in review rather than by the following Monday's schedule.
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/ml/src/constants.ts'
+      - 'packages/ml/scripts/**'
+      - '.github/workflows/model-integrity.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/ml
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: packages/ml/package-lock.json
+      - run: npm ci
+      - name: Verify hosted model matches shipped constants
+        run: npm run ${{ inputs.deep && 'check:model:deep' || 'check:model' }}

@@ -97,5 +97,10 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run test
+      # Never publish a version whose MODEL_CHECKSUM disagrees with the artifact
+      # actually hosted on HuggingFace — that ships a package guaranteed to fail
+      # on every user's first download. Cheap (metadata read, no model transfer),
+      # so it costs the publish path essentially nothing.
+      - run: npm run check:model
       - run: npm run build
       - run: npm publish --access public
