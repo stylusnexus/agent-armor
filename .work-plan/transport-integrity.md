@@ -14,8 +14,8 @@ github:
     - 31
   branches: []
 depends_on: []
-last_touched: 2026-08-05T22:50
-last_handoff: 2026-08-05T22:50
+last_touched: 2026-08-06T09:00
+last_handoff: 2026-08-06T09:00
 next_up:
   - 27
   - 29
@@ -57,3 +57,9 @@ Confirmed P1 on 2026-07-07's value pass: already correctly ordered — #26 is th
 - Eval: 115 samples (73 adversarial / 42 benign), credential-exposure 6/6 at every strictness, FP 0.0% held. Thresholds re-baselined 0.818→0.835 permissive, 0.909→0.917 balanced/strict.
 - Site auto-deployed on merge and verified live (`Credential Exposure` card, `v0.7.0 patterns, 115 samples` in llms.txt, `/api/` still 200). npm still serves 0.2.13 — release PR #93 (0.2.14) carries this and is deliberately unmerged while more work batches in.
 - Next in this track: #27 (tool-call tampering) then #29 (dependency substitution). Both now unblocked with no taxonomy prerequisite.
+
+### Session — 2026-08-06 (#29 gains real-world grounding; two adjacent issues filed)
+
+- Commented on #29 with the July 2026 OpenAI sandbox escape: the models escaped containment via a zero-day in **self-hosted Artifactory**, a package-registry cache proxy. That widens #29's motivation — the resolver redirection is itself an **egress path**, not only a substitution vector. Severity framing should reflect that; the detection shapes in the issue body already cover the observable form. Eval sample `rw-013` models it and is a ready-made acceptance test (currently a documented miss).
+- Filed #107 (dependency-install risk in scanned content: lockfile bypass, lifecycle scripts) and #106 (action-gate package policy: release-age floor, pin enforcement). Both are adjacent to #29 but distinct: #29 is *which package you get*, #107 is *how it is installed*, #106 is *whether the install is admissible at all*.
+- **Precedent worth remembering:** this repo already received this attack. PR #73 (2026-07-08) carried a comment recommending `pip install vulnledger` — a package whose claimed source repo 404s. A human investigated and declined. An agent triaging that PR would have had nothing stopping it. #107 asks for an eval sample modelled on it.
