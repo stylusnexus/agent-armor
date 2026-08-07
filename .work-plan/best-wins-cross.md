@@ -7,9 +7,12 @@ github:
   repo: stylusnexus/agent-armor
   issues: []
   references:
-    - 71
-    - 69
     - 68
+    - 69
+    - 98
+    - 99
+    - 106
+    - 107
     - 27
     - 37
     - 29
@@ -27,12 +30,12 @@ depends_on:
   - enterprise-readiness
   - systemic-traps
   - human-in-the-loop
-last_touched: 2026-08-05T22:55
-last_handoff: 2026-08-05T22:55
+last_touched: 2026-08-06T09:00
+last_handoff: 2026-08-06T09:00
 next_up:
-  - 71
-  - 69
   - 68
+  - 98
+  - 107
 blockers: []
 ---
 # Best Wins (convergence track)
@@ -174,3 +177,29 @@ above and should be reflected in the home tracks.
   staging gate. Retargeting release-please — which only started working end-to-end at 0.2.13 after
   three separate bug fixes (#81, #85, #88) — is asymmetric downside for a queue that isn't needed.
   Revisit if external contributors arrive post-launch or a hosted Pro API appears.
+
+### Session — 2026-08-06 (three shipped; re-ranked around a demonstrated bypass)
+
+Shipped since the last ranking: **#28** (credential exposure, closing #26), **#71** (model integrity),
+**#69 item 1** (steganographic-payload), plus #101/#103 ML test coverage and fixes. Released as
+v0.2.15 (core). Ranks 1-3 of the previous ordering are done.
+
+**Re-ranked, not appended** — the new top is:
+
+1. **#68 items 1+3** — action-gate bare-rule footgun. Now more urgent than before: **#106 proposes
+   an `npm.install` rule shape, and a bare `{ tool: 'npm.install' }` rule would admit any package at
+   any version.** The footgun gets worse with every new rule type, so fix it before adding one.
+2. **#98** — C2 / drop-service endpoints. Zero pattern coverage today; `rw-011` is a standing miss.
+3. **#107** — dependency-install risk. Zero coverage of install commands, lockfiles, `ignore-scripts`,
+   `postinstall` in ANY ecosystem. This repo has already been targeted (PR #73's `pip install
+   vulnledger` comment), which makes it grounded rather than speculative.
+4. **#99** — persistence + logging suppression (`rw-014` is a standing miss).
+5. **#106** — action-gate package policy. After #68, since it depends on the rule hygiene.
+6. **#37**, then **#69 items 2+3**, then #29 / #38 / #40 as previously ranked.
+
+**Method note worth keeping.** #69 item 1 was going to be resolved by argument — one advisor said
+REMOVE on API-hygiene grounds, one said IMPLEMENT. Reproducing the claim took minutes and settled it
+outright: the type named a live bypass that shipped in every released version. **When advisors
+disagree about whether a gap is real, measure the gap.** The same move is available for #98, #99 and
+#107 — each names a concrete payload shape that can be run through `scanSync` today to confirm the
+miss before any pattern is written.
