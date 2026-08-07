@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/stylusnexus/agent-armor/compare/agentarmor-ml-v0.1.3...agentarmor-ml-v0.1.4) (2026-08-07)
+
+
+### Fixed
+
+* **ml:** raise typed errors from Tokenizer.fromFile on a malformed tokenizer.json ([#104](https://github.com/stylusnexus/agent-armor/issues/104)) ([2ba996b](https://github.com/stylusnexus/agent-armor/commit/2ba996b0b583d65e6016c39b1a8bd2eccdf0733b)), closes [#103](https://github.com/stylusnexus/agent-armor/issues/103)
+
 ## [0.1.3](https://github.com/stylusnexus/agent-armor/compare/agentarmor-ml-v0.1.2...agentarmor-ml-v0.1.3) (2026-07-09)
 
 
