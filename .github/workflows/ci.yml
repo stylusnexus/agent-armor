@@ -79,7 +79,7 @@ jobs:
       - run: npm ci
       - name: Restore SecLists LFI corpus cache
         id: cache-seclists
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ../SecLists
           key: seclists-lfi-v1
