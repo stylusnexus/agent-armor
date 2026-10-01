@@ -40,7 +40,7 @@ jobs:
       core_released: ${{ steps.release.outputs.release_created }}
       ml_released: ${{ steps.release.outputs['packages/ml--release_created'] }}
     steps:
-      - uses: googleapis/release-please-action@v4
+      - uses: googleapis/release-please-action@v5
         id: release
         with:
           config-file: release-please-config.json
