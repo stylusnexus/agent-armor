@@ -20,9 +20,11 @@ npm run test:run
 
 ## Development Workflow
 
-- Create a feature branch from `main` (`git checkout -b feat/my-feature`)
+- Create a feature branch from `dev` (`git checkout -b feat/my-feature origin/dev`)
 - Make your changes
-- Open a PR against `main`
+- Open a PR against `dev` and squash-merge it once CI passes
+- To ship, open a PR from `dev` to `main` and merge it with a **merge commit** (not squash), so release-please sees each feature's commit
+- After the release PR merges and publishes, merge `main` back into `dev`
 - Use conventional commit messages (see below)
 
 ## Adding New Patterns
@@ -96,7 +98,7 @@ These titles feed the changelog automation below, so write them as the user-faci
 
 Releases are automated end-to-end via [release-please](https://github.com/googleapis/release-please):
 
-1. Every PR merged to `main` with a Conventional Commit title (`feat:`, `fix:`, etc.) gets picked up by release-please.
+1. Every PR promoted from `dev` to `main` with a Conventional Commit title (`feat:`, `fix:`, etc.) gets picked up by release-please.
 2. release-please maintains a standing "release PR" per package (root `@stylusnexus/agentarmor` and `packages/ml`'s `@stylusnexus/agentarmor-ml`, versioned and tagged independently) that accumulates changelog entries and the next version bump.
 3. Merging a release PR tags the release and creates a GitHub release, which triggers that package's publish job.
 4. The publish job re-runs build/typecheck/test (and the eval gate, for the core package) as a defense-in-depth check, then waits for a manual approval in the `npm-publish` GitHub Environment before running `npm publish --access public`.
