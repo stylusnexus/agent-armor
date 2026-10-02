@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.5](https://github.com/stylusnexus/agent-armor/compare/agentarmor-ml-v0.1.4...agentarmor-ml-v0.1.5) (2026-10-02)
+
+
+### Fixed
+
+* **ml:** patch dev-tool vulnerabilities ([3b75579](https://github.com/stylusnexus/agent-armor/commit/3b75579ffb72b760f299e8cd6838e2a6295c978a))
+* **ml:** patch dev-tool vulnerabilities ([97b9448](https://github.com/stylusnexus/agent-armor/commit/97b9448eda5a1214de1c900d9cc5538eff2b95dc))
+* **ml:** patch dev-tool vulnerabilities ([#151](https://github.com/stylusnexus/agent-armor/issues/151)) ([3b75579](https://github.com/stylusnexus/agent-armor/commit/3b75579ffb72b760f299e8cd6838e2a6295c978a))
+
 ## [0.1.4](https://github.com/stylusnexus/agent-armor/compare/agentarmor-ml-v0.1.3...agentarmor-ml-v0.1.4) (2026-08-07)
 
 
