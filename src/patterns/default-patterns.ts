@@ -12,8 +12,8 @@ import type { PatternDatabase } from './pattern-db';
  *           variation-selector runs (#69 item 1)
  */
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.8.0',
-  updatedAt: '2026-08-05',
+  version: '0.9.0',
+  updatedAt: '2026-10-03',
   detectors: {
     'hidden-html': [
       {
@@ -462,6 +462,24 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         confidence: 0.8,
         label: 'Fictional world restriction bypass (loose)',
       },
+      {
+        // An address to the agent ("assistant:", "note to agent", "as the AI
+        // reading this", "when you read this") followed by an instruction to run
+        // a shell command, pipe a remote script, or run something destructive.
+        // The addressee is what separates this from ordinary docs ("run npm
+        // install"): nobody writes install steps to "the assistant". No
+        // requireInstructions: that gate tests only the matched text, which
+        // here stops at the command and misses "don't tell the user".
+        id: 'jb-agent-directed-command',
+        regex: '(?:(?:note|message|instructions?)\\s+(?:to|for)\\s+(?:the\\s+)?(?:ai|agent|assistant|model|llm)\\b|(?:^|[.:!\\n]\\s*)(?:ai\\s+)?(?:assistant|agent)\\s*[,:]|as\\s+(?:the|an?)\\s+(?:ai|agent|assistant|llm)\\b[^.\\n]{0,40},|when\\s+you\\s+(?:read|see|process|parse)\\s+(?:this|the\\s+(?:above|following)))[\\s\\S]{0,80}?\\b(?:run|execute|exec|invoke|launch)\\b[\\s\\S]{0,60}?(?:\\b(?:curl|wget|bash|sudo|powershell|eval|nc|netcat)\\b|\\bsh\\b|\\brm\\s+-|chmod\\s+\\+x|(?:installer|script|payload|binary)\\s+(?:at|from)\\s+https?:\\/\\/)',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'embedded-jailbreak',
+        severity: 'critical',
+        confidence: 0.85,
+        label: 'Instruction to the agent to run a shell command or remote script',
+        boostOnInstructions: true,
+      },
     ],
 
     exfiltration: [
@@ -600,6 +618,20 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         label: 'Multi-step tool chain exfiltration',
         boostOnInstructions: true,
         requireInstructions: true,
+      },
+      {
+        // "email / send the contents of <secret file>". Only well-known secret
+        // paths, so "send the contents of README" stays clean. The lookbehind
+        // skips warnings ("never email the contents of your .env").
+        id: 'ex-secret-file-send',
+        regex: '(?<!(?:\\bnot|\\bnever|n\\x27t)\\s+)\\b(?:e-?mail|mail|send|upload|post|forward|transmit)\\b\\s+(?:me\\s+)?(?:the\\s+)?(?:contents?|text|copy)\\s+of\\s+(?:my\\s+|your\\s+|the\\s+)?[~\\w./-]*(?:\\.ssh|id_rsa|id_ed25519|\\.aws\\/credentials|\\.env\\b|\\.npmrc|\\.netrc|\\.git-credentials|\\.pgpass|\\.kube\\/config)[\\s\\S]{0,40}?\\bto\\b',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'critical',
+        confidence: 0.85,
+        label: 'Instruction to send the contents of a secret file',
+        boostOnInstructions: true,
       },
     ],
 
