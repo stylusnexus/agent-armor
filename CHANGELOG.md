@@ -7,6 +7,15 @@ This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor 
 <!-- New entries are generated automatically by release-please from Conventional
 Commit messages on merge to main. Do not edit unreleased entries by hand. -->
 
+## [0.2.16](https://github.com/stylusnexus/agent-armor/compare/v0.2.15...v0.2.16) (2026-10-03)
+
+
+### Fixed
+
+* **ml:** patch dev-tool vulnerabilities ([3b75579](https://github.com/stylusnexus/agent-armor/commit/3b75579ffb72b760f299e8cd6838e2a6295c978a))
+* **ml:** patch dev-tool vulnerabilities ([97b9448](https://github.com/stylusnexus/agent-armor/commit/97b9448eda5a1214de1c900d9cc5538eff2b95dc))
+* **ml:** patch dev-tool vulnerabilities ([#151](https://github.com/stylusnexus/agent-armor/issues/151)) ([3b75579](https://github.com/stylusnexus/agent-armor/commit/3b75579ffb72b760f299e8cd6838e2a6295c978a))
+
 ## [0.2.15](https://github.com/stylusnexus/agent-armor/compare/v0.2.14...v0.2.15) (2026-08-06)
 
 
