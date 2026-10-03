@@ -309,6 +309,16 @@ const DETECTOR_REGISTRY: Array<{
   },
 ];
 
+/**
+ * Append without spreading. `target.push(...items)` passes every item as an
+ * argument and throws RangeError past roughly 120k items. The scan loop catches
+ * that error and skips the detector, so a very large input with many findings
+ * would scan clean.
+ */
+function appendAll<T>(target: T[], items: readonly T[]): void {
+  for (const item of items) target.push(item);
+}
+
 export class AgentArmor {
   private config: Required<AgentArmorConfig>;
   private detectors: Detector[] = [];
@@ -673,10 +683,11 @@ export class AgentArmor {
         const result = detector.scan(scanInput, {
           strictness: this.config.strictness,
         });
-        allThreats.push(
-          ...(useNorm
+        appendAll(
+          allThreats,
+          useNorm
             ? this.remapThreats(result.threats, norm!, content)
-            : result.threats)
+            : result.threats,
         );
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err));
@@ -740,19 +751,21 @@ export class AgentArmor {
           const result = await detector.scanAsync(scanInput, {
             strictness: this.config.strictness,
           });
-          allThreats.push(
-            ...(useNorm
+          appendAll(
+            allThreats,
+            useNorm
               ? this.remapThreats(result.threats, norm!, content)
-              : result.threats)
+              : result.threats,
           );
         } else {
           const result = detector.scan(scanInput, {
             strictness: this.config.strictness,
           });
-          allThreats.push(
-            ...(useNorm
+          appendAll(
+            allThreats,
+            useNorm
               ? this.remapThreats(result.threats, norm!, content)
-              : result.threats)
+              : result.threats,
           );
         }
       } catch (err) {
