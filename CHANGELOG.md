@@ -7,6 +7,26 @@ This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor 
 <!-- New entries are generated automatically by release-please from Conventional
 Commit messages on merge to main. Do not edit unreleased entries by hand. -->
 
+## [0.2.18](https://github.com/stylusnexus/agent-armor/compare/v0.2.17...v0.2.18) (2026-10-03)
+
+
+### Fixed
+
+* **core:** keep findings on very large inputs ([6ccc7a0](https://github.com/stylusnexus/agent-armor/commit/6ccc7a05cc1d5a7e79b3374f199322467b5cc31f))
+* **detectors:** catch quoted agent-command forms ([#165](https://github.com/stylusnexus/agent-armor/issues/165)) ([c6db2b3](https://github.com/stylusnexus/agent-armor/commit/c6db2b336ebd900038c4c04c376ecd8e8a45bdf2)), closes [#159](https://github.com/stylusnexus/agent-armor/issues/159)
+
+
+### Performance
+
+* **detectors:** sanitize in one pass ([561de1d](https://github.com/stylusnexus/agent-armor/commit/561de1d100c8cc7046360d29154bf6c7c8e99d31))
+* **detectors:** sanitize in one pass ([2a0ee47](https://github.com/stylusnexus/agent-armor/commit/2a0ee479a75fb19c2763da7dc9308947a9483798)), closes [#160](https://github.com/stylusnexus/agent-armor/issues/160)
+* **detectors:** sanitize in one pass, keep findings on large inputs ([#168](https://github.com/stylusnexus/agent-armor/issues/168)) ([561de1d](https://github.com/stylusnexus/agent-armor/commit/561de1d100c8cc7046360d29154bf6c7c8e99d31))
+
+
+### Documentation
+
+* **api:** regenerate AgentArmor source line numbers ([#171](https://github.com/stylusnexus/agent-armor/issues/171)) ([1003de6](https://github.com/stylusnexus/agent-armor/commit/1003de61a4ddde0c8eb7b0cb3d2468970988a0cf))
+
 ## [0.2.17](https://github.com/stylusnexus/agent-armor/compare/v0.2.16...v0.2.17) (2026-10-03)
 
 
