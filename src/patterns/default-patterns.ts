@@ -12,8 +12,8 @@ import type { PatternDatabase } from './pattern-db';
  *           variation-selector runs (#69 item 1)
  */
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.0',
-  updatedAt: '2026-10-03',
+  version: '0.9.1',
+  updatedAt: '2026-10-04',
   detectors: {
     'hidden-html': [
       {
@@ -471,7 +471,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // requireInstructions: that gate tests only the matched text, which
         // here stops at the command and misses "don't tell the user".
         id: 'jb-agent-directed-command',
-        regex: '(?:(?:note|message|instructions?)\\s+(?:to|for)\\s+(?:the\\s+)?(?:ai|agent|assistant|model|llm)\\b|(?:^|[.:!\\n]\\s*)(?:ai\\s+)?(?:assistant|agent)\\s*[,:]|as\\s+(?:the|an?)\\s+(?:ai|agent|assistant|llm)\\b[^.\\n]{0,40},|when\\s+you\\s+(?:read|see|process|parse)\\s+(?:this|the\\s+(?:above|following)))[\\s\\S]{0,80}?\\b(?:run|execute|exec|invoke|launch)\\b[\\s\\S]{0,60}?(?:\\b(?:curl|wget|bash|sudo|powershell|eval|nc|netcat)\\b|\\bsh\\b|\\brm\\s+-|chmod\\s+\\+x|(?:installer|script|payload|binary)\\s+(?:at|from)\\s+https?:\\/\\/)',
+        regex: '(?:(?:note|message|instructions?)\\s+(?:to|for)\\s+(?:the\\s+)?(?:ai|agent|assistant|model|llm)\\b|(?:^|[.:!>\\n]\\s*|[\\s=](?=["\x27\\u201C\\u2018`]))["\x27\\u201C\\u2018`]?(?:ai\\s+)?(?:assistant|agent)\\s*[,:]|as\\s+(?:the|an?)\\s+(?:ai|agent|assistant|llm)\\b[^.\\n]{0,40},|when\\s+you\\s+(?:read|see|process|parse)\\s+(?:this|the\\s+(?:above|following)))[\\s\\S]{0,80}?\\b(?:run|execute|exec|invoke|launch)\\b[\\s\\S]{0,60}?(?:\\b(?:curl|wget|bash|sudo|powershell|eval|nc|netcat)\\b|\\bsh\\b|\\brm\\s+-|chmod\\s+\\+x|(?:installer|script|payload|binary)\\s+(?:at|from)\\s+https?:\\/\\/)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'embedded-jailbreak',
