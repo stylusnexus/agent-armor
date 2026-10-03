@@ -27,6 +27,8 @@ interface DetectionResult {
   correct: boolean;
   highestConfidence: number;
   highestSeverity: string | null;
+  /** Benign sample with an accepted flag at this level, and whether it flagged. */
+  acceptedFlag?: 'flagged' | 'clean';
 }
 
 function evaluate(
@@ -37,9 +39,16 @@ function evaluate(
 
   for (const sample of ALL_SAMPLES) {
     const scanResult = armor.scanSync(sample.content);
-    const detected = [
+    const flagged = [
       ...new Set(scanResult.threats.map((t) => t.type)),
     ] as TrapType[];
+    // A benign sample may list the levels where a flag is a KNOWN, accepted
+    // false positive (#161). It is reported separately and not counted in the
+    // false-positive rate. Everything else benign must scan clean.
+    const accepted =
+      sample.category === 'benign' &&
+      sample.acceptedFlagAt?.includes(strictness) === true;
+    const detected = accepted ? [] : flagged;
 
     const truePositives = sample.expected.filter((e) =>
       detected.includes(e)
@@ -63,6 +72,11 @@ function evaluate(
       correct,
       highestConfidence: scanResult.threats[0]?.confidence ?? 0,
       highestSeverity: scanResult.stats.highestSeverity,
+      acceptedFlag: accepted
+        ? flagged.length > 0
+          ? 'flagged'
+          : 'clean'
+        : undefined,
     });
   }
 
@@ -97,6 +111,10 @@ interface Summary {
   }>;
   avgConfidenceTruePositive: number;
   avgConfidenceFalsePositive: number;
+  /** Known false positives (#161): ids flagged at this level, excluded from the rate. */
+  acceptedFalsePositives: string[];
+  /** Accepted samples that no longer flag here. The exemption may be stale. */
+  staleAccepted: string[];
 }
 
 function computeSummary(results: DetectionResult[]): Summary {
@@ -199,6 +217,12 @@ function computeSummary(results: DetectionResult[]): Summary {
     falseNegativeDetails,
     avgConfidenceTruePositive: avg(tpConfidences),
     avgConfidenceFalsePositive: avg(fpConfidences),
+    acceptedFalsePositives: results
+      .filter((r) => r.acceptedFlag === 'flagged')
+      .map((r) => r.sample.id),
+    staleAccepted: results
+      .filter((r) => r.acceptedFlag === 'clean')
+      .map((r) => r.sample.id),
   };
 }
 
@@ -242,6 +266,18 @@ function printReport(summary: Summary): void {
       console.log(`  ${fp.id}: ${fp.description}`);
       console.log(`         Flagged as: ${fp.falseTypes.join(', ')}`);
     }
+  }
+
+  if (summary.acceptedFalsePositives.length > 0) {
+    console.log(
+      `\n  ── Known false positives, excluded from the rate (${summary.acceptedFalsePositives.length}) ──`,
+    );
+    console.log(`  ${summary.acceptedFalsePositives.join(', ')}`);
+  }
+  if (summary.staleAccepted.length > 0) {
+    console.log(
+      `\n  NOTE: no longer flagged, remove acceptedFlagAt: ${summary.staleAccepted.join(', ')}`,
+    );
   }
 
   console.log('\n' + '='.repeat(70));
