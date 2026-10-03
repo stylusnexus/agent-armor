@@ -7,6 +7,18 @@ This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor 
 <!-- New entries are generated automatically by release-please from Conventional
 Commit messages on merge to main. Do not edit unreleased entries by hand. -->
 
+## [0.2.17](https://github.com/stylusnexus/agent-armor/compare/v0.2.16...v0.2.17) (2026-10-03)
+
+
+### Added
+
+* **detectors:** flag agent-directed commands ([#157](https://github.com/stylusnexus/agent-armor/issues/157)) ([2c7e3c3](https://github.com/stylusnexus/agent-armor/commit/2c7e3c33dbdbaed605de50683338235b7b3e56fa)), closes [#110](https://github.com/stylusnexus/agent-armor/issues/110)
+
+
+### Documentation
+
+* **readme:** note quoted attacks can be flagged ([#158](https://github.com/stylusnexus/agent-armor/issues/158)) ([ca2e507](https://github.com/stylusnexus/agent-armor/commit/ca2e5070daa7af862b5cbc43719feaec737db05d))
+
 ## [0.2.16](https://github.com/stylusnexus/agent-armor/compare/v0.2.15...v0.2.16) (2026-10-03)
 
 
