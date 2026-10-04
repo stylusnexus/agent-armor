@@ -13,7 +13,7 @@
 <section class="tsd-panel tsd-comment">
 <div class="tsd-comment tsd-typography"><p>The interface every detector (pattern-based, ML, or custom) implements.</p>
 </div></section>
-<section class="tsd-panel tsd-hierarchy" data-refl="221">
+<section class="tsd-panel tsd-hierarchy" data-refl="229">
 <h4>Hierarchy (<a href="../hierarchy.html#BaseDetector">View Summary</a>)</h4>
 <ul class="tsd-hierarchy">
 <li class="tsd-hierarchy-item"><span class="tsd-hierarchy-target">BaseDetector</span>
@@ -141,7 +141,10 @@ redact; the default is identity.</p>
 <li class="">
 <div class="tsd-signature tsd-anchor-link" id="sanitize-1"><span class="tsd-kind-call-signature">sanitize</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">content</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-kind-parameter">threats</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/Threat.html" class="tsd-signature-type tsd-kind-interface">Threat</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><a href="#sanitize-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
 <div class="tsd-description">
-<div class="tsd-comment tsd-typography"><p>Return sanitized content with threats neutralized</p>
+<div class="tsd-comment tsd-typography"><p>Return sanitized content with threats neutralized. <code>content</code> is the
+original scanned text, never text another detector has already edited, so
+the threats' offsets are valid in it. Each detector's change is merged
+with the others' and applied once.</p>
 </div>
 <div class="tsd-parameters">
 <h4 class="tsd-parameters-title">Parameters</h4>
