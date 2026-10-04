@@ -97,11 +97,20 @@
     }
 
     .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
       font-size: 18px;
       font-weight: 700;
       color: var(--text);
       text-decoration: none;
       letter-spacing: -0.02em;
+    }
+
+    .logo-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
     }
 
     .alpha-badge {
@@ -331,7 +340,7 @@
 
   <header>
     <div class="container">
-      <a href="/" class="logo">Agent Armor <span class="alpha-badge">alpha</span></a>
+      <a href="/" class="logo"><img src="/icon.svg" alt="" class="logo-icon" width="28" height="28"><span>Agent Armor</span> <span class="alpha-badge">alpha</span></a>
       <div class="header-links">
         <a href="https://github.com/stylusnexus/agent-armor/blob/main/CHANGELOG.md">Changelog</a>
         <a href="https://github.com/stylusnexus/agent-armor">GitHub</a>
