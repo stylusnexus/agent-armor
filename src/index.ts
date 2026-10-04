@@ -54,6 +54,7 @@ export type {
   SessionScanResult,
   Severity,
   Strictness,
+  TextEdit,
   Threat,
   ThreatSource,
   WarnEvent,

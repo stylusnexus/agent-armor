@@ -574,6 +574,8 @@ const armor = AgentArmor.regexOnly({
 });
 ```
 
+`sanitize` always receives the original text, so the `location` offsets on your threats are valid in it. Every detector's changes are collected, overlapping ones are merged (the highest-severity detector's replacement wins), and the result is applied once. Change text only inside your own findings. A detector that also changes text elsewhere (say, lowercasing the whole input) runs after the others, on their output, with your original offsets.
+
 ## Updatable Pattern Database
 
 Patterns are data-driven, not hardcoded. Update without upgrading the package:

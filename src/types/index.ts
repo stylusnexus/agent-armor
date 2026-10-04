@@ -212,13 +212,37 @@ export interface Detector {
   category: TrapCategory;
   /** Scan content and return any threats found */
   scan(content: string, options?: DetectorOptions): DetectorResult;
-  /** Return sanitized content with threats neutralized */
+  /**
+   * Return sanitized content with threats neutralized. `content` is the
+   * original scanned text, never text another detector has already edited, so
+   * the threats' offsets are valid in it. Each detector's change is merged
+   * with the others' and applied once.
+   */
   sanitize(content: string, threats: Threat[]): string;
+  /**
+   * Optional: the edits `sanitize` would make, as spans of the original text.
+   * Each edit's replacement should cover only its own span. Without this, the
+   * pipeline compares `sanitize`'s output with the original to find one edit
+   * per finding.
+   */
+  sanitizeEdits?(content: string, threats: Threat[]): TextEdit[];
   /** Async scan method (used by ML detectors where inference is async) */
   scanAsync?(
     content: string,
     options?: DetectorOptions,
   ): Promise<DetectorResult>;
+}
+
+/** One edit to the scanned text: replace `length` characters at `offset` with `replacement`. */
+export interface TextEdit {
+  /** Where the edit starts, in the original text. */
+  offset: number;
+  /** How many characters of the original it covers. */
+  length: number;
+  /** What replaces them (empty to remove). */
+  replacement: string;
+  /** How dangerous the finding behind it is; the higher one wins when edits overlap. */
+  severity: Severity;
 }
 
 /** Per-scan options passed to a detector. */
