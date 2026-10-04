@@ -81,6 +81,31 @@ Optional ML classifier for deeper detection:
 npm install @stylusnexus/agentarmor-ml
 ```
 
+### Keeping up to date
+
+A scanner on an old version keeps the old bypasses, so keep it current. Releases are listed on the [releases page](https://github.com/stylusnexus/agent-armor/releases), and security fixes are published as [advisories](https://github.com/stylusnexus/agent-armor/security/advisories), which `npm audit` and Dependabot report.
+
+Update both packages if you use them:
+
+```bash
+npm update @stylusnexus/agentarmor @stylusnexus/agentarmor-ml
+```
+
+A lockfile pins the version you have, so an update only happens when you run this or when a bot opens a PR. To get those PRs, add this to `.github/dependabot.yml`. The `allow` line limits it to our packages, so it won't open PRs for the rest of your dependencies:
+
+```yaml
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    allow:
+      - dependency-name: "@stylusnexus/*"
+```
+
+Versions 0.2.1 to 0.2.17 can report a very large input as clean ([GHSA-vr4h-8mw3-pfpv](https://github.com/stylusnexus/agent-armor/security/advisories/GHSA-vr4h-8mw3-pfpv)). Use 0.2.18 or later.
+
 ## Testing & Validation
 
 ### Eval Suite
