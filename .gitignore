@@ -13,6 +13,9 @@ agent-armor.code-workspace
 !.claude/agents/
 .claude/agents/*
 !.claude/agents/pattern-red-team.md
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/write-matcher
 docs/superpowers/
 docs/internal/
 ml/data/output/

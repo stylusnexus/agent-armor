@@ -50,10 +50,15 @@ The ML companion package is in `packages/ml/` with its own `npm run build|test|t
 
 When a feature or option changes, update `README.md` and the relevant docs in the same PR. Keep eval counts in the README in sync (`npm run check:docs`).
 
-## Skills
+## Skills and tool setup
 
-Task recipes live in `.agents/skills/`:
+One copy of each recipe, in `.agents/skills/` (read by Codex and Gemini CLI; Claude Code reaches them through the links below):
 
 - `write-matcher`: write an exact linear-time matcher for a slow detection regex.
+- `pattern-red-team`: adversarial review of a pattern, detector, matcher, threshold or eval-floor change. Run it before merging one.
 
-Claude Code users also get `.claude/agents/pattern-red-team.md`, a read-only adversarial reviewer to run before merging any change to patterns, detectors, thresholds or eval floors.
+Per tool:
+
+- **Codex:** reads this file and `.agents/skills/`.
+- **Gemini CLI:** `GEMINI.md` imports this file; it reads `.agents/skills/`.
+- **Claude Code:** reads this file when you have no `CLAUDE.md` of your own. If you do, add `@AGENTS.md` to it. `.claude/skills/write-matcher` links to the shared skill, and `.claude/agents/pattern-red-team.md` is a thin subagent that points at the shared one.
