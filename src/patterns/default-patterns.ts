@@ -12,7 +12,7 @@ import type { PatternDatabase } from './pattern-db';
  *           variation-selector runs (#69 item 1)
  */
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.3',
+  version: '0.9.4',
   updatedAt: '2026-10-04',
   detectors: {
     'hidden-html': [
@@ -352,7 +352,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
     'jailbreak-patterns': [
       {
         id: 'jb-instruction-override',
-        regex: '(?:ignore|disregard|forget)\\s+(?:all\\s+)?(?:previous|prior|above|earlier|your)\\s+(?:instructions?|rules?|guidelines?|constraints?|directives?)',
+        regex: '(?:ignore|disregard|forget)\\s+(?:all\\s+)?(?:previous|prior|above|earlier|your)\\s+(?:instructions?|rules?|guidelines?|constraints?|directives?|(?:prompt|system|conversation|chat|user)\\s+(?:messages?|prompts?))',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'embedded-jailbreak',
@@ -483,6 +483,36 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         label: 'Instruction to the agent to run a shell command or remote script',
         boostOnInstructions: true,
       },
+      {
+        id: 'jb-stop-following-user',
+        regex: '\\bstop\\s+(?:following|obeying)\\s+(?:the\\s+)?users?[\x27’]?s?\\s+(?:instructions?|requests?|commands?|orders?|directions?)\\b|\\bstop\\s+obeying\\s+(?:the\\s+)?users?\\b',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'embedded-jailbreak',
+        severity: 'critical',
+        confidence: 0.9,
+        label: 'Instruction to stop following the user',
+      },
+      {
+        id: 'jb-important-message-template',
+        regex: '\\bimportant\\s+message\\s+from\\s+me\\b[\\s\\S]{0,100}?\\bbefore\\s+you\\s+can\\s+(?:solve|complete|finish|do)\\s+(?:the|your|my)\\s+task\\b',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'embedded-jailbreak',
+        severity: 'critical',
+        confidence: 0.9,
+        label: 'Injected "important message ... before you can solve the task" template',
+      },
+      {
+        id: 'jb-base64-exec',
+        regex: '\\b(?:(?:eval|exec)\\s+["\x27]?(?:\\$\\(|`)|(?:sh|bash|zsh)\\s+(?:-c\\s+["\x27]?\\$\\(|<\\())\\s*(?:echo(?:\\s+-n)?|printf(?:\\s+["\x27]?%s["\x27]?)?)\\s+["\x27]?[A-Za-z0-9+/]{16,}={0,2}["\x27]?\\s*\\|\\s*base64\\s+(?:-di?|-D|--decode)\\b|\\b(?:echo(?:\\s+-n)?|printf(?:\\s+["\x27]?%s["\x27]?)?)\\s+["\x27]?[A-Za-z0-9+/]{16,}={0,2}["\x27]?\\s*\\|\\s*base64\\s+(?:-di?|-D|--decode)\\b[^\\n|]{0,20}\\|\\s*(?:/bin/)?(?:sh|bash|zsh)\\b',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'embedded-jailbreak',
+        severity: 'high',
+        confidence: 0.85,
+        label: 'Base64-decoded payload executed by a shell',
+      },
     ],
 
     exfiltration: [
@@ -587,6 +617,16 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         severity: 'critical',
         confidence: 0.85,
         label: 'Markdown image data exfiltration',
+      },
+      {
+        id: 'ex-markdown-ref-link',
+        regex: '!\\[[^\\]\\n]{0,60}\\]\\[([^\\]\\n]{1,60})\\][\\s\\S]{0,400}?^[ \\t]{0,3}\\[\\1\\]:[ \\t]*<?https?:\\/\\/[^\\s>?]{0,200}\\?[^\\s>]{0,200}?(?:data|token|secret|key|context|conversation|history|session|password|credential|api[_-]?key|env)\\b',
+        flags: 'gim',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'critical',
+        confidence: 0.85,
+        label: 'Reference-style markdown image data exfiltration',
       },
       {
         id: 'ex-read-env',
