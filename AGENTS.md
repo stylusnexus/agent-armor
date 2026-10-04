@@ -61,4 +61,4 @@ Per tool:
 
 - **Codex:** reads this file and `.agents/skills/`.
 - **Gemini CLI:** `GEMINI.md` imports this file; it reads `.agents/skills/`.
-- **Claude Code:** reads this file when you have no `CLAUDE.md` of your own. If you do, add `@AGENTS.md` to it. `.claude/skills/write-matcher` links to the shared skill, and `.claude/agents/pattern-red-team.md` is a thin subagent that points at the shared one.
+- **Claude Code:** `CLAUDE.md` imports this file. Keep personal notes in `CLAUDE.local.md` (gitignored). `.claude/skills/write-matcher` links to the shared skill, and `.claude/agents/pattern-red-team.md` is a thin subagent that points at the shared one.
