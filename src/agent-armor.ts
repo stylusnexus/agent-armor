@@ -21,7 +21,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { evaluateAction } from './action-gate';
 import type { PatternDatabase } from './patterns/pattern-db';
 import { DEFAULT_PATTERNS } from './patterns/default-patterns';
-import { PatternDetector } from './detectors/pattern-detector';
+import { PatternDetector, redactSecret } from './detectors/pattern-detector';
 import {
   normalizeForScan,
   mapRangeToOriginal,
@@ -326,6 +326,8 @@ export class AgentArmor {
   private mlDetector: Detector | null = null;
   /** Built-in detector IDs that scan the normalized skeleton, not raw input. */
   private normalizedDetectorIds = new Set<string>();
+  /** Detectors whose evidence is a secret and must stay masked after remapping. */
+  private maskedDetectorIds = new Set<string>();
   /** Guards the one-time "accumulation not yet implemented" warning. */
   private accumulationWarned = false;
 
@@ -607,6 +609,7 @@ export class AgentArmor {
 
   private loadDetectors(): void {
     this.normalizedDetectorIds.clear();
+    this.maskedDetectorIds.clear();
     for (const reg of DETECTOR_REGISTRY) {
       const groupConfig =
         this.config[reg.configGroup] as Record<string, boolean>;
@@ -620,6 +623,8 @@ export class AgentArmor {
         this.config.on?.detectorSkipped?.({ detectorId: reg.id, reason: 'no-patterns' });
         continue;
       }
+
+      if (reg.maskEvidence) this.maskedDetectorIds.add(reg.id);
 
       this.detectors.push(
         new PatternDetector({
@@ -663,7 +668,14 @@ export class AgentArmor {
         location.offset,
         location.offset + location.length
       );
-      const evidence = slice.length > 200 ? slice.slice(0, 197) + '...' : slice;
+      // The remapped evidence is the original text, so a detector that masks
+      // its evidence (leaked credentials) must be masked again here, or one
+      // invisible character in the input would print the secret.
+      const evidence = this.maskedDetectorIds.has(t.detectorId)
+        ? redactSecret(slice)
+        : slice.length > 200
+          ? slice.slice(0, 197) + '...'
+          : slice;
       return { ...t, location, evidence };
     });
   }
