@@ -1,6 +1,5 @@
 import { BaseDetector, type PatternMatch } from '../base';
 import { applyEdits, mergeEdits } from '../../sanitize';
-import { regexFinder } from '../../patterns/matchers/scan-helpers';
 import type { TextEdit, Threat, TrapCategory, TrapType } from '../../types';
 
 const KEYWORDS =
@@ -12,13 +11,16 @@ const MAX_LABEL = 999;
 /**
  * `[label]: destination`, with any mix of spaces, tabs and `>` before the `[`
  * (so a definition inside a block quote or a list item counts), and the
- * destination on the same line, on the next line, or in `<...>`. The
- * destination is read in a lookahead so a match only consumes `[label]:`: a
- * line that happens to look like a definition cannot swallow the real
- * definition on the next line.
+ * destination on the same line, on the next line, or in `<...>`.
+ *
+ * The label follows CommonMark: no unescaped brackets, backslash escapes
+ * (`\]`), and it may continue over line breaks (`\n`, `\r` or `\r\n`) but
+ * not across a blank line. The destination is read in a lookahead so a match
+ * only consumes `[label]:`: a line that happens to look like a definition
+ * cannot swallow the real definition on the next line.
  */
 const DEFINITION =
-  /^[ \t>]*\[([^\]\n\r\u2028\u2029]{1,999})\]:(?=[ \t]*(?:\r?\n[ \t>]*)?(<[^>\n\r\u2028\u2029]+>|[^\s<]\S*))/gm;
+  /^[ \t>]*\[((?:[^[\]\\\r\n]|\\[\s\S]|(?:\r\n|\r|\n)(?![ \t]*(?:\r\n|\r|\n|(?![\s\S])))){1,999})\]:(?=[ \t]*(?:(?:\r\n|\r|\n)[ \t>]*)?(<[^>\r\n]+>|[^\s<]\S*))/gm;
 
 /** A destination that sends data out: an http(s) or scheme-relative URL whose query holds a data keyword. */
 const EXFIL_DESTINATION = new RegExp('^<?(?:https?:)?\\/\\/[^\\s>?]*\\?[^\\s>]*?' + KEYWORDS + '\\b', 'i');
@@ -28,9 +30,48 @@ const MERGE_GAP = 100;
 
 const MARKER = '[BLOCKED: exfiltration instruction removed by AgentArmor]';
 
-/** Markdown matches reference labels case-insensitively with whitespace runs collapsed. */
+/**
+ * Markdown matches reference labels after trimming, collapsing whitespace runs
+ * (line breaks included) and Unicode case folding. Lowercase, uppercase,
+ * lowercase approximates the fold: it turns `ß` and `SS` into the same `ss`.
+ */
 function normalizeLabel(label: string): string {
-  return label.trim().replace(/\s+/g, ' ').toLowerCase();
+  return label.trim().replace(/\s+/g, ' ').toLowerCase().toUpperCase().toLowerCase();
+}
+
+/**
+ * Pairs every `[` with its `]` in one pass, the way a markdown parser does:
+ * backslash escapes skip a character, brackets nest, and a blank line ends the
+ * paragraph, so brackets still open at that point never match.
+ */
+function pairBrackets(content: string): { close: Int32Array; hasInner: Uint8Array } {
+  const n = content.length;
+  const close = new Int32Array(n).fill(-1);
+  const hasInner = new Uint8Array(n);
+  const open: number[] = [];
+  let i = 0;
+  while (i < n) {
+    const c = content.charCodeAt(i);
+    if (c === 92) {
+      i += 2; // a backslash escapes the next character
+    } else if (c === 91) {
+      if (open.length > 0) hasInner[open[open.length - 1]] = 1;
+      open.push(i);
+      i++;
+    } else if (c === 93) {
+      const o = open.pop();
+      if (o !== undefined) close[o] = i;
+      i++;
+    } else if (c === 10 || c === 13) {
+      i += c === 13 && content.charCodeAt(i + 1) === 10 ? 2 : 1;
+      let k = i;
+      while (k < n && (content.charCodeAt(k) === 32 || content.charCodeAt(k) === 9)) k++;
+      if (k >= n || content.charCodeAt(k) === 10 || content.charCodeAt(k) === 13) open.length = 0; // blank line
+    } else {
+      i++;
+    }
+  }
+  return { close, hasInner };
 }
 
 /**
@@ -73,9 +114,7 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
     }
     if (flagged.size === 0) return [];
 
-    // Next `]` or line break at or after a position, remembered so a run of
-    // `![` openers does not rescan to the same far `]`.
-    const nextStop = regexFinder(content, /[\]\n\r\u2028\u2029]/g);
+    const { close, hasInner } = pairBrackets(content);
     const matches: PatternMatch[] = [];
     // Flagged images that sit next to each other become one finding, so a run of tiny images is replaced by one marker.
     let pending: { index: number; end: number; related: { index: number; length: number } } | undefined;
@@ -95,8 +134,9 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
     };
     let at = content.indexOf('![');
     while (at >= 0) {
-      const altEnd = nextStop(at + 2);
-      if (altEnd < 0 || content[altEnd] !== ']') {
+      const altOpen = at + 1;
+      const altEnd = close[altOpen];
+      if (altEnd < 0) {
         at = content.indexOf('![', at + 1);
         continue;
       }
@@ -104,17 +144,21 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
       let end = afterAlt;
       let labelText: string | undefined;
       if (content[afterAlt] === '[') {
-        const labelEnd = nextStop(afterAlt + 1);
-        if (labelEnd >= 0 && content[labelEnd] === ']' && labelEnd - (afterAlt + 1) <= MAX_LABEL) {
+        const labelEnd = close[afterAlt];
+        if (labelEnd >= 0 && !hasInner[afterAlt] && labelEnd - afterAlt - 1 <= MAX_LABEL) {
           end = labelEnd + 1;
           const explicit = content.slice(afterAlt + 1, labelEnd);
           if (explicit.trim() !== '') labelText = explicit;
+          else if (!hasInner[altOpen] && altEnd - altOpen - 1 <= MAX_LABEL) labelText = content.slice(altOpen + 1, altEnd);
         }
       } else if (content[afterAlt] === '(') {
         at = content.indexOf('![', at + 1); // an inline image, not a reference
         continue;
       }
-      if (labelText === undefined && altEnd - (at + 2) <= MAX_LABEL) labelText = content.slice(at + 2, altEnd);
+      // A shortcut reference (and a collapsed one) uses the alt text as its label, which cannot hold brackets.
+      if (labelText === undefined && end === afterAlt && !hasInner[altOpen] && altEnd - altOpen - 1 <= MAX_LABEL) {
+        labelText = content.slice(altOpen + 1, altEnd);
+      }
       const label = labelText === undefined ? '' : normalizeLabel(labelText);
       const related = label === '' ? undefined : flagged.get(label);
       if (related) {

