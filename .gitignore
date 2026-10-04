@@ -8,7 +8,11 @@ coverage/
 CLAUDE.md
 MEMORY.md
 agent-armor.code-workspace
-.claude/
+# Claude Code: keep local state and settings out; share the review agent
+.claude/*
+!.claude/agents/
+.claude/agents/*
+!.claude/agents/pattern-red-team.md
 docs/superpowers/
 docs/internal/
 ml/data/output/

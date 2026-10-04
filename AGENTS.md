@@ -55,3 +55,5 @@ When a feature or option changes, update `README.md` and the relevant docs in th
 Task recipes live in `.agents/skills/`:
 
 - `write-matcher`: write an exact linear-time matcher for a slow detection regex.
+
+Claude Code users also get `.claude/agents/pattern-red-team.md`, a read-only adversarial reviewer to run before merging any change to patterns, detectors, thresholds or eval floors.
