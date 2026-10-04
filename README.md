@@ -1,4 +1,10 @@
+<div align="center">
+
+<img src="https://agentarmor.dev/icon-512.png" alt="Agent Armor: a shield with a heartbeat line" width="112" height="112">
+
 # Agent Armor
+
+*Inference is probabilistic. The gate shouldn't be.*
 
 [![npm version](https://img.shields.io/npm/v/@stylusnexus/agentarmor.svg)](https://www.npmjs.com/package/@stylusnexus/agentarmor)
 [![npm downloads](https://img.shields.io/npm/dm/@stylusnexus/agentarmor.svg)](https://www.npmjs.com/package/@stylusnexus/agentarmor)
@@ -6,6 +12,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **[agentarmor.dev](https://agentarmor.dev)** | **[API Reference](https://agentarmor.dev/api)** | **[npm](https://www.npmjs.com/package/@stylusnexus/agentarmor)** | **[GitHub](https://github.com/stylusnexus/agent-armor)**
+
+</div>
 
 Open-source security framework for AI agents. Detects and defends against **AI Agent Traps** — adversarial content designed to manipulate, deceive, or exploit autonomous AI agents.
 
