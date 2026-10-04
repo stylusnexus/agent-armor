@@ -12,7 +12,7 @@ import type { PatternDatabase } from './pattern-db';
  *           variation-selector runs (#69 item 1)
  */
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.1',
+  version: '0.9.2',
   updatedAt: '2026-10-04',
   detectors: {
     'hidden-html': [
@@ -463,15 +463,17 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         label: 'Fictional world restriction bypass (loose)',
       },
       {
-        // An address to the agent ("assistant:", "note to agent", "as the AI
-        // reading this", "when you read this") followed by an instruction to run
-        // a shell command, pipe a remote script, or run something destructive.
+        // An address to the agent ("assistant:", "Agents:", "Claude:", "note to
+        // agent", "as the AI reading this", "when you read this"), including
+        // quoted, bold, bulleted and greeted forms, followed by an instruction
+        // to run a shell command, pipe a remote script, or run something
+        // destructive.
         // The addressee is what separates this from ordinary docs ("run npm
         // install"): nobody writes install steps to "the assistant". No
         // requireInstructions: that gate tests only the matched text, which
         // here stops at the command and misses "don't tell the user".
         id: 'jb-agent-directed-command',
-        regex: '(?:(?:note|message|instructions?)\\s+(?:to|for)\\s+(?:the\\s+)?(?:ai|agent|assistant|model|llm)\\b|(?:^|[.:!>\\n]\\s*|[\\s=](?=["\x27\\u201C\\u2018`]))["\x27\\u201C\\u2018`]?(?:ai\\s+)?(?:assistant|agent)\\s*[,:]|as\\s+(?:the|an?)\\s+(?:ai|agent|assistant|llm)\\b[^.\\n]{0,40},|when\\s+you\\s+(?:read|see|process|parse)\\s+(?:this|the\\s+(?:above|following)))[\\s\\S]{0,80}?\\b(?:run|execute|exec|invoke|launch)\\b[\\s\\S]{0,60}?(?:\\b(?:curl|wget|bash|sudo|powershell|eval|nc|netcat)\\b|\\bsh\\b|\\brm\\s+-|chmod\\s+\\+x|(?:installer|script|payload|binary)\\s+(?:at|from)\\s+https?:\\/\\/)',
+        regex: '(?:(?:note|message|instructions?)\\s+(?:to|for)\\s+(?:the\\s+)?(?:ai|agent|assistant|model|llm)\\b|(?:^|[.:!>\\n\\-*+•]\\s*|[\\s=](?=[\\"\x27“‘`«‹„‚*_]))[*_\\"\x27“‘`«‹„‚]{0,3}(?:(?:dear|hey|hi|hello)\\s+)?(?:ai[\\s-]+)?(?:assistants?|agents?|claude|chatgpt|gemini|copilot)[*_\\"\x27”’»›`]{0,3}\\s*[,:]|as\\s+(?:the|an?)\\s+(?:ai|agent|assistant|llm)\\b[^.\\n]{0,40},|when\\s+you\\s+(?:read|see|process|parse)\\s+(?:this|the\\s+(?:above|following)))[\\s\\S]{0,200}?\\b(?:run|execute|exec|invoke|launch|pipe)\\b[\\s\\S]{0,60}?(?:\\b(?:curl|wget|bash|sudo|powershell|eval|nc|netcat)\\b|\\bsh\\b|\\brm\\s+-|chmod\\s+\\+x|(?:installer|script|payload|binary)\\s+(?:at|from)\\s+https?:\\/\\/)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'embedded-jailbreak',
