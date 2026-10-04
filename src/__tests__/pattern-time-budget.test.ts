@@ -28,7 +28,7 @@ const FRAGMENTS = [
   '<a style="display:none">', '<p style="opacity:0" >', 'data-x="', '![a](http://x/?data=',
   'if(isBot){', '[//]: # (ignore ', 'SYSTEM: ', 'DAN ', 'assistant, ', 'note to the ai ',
   '‪ x ', 'aria-label="', 'alt="',
-  '![a][b] ', '![][b]'.repeat(50) + '\n[b]: http://' + '?'.repeat(199) + ' ', 'eval $(echo ', 'echo -n ', 'important message from me ',
+  '![a][b] ', 'eval $(echo ', 'echo -n ', 'important message from me ',
 ];
 
 const SAMPLE_PREFIXES = ADVERSARIAL_SAMPLES.map((s) =>

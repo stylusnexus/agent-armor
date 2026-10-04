@@ -29,6 +29,8 @@ export interface PatternMatch {
   confidence: Confidence;
   severity: Severity;
   description: string;
+  /** A second span this finding depends on (see `Threat.relatedLocation`). */
+  related?: { index: number; length: number };
 }
 
 export abstract class BaseDetector implements Detector {
@@ -72,6 +74,7 @@ export abstract class BaseDetector implements Detector {
         description: m.description,
         evidence: truncate(this.redactEvidence(m.match), 200),
         location: { offset: m.index, length: m.length },
+        ...(m.related ? { relatedLocation: { offset: m.related.index, length: m.related.length } } : {}),
         detectorId: this.id,
         source: 'pattern' as const,
       }));

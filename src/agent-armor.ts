@@ -24,6 +24,7 @@ import { alignedEdits, applyEdits, mergeEdits } from './sanitize';
 import type { PatternDatabase } from './patterns/pattern-db';
 import { DEFAULT_PATTERNS } from './patterns/default-patterns';
 import { PatternDetector, redactSecret } from './detectors/pattern-detector';
+import { MarkdownReferenceExfiltrationDetector } from './detectors/behavioural-control/markdown-reference-exfiltration';
 import {
   normalizeForScan,
   mapRangeToOriginal,
@@ -131,6 +132,8 @@ const DETECTOR_REGISTRY: Array<{
   /** Redact matched text before it becomes `Threat.evidence` — for detectors
    *  whose matches are themselves secrets. */
   maskEvidence?: boolean;
+  /** Code detectors that run alongside this entry's pattern detector, under the same config flag. */
+  extraDetectors?: () => Detector[];
 }> = [
   // Content Injection
   {
@@ -209,6 +212,7 @@ const DETECTOR_REGISTRY: Array<{
     sanitizeMode: 'replace',
     replaceText:
       '[BLOCKED: exfiltration instruction removed by AgentArmor]',
+    extraDetectors: () => [new MarkdownReferenceExfiltrationDetector()],
   },
   {
     configGroup: 'behaviouralControl',
@@ -642,11 +646,15 @@ export class AgentArmor {
         })
       );
 
+      const extras = reg.extraDetectors?.() ?? [];
+      this.detectors.push(...extras);
+
       // Structural detectors (content-injection) must see the raw bytes — they
       // exist to catch the invisible/obfuscation characters normalization
       // strips. Everything else scans the normalized skeleton.
       if (reg.category !== 'content-injection') {
         this.normalizedDetectorIds.add(reg.id);
+        for (const extra of extras) this.normalizedDetectorIds.add(extra.id);
       }
     }
 
@@ -667,6 +675,9 @@ export class AgentArmor {
         t.location.offset,
         t.location.length
       );
+      const relatedLocation = t.relatedLocation
+        ? mapRangeToOriginal(norm, t.relatedLocation.offset, t.relatedLocation.length)
+        : undefined;
       const slice = original.slice(
         location.offset,
         location.offset + location.length
@@ -679,7 +690,7 @@ export class AgentArmor {
         : slice.length > 200
           ? slice.slice(0, 197) + '...'
           : slice;
-      return { ...t, location, evidence };
+      return { ...t, location, ...(relatedLocation ? { relatedLocation } : {}), evidence };
     });
   }
 
@@ -1101,8 +1112,11 @@ export class AgentArmor {
 
       for (const threat of this.runScanPipeline(joined).threats) {
         if (!threat.location) continue; // no offset → cannot prove a span
-        const spanStart = threat.location.offset;
-        const spanEnd = spanStart + threat.location.length;
+        const rel = threat.relatedLocation;
+        const spanStart = rel ? Math.min(threat.location.offset, rel.offset) : threat.location.offset;
+        const spanEnd = rel
+          ? Math.max(threat.location.offset + threat.location.length, rel.offset + rel.length)
+          : threat.location.offset + threat.location.length;
         const touchesEarlier = spanStart < aEnd;
         const touchesLater = spanEnd > bStart;
         if (!touchesEarlier || !touchesLater) continue; // not straddling
@@ -1112,7 +1126,7 @@ export class AgentArmor {
         if (seen.has(key)) continue;
         seen.add(key);
 
-        const { location: _drop, ...rest } = threat;
+        const { location: _drop, relatedLocation: _dropRelated, ...rest } = threat;
         crossTurnThreats.push({
           ...rest,
           contributingTurns,
