@@ -115,6 +115,28 @@ describe('reference-style markdown image exfiltration (#219)', () => {
     expect(flags(`![a\\\nb][r]\n\n${DEF}`)).toBe(true);
     expect(flags(`![a\\]b][r]\n\n${DEF}`)).toBe(true);
   });
+  it('reads the text the way a renderer does: code spans, autolinks and block boundaries (#224)', () => {
+    const shapes = [
+      `see [ note ![a \`]\` b][r]\n\n${DEF}`, // a stray `[` before a code span holding a `]`
+      `# Title [\n![a \`]\` b][r]\n\n${DEF}`, // a heading ends the block
+      `\`\`\`\n[\n\`\`\`\n![a \`]\` b][r]\n\n${DEF}`, // a fence holds the `[`
+      `- [ x\n![a \`]\` b][r]\n\n${DEF}`, // a list item starts a new block
+      `> [ x\n>\n> ![a \`]\` b][r]\n\n${DEF}`, // a quote-only line ends the paragraph
+      `![r][x \`]\` \n\n${DEF}`, // the label breaks, so the renderer reads a shortcut reference on the alt
+      `![r][x <http://y/]>\n\n${DEF}`,
+    ];
+    for (const text of shapes) expect(flags(text), text).toBe(true);
+  });
+  it('matches a NUL in a label to U+FFFD, and a label split across block quote lines (#224)', () => {
+    expect(flags('![a][r\u0000]\n\n[r\ufffd]: https://e.x/p.png?data=Q')).toBe(true);
+    expect(flags('> x ![a][my\n> label]\n\n> [my\n> label]: https://e.x/p.png?data=Q')).toBe(true);
+  });
+  it('keeps honest badges clean under the new rules (#224); an image shown as code stays flagged, as before', () => {
+    const clean = [
+      '[![Downloads][dl-image]][dl-url]\n\n[dl-image]: https://img.shields.io/x.svg\n[dl-url]: https://n.org/p?activeTab=data',
+    ];
+    for (const text of clean) expect(flags(text), text).toBe(false);
+  });
   it('folds case the way CommonMark does', () => {
     expect(flags('![x][STRASSE]\n\n[stra\u00dfe]: https://c.example/p.png?data=1')).toBe(true);
     expect(flags('![x][Stra\u00dfe]\n\n[STRASSE]: https://c.example/p.png?data=1')).toBe(true);
@@ -200,7 +222,7 @@ function reference(content: string): Array<[number, number]> {
   const PUNCT = /^[!-/:-@[-`{-~]$/;
   const GAPCHARS = /^[ \t\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000\ufeff]$/;
   const isWs = (c: string) => /\s/.test(c);
-  const norm = (s: string) => s.trim().replace(/\s+/g, ' ').toLowerCase().toUpperCase().toLowerCase();
+  const norm = (s: string) => s.replace(/\0/g, '\ufffd').replace(/(?:\r\n|\r|\n)[ \t>]*/g, ' ').trim().replace(/\s+/g, ' ').toLowerCase().toUpperCase().toLowerCase();
   const afterBreak = (i: number) => (content[i] === '\r' && content[i + 1] === '\n' ? i + 2 : isBreakChar(content[i]) ? i + 1 : i);
   const blankLineAt = (i: number) => {
     let k = i;
@@ -337,13 +359,125 @@ function reference(content: string): Array<[number, number]> {
     return undefined;
   };
 
+  // Renderer reading: block structure first (a parser splits blocks before it reads inline text), then
+  // brackets pair within one block with code spans and autolinks hidden.
+  const seg = new Int32Array(n + 1);
+  {
+    let cur = 0;
+    let fence: { ch: string; len: number } | undefined;
+    let pos = 0;
+    for (;;) {
+      let e = pos;
+      while (e < n && !isBreakChar(content[e])) e++;
+      const line = content.slice(pos, e);
+      const rest = line.slice(/^[ \t>]*/.exec(line)![0].length);
+      let lineSeg = cur;
+      if (fence) {
+        lineSeg = -1;
+        const f = /^(`{3,}|~{3,})\s*$/.exec(rest);
+        if (f && f[1][0] === fence.ch && f[1].length >= fence.len) { fence = undefined; cur++; }
+      } else if (rest === '') {
+        cur++;
+        lineSeg = -1;
+      } else if (/^#{1,6}(?:[ \t]|$)/.test(rest)) {
+        cur++; lineSeg = cur; cur++;
+      } else if (/^`{3,}[^`]*$/.test(rest) || /^~{3,}/.test(rest)) {
+        const f = /^(`{3,}|~{3,})/.exec(rest)!;
+        cur++; lineSeg = -1; fence = { ch: f[1][0], len: f[1].length };
+      } else if (/^(?:[-*+]|\d{1,9}[.)])[ \t]/.test(rest)) {
+        cur++; lineSeg = cur;
+      }
+      for (let k = pos; k < Math.min(e + (content[e] === '\r' && content[e + 1] === '\n' ? 2 : 1), n); k++) seg[k] = lineSeg;
+      if (e >= n) break;
+      pos = e + (content[e] === '\r' && content[e + 1] === '\n' ? 2 : 1);
+      if (pos > n) break;
+      if (pos === n) { break; }
+    }
+  }
+  const AUTO = /^<(?:[A-Za-z][A-Za-z0-9+.-]{1,31}:[^\s<>]*|[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*)>/;
+  /** The end of a code span or autolink starting at `i` inside block `block`, or -1 if none starts there. */
+  const inlineEnd = (i: number, block: number): number => {
+    if (content[i] === '`') {
+      let k = 0;
+      while (content[i + k] === '`') k++;
+      for (let j = i + k; j < n; ) {
+        if (seg[j] !== block) break;
+        if (content[j] !== '`') { j++; continue; }
+        let m = 0;
+        while (content[j + m] === '`') m++;
+        if (m === k) return j + m;
+        j += m;
+      }
+      return -1;
+    }
+    if (content[i] === '<') {
+      const m = AUTO.exec(content.slice(i, i + 400));
+      return m ? i + m[0].length : -1;
+    }
+    return -1;
+  };
+  // Which characters a renderer reads as code or a URL (spans and autolinks, left to right), so brackets
+  // inside them are not brackets, and an image inside one is not an image.
+  const hidden = new Uint8Array(n + 1);
+  for (let i = 0; i < n; ) {
+    const block = seg[i];
+    if (block < 0) { i++; continue; }
+    const c = content[i];
+    if (c === '\\') { i += PUNCT.test(content[i + 1] ?? '') ? 2 : 1; continue; }
+    if (c === '`') {
+      const end = inlineEnd(i, block);
+      let k = 0;
+      while (content[i + k] === '`') k++;
+      if (end >= 0) { for (let j = i; j < end; j++) hidden[j] = 1; i = end; } else i += k;
+      continue;
+    }
+    if (c === '<') {
+      const end = inlineEnd(i, block);
+      if (end >= 0) { for (let j = i; j < end; j++) hidden[j] = 1; i = end; continue; }
+    }
+    i++;
+  }
+  /** The `[` at `open` paired by nesting in the renderer reading. */
+  const renderedNestedEnd = (open: number): { end: number; inner: boolean } | undefined => {
+    const block = seg[open];
+    if (block < 0 || hidden[open]) return undefined;
+    let depth = 0;
+    let inner = false;
+    for (let i = open; i < n; ) {
+      if (seg[i] !== block) return undefined;
+      const c = content[i];
+      if (hidden[i]) { i++; continue; }
+      if (c === '\\') { i += PUNCT.test(content[i + 1] ?? '') ? 2 : 1; continue; }
+      if (c === '[') { depth++; if (depth > 1) inner = true; }
+      else if (c === ']') { depth--; if (depth === 0) return { end: i, inner }; }
+      i++;
+    }
+    return undefined;
+  };
+  /** A bracketed label whose `[` is at `open` in the renderer reading: no brackets inside; returns the `]` or -1. */
+  const renderedLabelEnd = (open: number, allowEmpty = false): number => {
+    const block = seg[open];
+    if (block < 0 || hidden[open]) return -1;
+    let items = 0;
+    for (let i = open + 1; i < n; ) {
+      if (seg[i] !== block) return -1;
+      const c = content[i];
+      if (hidden[i]) { i++; items++; continue; }
+      if (c === ']') return items >= 1 || allowEmpty ? i : -1;
+      if (c === '[') return -1;
+      if (c === '\\') { i += PUNCT.test(content[i + 1] ?? '') ? 2 : 1; items++; continue; }
+      i++; items++;
+    }
+    return -1;
+  };
+
   const hits: Array<[number, number]> = []; // [start, end)
-  const readImage = (at: number, alt: { end: number; inner: boolean }) => {
+  const readImage = (at: number, alt: { end: number; inner: boolean }, labelEndFn: (open: number, allowEmpty?: boolean) => number = labelEnd) => {
     const afterAlt = alt.end + 1;
     let end = afterAlt;
     let label: string | undefined;
     if (content[afterAlt] === '[') {
-      const le = labelEnd(afterAlt, true);
+      const le = labelEndFn(afterAlt, true);
       if (le >= 0) {
         end = le + 1;
         const explicit = content.slice(afterAlt + 1, le);
@@ -361,6 +495,8 @@ function reference(content: string): Array<[number, number]> {
     const b = firstEnd(i + 1);
     if (a) readImage(i, a);
     if (b && !(a && a.end === b.end)) readImage(i, b);
+    const r = hidden[i] ? undefined : renderedNestedEnd(i + 1);
+    if (r) readImage(i, r, renderedLabelEnd);
   }
   // Reading C: an unpaired `]` before `[label]`, after an earlier `]`, in an image's paragraph, ends the alt text.
   let lastBang = -1;
@@ -427,7 +563,7 @@ describe('matches a slow reference on generated documents (#219)', () => {
     'https://c.example/' + 'p'.repeat(300) + '.png?a=' + 'q'.repeat(300) + '&data=1', 'https://ok.example/a.png',
     'https://c.example/p.png?d\u0430ta=1', 'https://c.example/p.png?da\u200eta=1', 'https://c.example/p.png&quest;data=1', 'https://c.example/p.png?q=\\>data=1', '<https://c.example/p.png?q=1\\>data=1>',
   ];
-  const NOISE = ['text ', ' ', '\n', '\n\n', '\r\n', '\r', '\t', '(', ')', '[', ']', '[b]', '\\]', '\\[', '!', ':', '<', '>', '?', 'a', '\u2028', 'x'.repeat(40)];
+  const NOISE = ['`', '``', '\n# ', '# Title [\n', '\n```\n', '\n~~~\n', '\n- [ x\n', '\n> \n', '\n1. ', '<http://h/[>', '<a@b.c>', 'text ', ' ', '\n', '\n\n', '\r\n', '\r', '\t', '(', ')', '[', ']', '[b]', '\\]', '\\[', '!', ':', '<', '>', '?', 'a', '\u2028', 'x'.repeat(40)];
   const label = (rand: () => number) => LABELS[Math.floor(rand() * LABELS.length)];
   const pick = <T,>(rand: () => number, xs: T[]) => xs[Math.floor(rand() * xs.length)];
   const piece = (rand: () => number): string => {
@@ -436,12 +572,13 @@ describe('matches a slow reference on generated documents (#219)', () => {
       const form = rand();
       const l = label(rand);
       if (form < 0.05) return `![${'alt '.repeat(300)}][${l}]`;
-      if (form < 0.12) return pick(rand, ['![a [b] c]', '![a\\]b]', '![first\nsecond]', '![first\r\nsecond]', '![a [b c]', '![[b]]', '![a `[` b]', '![a `]` b]', '![a <http://q.example/[> b]', '![a ] b]', '[![a][b]]', '![a][b] x [c]']) + `[${l}]`;
+      if (form < 0.12) return pick(rand, ['![a [b] c]', '![a\\]b]', '![first\nsecond]', '![first\r\nsecond]', '![a [b c]', '![[b]]', '![a `[` b]', '![a `]` b]', '![a <http://q.example/[> b]', '![a ] b]', '[![a][b]]', '![a][b] x [c]', '![a `x\n\ny` b]', '![a ``]`` b]', '![a <b@c.d> [ b]', '![a <https://h/]> b]']) + `[${l}]`;
       if (form < 0.16) return pick(rand, ['![a [b] c]', '![first\nsecond]', '![a\\]b]']);
       if (form < 0.4) return `![alt][${l}]`;
       if (form < 0.6) return `![${l}][]`;
       if (form < 0.8) return `![${l}]`;
-      if (form < 0.9) return '![alt](https://c.example/a.png)';
+      if (form < 0.85) return '![alt](https://c.example/a.png)';
+      if (form < 0.9) return pick(rand, ['![a `]` b][', '![', '![a][x `]` ', '![a][x <http://y/]>', '![a][r\0]', '> ![a][my\n> label]']) + (rand() < 0.5 ? `${l}]` : '');
       return `![alt][${l}`;
     }
     if (r < 0.62) {
@@ -493,6 +630,11 @@ describe('stays linear (#219)', () => {
     ['image openers over one far bracket', '![![![![![![![![![![x]'],
     ['openers sharing one huge label', '![' .repeat(2000) + 'x][' + 'r'.repeat(300000) + ']'],
     ['many labels read once each', '![a][' + 'x'.repeat(50) + ']\n'],
+    ['backtick spans around brackets', '![a `]` b][r]\n\n[r]: https://x.example/?data=1\n'],
+    ['unmatched backticks', '`x ![a][r] [r]: https://x.example/?data=1\n'],
+    ['backtick runs of many lengths', '`x ``y ```z ![a][r]\n\n[r]: https://x.example/?data=1\n'],
+    ['autolink candidates', '<a:b ![a][r]\n\n[r]: https://x.example/?data=1\n'],
+    ['headings and fences', '# [\n```\n[\n```\n- [\n![a][r]\n[r]: https://x.example/?data=1\n'],
     ['nested open brackets', '[[[[[[[[[[[[[[[['],
     ['image openers with nested brackets', '![[![[![[!['],
     ['backslash runs', '\\\\\\\\\\[x\\\\\\\\\\]'],
