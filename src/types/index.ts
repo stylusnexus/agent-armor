@@ -111,6 +111,13 @@ export interface Threat {
   evidence: string;
   /** Byte offset or line number in the original content, if applicable */
   location?: { offset: number; length: number };
+  /**
+   * A second span the finding depends on, for example the definition a
+   * markdown image reference points to. Cross-turn scanning counts it when it
+   * decides whether a finding straddles a turn boundary; sanitization uses
+   * `location` only.
+   */
+  relatedLocation?: { offset: number; length: number };
   /** Which detector found this */
   detectorId: string;
   /** Where this threat was detected: pattern (regex), ml (classifier), or custom */

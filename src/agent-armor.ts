@@ -675,6 +675,9 @@ export class AgentArmor {
         t.location.offset,
         t.location.length
       );
+      const relatedLocation = t.relatedLocation
+        ? mapRangeToOriginal(norm, t.relatedLocation.offset, t.relatedLocation.length)
+        : undefined;
       const slice = original.slice(
         location.offset,
         location.offset + location.length
@@ -687,7 +690,7 @@ export class AgentArmor {
         : slice.length > 200
           ? slice.slice(0, 197) + '...'
           : slice;
-      return { ...t, location, evidence };
+      return { ...t, location, ...(relatedLocation ? { relatedLocation } : {}), evidence };
     });
   }
 
@@ -1109,8 +1112,11 @@ export class AgentArmor {
 
       for (const threat of this.runScanPipeline(joined).threats) {
         if (!threat.location) continue; // no offset → cannot prove a span
-        const spanStart = threat.location.offset;
-        const spanEnd = spanStart + threat.location.length;
+        const rel = threat.relatedLocation;
+        const spanStart = rel ? Math.min(threat.location.offset, rel.offset) : threat.location.offset;
+        const spanEnd = rel
+          ? Math.max(threat.location.offset + threat.location.length, rel.offset + rel.length)
+          : threat.location.offset + threat.location.length;
         const touchesEarlier = spanStart < aEnd;
         const touchesLater = spanEnd > bStart;
         if (!touchesEarlier || !touchesLater) continue; // not straddling
@@ -1120,7 +1126,7 @@ export class AgentArmor {
         if (seen.has(key)) continue;
         seen.add(key);
 
-        const { location: _drop, ...rest } = threat;
+        const { location: _drop, relatedLocation: _dropRelated, ...rest } = threat;
         crossTurnThreats.push({
           ...rest,
           contributingTurns,
