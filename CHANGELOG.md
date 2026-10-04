@@ -7,6 +7,14 @@ This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor 
 <!-- New entries are generated automatically by release-please from Conventional
 Commit messages on merge to main. Do not edit unreleased entries by hand. -->
 
+## [0.2.20](https://github.com/stylusnexus/agent-armor/compare/v0.2.19...v0.2.20) (2026-10-04)
+
+
+### Documentation
+
+* **readme:** add ci and downloads badges ([#196](https://github.com/stylusnexus/agent-armor/issues/196)) ([9c5e7b3](https://github.com/stylusnexus/agent-armor/commit/9c5e7b31cf77e2465d2c6e7272cf4dd514cd8ec8))
+* **site:** add icon, favicon and social card ([#198](https://github.com/stylusnexus/agent-armor/issues/198)) ([15f5c88](https://github.com/stylusnexus/agent-armor/commit/15f5c886269cf749f86c27f466454ffddc7b2a08))
+
 ## [0.2.19](https://github.com/stylusnexus/agent-armor/compare/v0.2.18...v0.2.19) (2026-10-04)
 
 
