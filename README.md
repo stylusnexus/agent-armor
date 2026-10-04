@@ -204,6 +204,12 @@ const armor = await AgentArmor.create({
   // payloads are caught. Evidence still reports the original text. Default: true.
   normalizeUnicode: true,
 
+  // Longest input, in characters, a scan will take on. Longer input is not
+  // scanned: the result is not clean, carries one `congestion-trap` threat from
+  // detector `input-limit`, and has an empty `sanitized`. Use Infinity to turn
+  // it off. Default: 1,000,000.
+  maxInputLength: 1_000_000,
+
   // ML classifier (requires @stylusnexus/agentarmor-ml)
   ml: {
     enabled: true,
@@ -521,6 +527,8 @@ The core regex detectors have zero dependencies and run with sub-millisecond lat
 
 - **Regex only:** <1ms for small content, ~2-5ms for 10KB, ~10-20ms for 100KB
 - **With ML:** ~50-200ms depending on content length and hardware
+
+Scan time stays linear in input size, including on adversarial input. A test runs every shipped pattern against 200,000 characters of repeated trigger fragments and fails if any takes over a second. Input over `maxInputLength` (default 1,000,000 characters) is refused with a not-clean result instead of being scanned.
 
 Use `scanSync()` for latency-critical paths and `await scan()` when ML detection is needed.
 

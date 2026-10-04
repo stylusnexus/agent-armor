@@ -504,6 +504,14 @@ export interface AgentArmorConfig {
    * Default: true.
    */
   normalizeUnicode?: boolean;
+  /**
+   * Largest input, in characters, that a scan will take on. Longer input is
+   * not scanned: the result is not clean, carries one `congestion-trap`
+   * threat from detector `input-limit`, and has an empty `sanitized`, so an
+   * oversized payload can neither stall the scan nor pass as safe. Set to
+   * `Infinity` to turn the limit off. Default: 1,000,000.
+   */
+  maxInputLength?: number;
   /** Per-detector toggles within the Content Injection category. All default true. */
   contentInjection?: {
     hiddenHTML?: boolean;
