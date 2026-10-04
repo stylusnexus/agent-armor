@@ -5,7 +5,7 @@ import type { MatcherHit, PatternMatcher } from './types';
  * test checks it still equals `default-patterns.ts`.
  */
 const REGEX =
-  '(?:(?:note|message|instructions?)\\s+(?:to|for)\\s+(?:the\\s+)?(?:ai|agent|assistant|model|llm)\\b|(?:^|[.:!>\\n\\-*+•]\\s*|[\\s=](?=[\\"\'“‘`«‹„‚*_]))[*_\\"\'“‘`«‹„‚]{0,3}(?:(?:dear|hey|hi|hello)\\s+)?(?:ai[\\s-]+)?(?:assistants?|agents?|claude|chatgpt|gemini|copilot)[*_\\"\'”’»›`]{0,3}\\s*[,:]|as\\s+(?:the|an?)\\s+(?:ai|agent|assistant|llm)\\b[^.\\n]{0,40},|when\\s+you\\s+(?:read|see|process|parse)\\s+(?:this|the\\s+(?:above|following)))[\\s\\S]{0,200}?\\b(?:run|execute|exec|invoke|launch|pipe)\\b[\\s\\S]{0,60}?(?:\\b(?:curl|wget|bash|sudo|powershell|eval|nc|netcat)\\b|\\bsh\\b|\\brm\\s+-|chmod\\s+\\+x|(?:installer|script|payload|binary)\\s+(?:at|from)\\s+https?:\\/\\/)';
+  "(?:(?:note|message|instructions?)\\s+(?:to|for)\\s+(?:the\\s+)?(?:ai|agent|assistant|model|llm)\\b|(?:^|[.:!?>\\n\\-*+\\u2022]\\s*|[\\s=](?=[\\\"'\\u201C\\u2018`\\u00AB\\u2039\\u201E\\u201A*_]))[*_\\\"'\\u201C\\u2018`\\u00AB\\u2039\\u201E\\u201A]{0,3}(?:(?:dear|hey|hi|hello|thanks)(?:\\s+there)?[\\s,]+)?(?:ai[\\s\\-\\u2010-\\u2015]+)?(?:assistants?|agents?|claude(?:\\s+code)?|chatgpt|gemini(?:\\s+cli)?|(?:github\\s+)?copilot)[*_\\\"'\\u201D\\u2019\\u00BB\\u203A`]{0,3}\\s*[,:]|as\\s+(?:the|an?)\\s+(?:ai|agent|assistant|llm)\\b[^.\\n]{0,40},|when\\s+you\\s+(?:read|see|process|parse)\\s+(?:this|the\\s+(?:above|following)))[\\s\\S]{0,200}?\\b(?:run|execute|exec|invoke|launch|pipe)\\b[\\s\\S]{0,60}?(?:\\b(?:curl|wget|bash|sudo|powershell|eval|nc|netcat)\\b|\\bsh\\b|\\brm\\s+-|chmod\\s+\\+x|(?:installer|script|payload|binary)\\s+(?:at|from)\\s+https?:\\/\\/)";
 
 /*
  * The regex is PREFIX W1 VERB W2 TARGET, where W1 = [\s\S]{0,200}? and
@@ -20,23 +20,32 @@ const REGEX =
  * to ASCII) and \w / \b are ASCII-only, so an ASCII-only lowercase copy of
  * the input is an exact stand-in for case-insensitive matching.
  *
- * The addressed branch, OPENER MARKS{0,3} (GREETING\s+)? (ai[\s-]+)? NAME
- * CLOSERS{0,3} \s* [,:], also has one way to match per opener. No piece after
- * MARKS can start with a mark, so backing off MARKS{0,3} leaves a mark where
- * a greeting, `ai` or a name must start: the run of marks is taken whole, and
- * a run longer than 3 fails. Likewise CLOSERS{0,3} is taken whole (neither \s
- * nor [,:] is a closer). Every \s* / \s+ / [\s-]+ is taken whole for the same
- * reason (backing off leaves whitespace or `-` where a word or [,:] must
- * start). Greetings start with d/h, `ai` is no name's prefix, and names start
- * with a/c/g, so the optional greeting and `ai` are each present exactly when
- * their text is there. Backing off `assistants` to `assistant` (or `agents`
- * to `agent`) leaves an `s` where a closer, \s or [,:] must follow, so the
- * longer word wins whenever it is there.
+ * The addressed branch, OPENER MARKS{0,3} (GREETING(\s+there)?[\s,]+)?
+ * (ai[\s\-‐-―]+)? NAME CLOSERS{0,3} \s* [,:], also has one way to match per
+ * opener. No piece after MARKS can start with a mark, so backing off
+ * MARKS{0,3} leaves a mark where a greeting, `ai` or a name must start: the
+ * run of marks is taken whole, and a run longer than 3 fails. Likewise
+ * CLOSERS{0,3} is taken whole (neither \s nor [,:] is a closer). Every \s* /
+ * \s+ / [\s,]+ / [\s\-‐-―]+ is taken whole for the same reason (backing off
+ * leaves whitespace, `,` or a dash where a word or [,:] must start).
+ * Greetings start with d/h/t and none is another's prefix, `ai` is no name's
+ * prefix, and names start with a/c/g, so the optional greeting and `ai` are
+ * each present exactly when their text is there.
+ *
+ * Optional tails are taken whenever their text is there, because dropping
+ * one always fails: without ` there`, [\s,]+ stops at the `t` of `there`
+ * (no `ai` or name starts with t); without ` code` / ` cli`, the name is
+ * followed by whitespace then a letter, where only CLOSERS \s* [,:] may
+ * follow; without `github `, the name must start at the `g` of `github`.
+ * Backing off `assistants` to `assistant` (or `agents` to `agent`) leaves an
+ * `s` where a closer, \s or [,:] must follow, so the longer word wins too.
  */
 
 const VERBS = ['run', 'execute', 'exec', 'invoke', 'launch', 'pipe'];
-const GREETINGS = ['dear', 'hey', 'hi', 'hello'];
-const NAMES = ['assistants', 'assistant', 'agents', 'agent', 'claude', 'chatgpt', 'gemini', 'copilot'];
+const GREETINGS = ['dear', 'hey', 'hi', 'hello', 'thanks'];
+const NAMES = ['assistants', 'assistant', 'agents', 'agent', 'claude', 'chatgpt', 'gemini', 'copilot', 'github'];
+/** Optional words after a name: `claude code`, `gemini cli`, `github copilot` (required for github). */
+const NAME_TAILS: Record<string, string> = { claude: 'code', gemini: 'cli', github: 'copilot' };
 const TARGET_WORDS = ['curl', 'wget', 'bash', 'sudo', 'powershell', 'eval', 'nc', 'netcat'];
 const PAYLOAD_NOUNS = ['installer', 'script', 'payload', 'binary'];
 const A_OPENERS = ['note', 'message', 'instructions', 'instruction'];
@@ -93,12 +102,13 @@ function isCloser(c: number): boolean {
   );
 }
 
-/** [.:!>\n\-*+•]: the punctuation that may open the addressed branch. */
+/** [.:!?>\n\-*+•]: the punctuation that may open the addressed branch. */
 function isOpener(c: number): boolean {
   return (
     c === 0x2e ||
     c === 0x3a ||
     c === 0x21 ||
+    c === 0x3f ||
     c === 0x3e ||
     c === 0x0a ||
     c === 0x2d ||
@@ -124,12 +134,17 @@ function match(content: string): MatcherHit[] {
   wsEnd[n] = n;
   for (let i = n - 1; i >= 0; i--) wsEnd[i] = isSpace(s.charCodeAt(i)) ? wsEnd[i + 1] : i;
 
-  // dashEnd[i]: first index at or after i that is neither whitespace nor `-`.
+  // dashEnd[i]: first index at or after i outside [\s\-‐-―].
+  // commaEnd[i]: first index at or after i outside [\s,].
   const dashEnd = new Int32Array(n + 1);
+  const commaEnd = new Int32Array(n + 1);
   dashEnd[n] = n;
+  commaEnd[n] = n;
   for (let i = n - 1; i >= 0; i--) {
     const c = s.charCodeAt(i);
-    dashEnd[i] = c === 0x2d || isSpace(c) ? dashEnd[i + 1] : i;
+    const sp = isSpace(c);
+    dashEnd[i] = sp || c === 0x2d || (c >= 0x2010 && c <= 0x2015) ? dashEnd[i + 1] : i;
+    commaEnd[i] = sp || c === 0x2c ? commaEnd[i + 1] : i;
   }
 
   // A word from `list` at i, starting and ending on a \b; returns its end or -1.
@@ -201,8 +216,13 @@ function match(content: string): MatcherHit[] {
     return q - p <= 200 ? tailEnd[q] : -1;
   };
 
-  // MARKS{0,3}(?:GREETING\s+)?(?:ai[\s-]+)?NAME CLOSERS{0,3}\s*[,:] from x
-  // (see the note at the top: one way to match), or -1.
+  // `\s+word` at i: the index after `word`, or -1.
+  const spacedWord = (i: number, w: string): number =>
+    space(i) && s.startsWith(w, wsEnd[i]) ? wsEnd[i] + w.length : -1;
+
+  // MARKS{0,3}(?:GREETING(?:\s+there)?[\s,]+)?(?:ai[\s\-‐-―]+)?NAME
+  // CLOSERS{0,3}\s*[,:] from x (see the note at the top: one way to match),
+  // or -1.
   const addressedEnd = (x: number): number => {
     let k = 0;
     while (k < 4 && x + k < n && isMark(s.charCodeAt(x + k))) k++;
@@ -210,14 +230,23 @@ function match(content: string): MatcherHit[] {
     x += k;
     for (const g of GREETINGS) {
       if (s.startsWith(g, x)) {
-        if (space(x + g.length)) x = wsEnd[x + g.length];
+        let y = x + g.length;
+        const t = spacedWord(y, 'there');
+        if (t >= 0) y = t;
+        if (commaEnd[y] > y) x = commaEnd[y];
         break;
       }
     }
-    if (s.startsWith('ai', x) && x + 2 < n && dashEnd[x + 2] > x + 2) x = dashEnd[x + 2];
+    if (s.startsWith('ai', x) && dashEnd[x + 2] > x + 2) x = dashEnd[x + 2];
     const name = NAMES.find((w) => s.startsWith(w, x));
     if (name === undefined) return -1;
     x += name.length;
+    const tail = NAME_TAILS[name];
+    if (tail !== undefined) {
+      const t = spacedWord(x, tail);
+      if (t >= 0) x = t;
+      else if (name === 'github') return -1;
+    }
     k = 0;
     while (k < 4 && x + k < n && isCloser(s.charCodeAt(x + k))) k++;
     if (k > 3) return -1;
@@ -356,6 +385,13 @@ export const AGENT_DIRECTED_COMMAND_MATCHERS: PatternMatcher[] = [
       'rm -', 'rm  -rf', 'rm', 'chmod +x', 'chmod  +X', 'chmod', 'installer at https://', 'script from http://',
       'payload at  HTTPS://', 'binary from httpx', 'installer at', ' x.sh', 'the', 'this', ' ',
       ' ', ' ', '　', 'ſh', 'K', 'İ', '.', '\n',
+      '?', '? ', '?\n', ',,', ', ,', 'thanks', 'Thanks, ', 'thanks,,', 'thanks there', 'thank ', 'hey ,', 'hey,',
+      'hi there, ', 'Hey There ', ' there', 'there,', 'therefore', 'hello  there,,', 'thanksgiving ',
+      'ai‐', 'ai‑', 'AI‒', 'ai–', 'ai—', 'ai―', '‐', '―', '—', 'ai ‐ –',
+      'claude code', 'Claude Code:', 'claude  code,', 'claude codex', 'claude\ncode', 'claude cod', ' code', 'code',
+      'gemini cli', 'Gemini CLI:', 'gemini  cli', 'gemini clip', ' cli', 'cli',
+      'github copilot', 'GitHub Copilot:', 'github  copilot', 'github', 'github ', 'githubcopilot', ' copilot',
+      'hey there, claude code,', '? thanks, ai — github copilot:', '- hi,gemini cli:',
     ],
   },
 ];
