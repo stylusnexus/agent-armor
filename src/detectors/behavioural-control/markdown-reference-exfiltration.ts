@@ -20,8 +20,11 @@ const MAX_LABEL = 999;
 const DEFINITION =
   /^[ \t>]*\[([^\]\n\r\u2028\u2029]{1,999})\]:(?=[ \t]*(?:\r?\n[ \t>]*)?(<[^>\n\r\u2028\u2029]+>|[^\s<]\S*))/gm;
 
-/** A destination that sends data out: an http(s) URL whose query holds a data keyword. */
-const EXFIL_DESTINATION = new RegExp('^<?https?:\\/\\/[^\\s>?]*\\?[^\\s>]*?' + KEYWORDS + '\\b', 'i');
+/** A destination that sends data out: an http(s) or scheme-relative URL whose query holds a data keyword. */
+const EXFIL_DESTINATION = new RegExp('^<?(?:https?:)?\\/\\/[^\\s>?]*\\?[^\\s>]*?' + KEYWORDS + '\\b', 'i');
+
+/** Flagged images this close together (only whitespace between) are reported as one finding. */
+const MERGE_GAP = 100;
 
 const MARKER = '[BLOCKED: exfiltration instruction removed by AgentArmor]';
 
@@ -62,7 +65,11 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
     while ((def = DEFINITION.exec(content)) !== null) {
       const label = normalizeLabel(def[1]);
       if (flagged.has(label)) continue;
-      if (EXFIL_DESTINATION.test(def[2])) flagged.set(label, { index: def.index, length: def[0].length });
+      if (EXFIL_DESTINATION.test(def[2])) {
+        // Only whitespace separates `[label]:` from its destination, so the first hit is the destination.
+        const destAt = content.indexOf(def[2], def.index + def[0].length);
+        flagged.set(label, { index: def.index, length: destAt + def[2].length - def.index });
+      }
     }
     if (flagged.size === 0) return [];
 
@@ -70,6 +77,22 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
     // `![` openers does not rescan to the same far `]`.
     const nextStop = regexFinder(content, /[\]\n\r\u2028\u2029]/g);
     const matches: PatternMatch[] = [];
+    // Flagged images that sit next to each other become one finding, so a run of tiny images is replaced by one marker.
+    let pending: { index: number; end: number; related: { index: number; length: number } } | undefined;
+    const flush = (): void => {
+      if (!pending) return;
+      matches.push({
+        pattern: 'Reference-style markdown image data exfiltration',
+        match: content.slice(pending.index, pending.end),
+        index: pending.index,
+        length: pending.end - pending.index,
+        confidence: 0.85,
+        severity: 'critical',
+        description: 'Reference-style markdown image data exfiltration',
+        related: pending.related,
+      });
+      pending = undefined;
+    };
     let at = content.indexOf('![');
     while (at >= 0) {
       const altEnd = nextStop(at + 2);
@@ -95,19 +118,16 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
       const label = labelText === undefined ? '' : normalizeLabel(labelText);
       const related = label === '' ? undefined : flagged.get(label);
       if (related) {
-        matches.push({
-          pattern: 'Reference-style markdown image data exfiltration',
-          match: content.slice(at, end),
-          index: at,
-          length: end - at,
-          confidence: 0.85,
-          severity: 'critical',
-          description: 'Reference-style markdown image data exfiltration',
-          related,
-        });
+        if (pending && at - pending.end <= MERGE_GAP && /^\s*$/.test(content.slice(pending.end, at))) {
+          pending.end = end;
+        } else {
+          flush();
+          pending = { index: at, end, related };
+        }
       }
       at = content.indexOf('![', end);
     }
+    flush();
     return matches;
   }
 
