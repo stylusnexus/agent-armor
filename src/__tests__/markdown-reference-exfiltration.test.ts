@@ -110,6 +110,11 @@ describe('reference-style markdown image exfiltration (#219)', () => {
     ];
     for (const text of clean) expect(flags(text), text).toBe(false);
   });
+  it('a backslash before a line break is not an escape, so a blank line still ends the paragraph', () => {
+    expect(flags(`Look at ![this\\\n\n\`x]\`][r]\n\n${DEF}`)).toBe(false);
+    expect(flags(`![a\\\nb][r]\n\n${DEF}`)).toBe(true);
+    expect(flags(`![a\\]b][r]\n\n${DEF}`)).toBe(true);
+  });
   it('folds case the way CommonMark does', () => {
     expect(flags('![x][STRASSE]\n\n[stra\u00dfe]: https://c.example/p.png?data=1')).toBe(true);
     expect(flags('![x][Stra\u00dfe]\n\n[STRASSE]: https://c.example/p.png?data=1')).toBe(true);
@@ -192,6 +197,7 @@ function reference(content: string): Array<[number, number]> {
   const n = content.length;
   const KEYWORDS = ['data', 'token', 'secret', 'key', 'context', 'conversation', 'history', 'session', 'password', 'credential', 'api_key', 'api-key', 'apikey', 'env'];
   const isBreakChar = (c: string | undefined) => c === '\n' || c === '\r';
+  const PUNCT = /^[!-/:-@[-`{-~]$/;
   const GAPCHARS = /^[ \t\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000\ufeff]$/;
   const isWs = (c: string) => /\s/.test(c);
   const norm = (s: string) => s.trim().replace(/\s+/g, ' ').toLowerCase().toUpperCase().toLowerCase();
@@ -245,7 +251,7 @@ function reference(content: string): Array<[number, number]> {
       const c = content[i];
       if (c === ']') return items >= 1 || allowEmpty ? i : -1;
       if (c === '[') return -1;
-      if (c === '\\') { if (i + 1 >= n) return -1; i += 2; items++; continue; }
+      if (c === '\\') { if (PUNCT.test(content[i + 1] ?? '')) { i += 2; } else { i++; } items++; continue; }
       if (isBreakChar(c)) {
         const next = afterBreak(i);
         if (blankLineAt(next)) return -1;
@@ -299,7 +305,7 @@ function reference(content: string): Array<[number, number]> {
     let inner = false;
     for (let i = open; i < n; ) {
       const c = content[i];
-      if (c === '\\') { i += 2; continue; }
+      if (c === '\\') { i += PUNCT.test(content[i + 1] ?? '') ? 2 : 1; continue; }
       if (c === '[') { depth++; if (depth > 1) inner = true; }
       else if (c === ']') { depth--; if (depth === 0) return { end: i, inner }; }
       else if (isBreakChar(c)) {
@@ -317,7 +323,7 @@ function reference(content: string): Array<[number, number]> {
     let inner = false;
     for (let i = open + 1; i < n; ) {
       const c = content[i];
-      if (c === '\\') { i += 2; continue; }
+      if (c === '\\') { i += PUNCT.test(content[i + 1] ?? '') ? 2 : 1; continue; }
       if (c === '[') inner = true;
       else if (c === ']') return { end: i, inner };
       else if (isBreakChar(c)) {
@@ -362,7 +368,7 @@ function reference(content: string): Array<[number, number]> {
   let stack: number[] = [];
   for (let i = 0; i < n; ) {
     const c = content[i];
-    if (c === '\\') { i += 2; continue; }
+    if (c === '\\') { i += PUNCT.test(content[i + 1] ?? '') ? 2 : 1; continue; }
     if (c === '[') {
       stack.push(i);
       if (i > 0 && content[i - 1] === '!') { lastBang = i - 1; closes = 0; }

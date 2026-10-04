@@ -6,6 +6,11 @@ import type { TextEdit, Threat, TrapCategory, TrapType } from '../../types';
 const KEYWORDS =
   '(?:data|token|secret|key|context|conversation|history|session|password|credential|api[_-]?key|env)';
 
+/** ASCII punctuation, the only characters a backslash escapes. */
+function isAsciiPunctuation(c: number): boolean {
+  return (c >= 33 && c <= 47) || (c >= 58 && c <= 64) || (c >= 91 && c <= 96) || (c >= 123 && c <= 126);
+}
+
 /** Whitespace a renderer trims around a destination: JavaScript's own trim set, minus line breaks. */
 const GAP = '[ \\t\\u00a0\\u1680\\u2000-\\u200a\\u202f\\u205f\\u3000\\ufeff]';
 
@@ -23,7 +28,7 @@ const GAP = '[ \\t\\u00a0\\u1680\\u2000-\\u200a\\u202f\\u205f\\u3000\\ufeff]';
  * like a definition cannot swallow the real definition on the next line.
  */
 const DEFINITION = new RegExp(
-  '^(?:[ \\t>]|[-*+](?=[ \\t])|\\d{1,9}[.)](?=[ \\t]))*\\[((?:[^[\\]\\\\\\r\\n]|\\\\[\\s\\S]|(?:\\r\\n|\\r|\\n)(?![ \\t]*(?:\\r\\n|\\r|\\n|(?![\\s\\S])))){1,})\\]:' +
+  '^(?:[ \\t>]|[-*+](?=[ \\t])|\\d{1,9}[.)](?=[ \\t]))*\\[((?:[^[\\]\\\\\\r\\n]|\\\\[!-/:-@[-`{-~]|\\\\(?![!-/:-@[-`{-~])|(?:\\r\\n|\\r|\\n)(?![ \\t]*(?:\\r\\n|\\r|\\n|(?![\\s\\S])))){1,})\\]:' +
     '(?=' + GAP + '*(?:(?:\\r\\n|\\r|\\n)(?:' + GAP + '|>)*)?(<(?:[^>\\\\\\r\\n]|\\\\[^\\r\\n])+>|[^\\s<]\\S*))',
   'gm',
 );
@@ -114,7 +119,7 @@ function analyzeBrackets(content: string): BracketInfo {
   while (i < n) {
     const c = content.charCodeAt(i);
     if (c === 92) {
-      i += 2; // a backslash escapes the next character
+      i += isAsciiPunctuation(content.charCodeAt(i + 1)) ? 2 : 1; // a backslash escapes only ASCII punctuation, never a line break
     } else if (c === 91) {
       if (open.length > 0) hasInner[open[open.length - 1]] = 1;
       open.push(i);
