@@ -12,7 +12,7 @@ import type { PatternDatabase } from './pattern-db';
  *           variation-selector runs (#69 item 1)
  */
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.1',
+  version: '0.9.2',
   updatedAt: '2026-10-04',
   detectors: {
     'hidden-html': [
@@ -618,6 +618,22 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         label: 'Multi-step tool chain exfiltration',
         boostOnInstructions: true,
         requireInstructions: true,
+      },
+      {
+        // Send the conversation (or chat history, system prompt, session) to an
+        // outside address. Tests as a destination, not as an instruction word:
+        // the bare phrase has no instruction signal of its own, so a
+        // requireInstructions gate would throw the real attack away (#178). Only
+        // conversation-shaped objects and only a URL or email destination, so
+        // "send the data to the server" stays clean.
+        id: 'ex-conversation-to-destination',
+        regex: '(?:send|transmit|post|forward|upload|exfiltrate|leak|email|e-mail|share)\\s+(?:me\\s+)?(?:the\\s+|this\\s+|your\\s+|our\\s+|all\\s+(?:of\\s+)?(?:the\\s+)?)?(?:entire\\s+|full\\s+|whole\\s+|complete\\s+)?(?:conversation|chat\\s+history|chat\\s+log|message\\s+history|conversation\\s+history|messages|session|context|system\\s+prompt|transcript)\\s+(?:to|at|via)\\s+(?:https?:\\/\\/\\S+|[\\w.+-]+@[\\w-]+\\.[\\w.-]+)',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'critical',
+        confidence: 0.8,
+        label: 'Instruction to send the conversation to an outside address',
       },
       {
         // "email / send the contents of <secret file>". Only well-known secret
