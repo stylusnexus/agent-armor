@@ -56,6 +56,7 @@ One copy of each recipe, in `.agents/skills/` (read by Codex and Gemini CLI; Cla
 
 - `write-matcher`: write an exact linear-time matcher for a slow detection regex.
 - `pattern-red-team`: adversarial review of a pattern, detector, matcher, threshold or eval-floor change. Run it before merging one.
+- `refresh-attack-feeds`: refresh the external attack-feed list and find real attacks the scanner misses (about once a quarter).
 
 Per tool:
 

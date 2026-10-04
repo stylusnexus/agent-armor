@@ -16,6 +16,7 @@ agent-armor.code-workspace
 !.claude/skills/
 .claude/skills/*
 !.claude/skills/write-matcher
+!.claude/skills/refresh-attack-feeds
 docs/superpowers/
 docs/internal/
 ml/data/output/
