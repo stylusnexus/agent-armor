@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { AgentArmor } from '../agent-armor';
 import { MarkdownReferenceExfiltrationDetector } from '../detectors/behavioural-control/markdown-reference-exfiltration';
+import { normalizeForScan } from '../normalize/unicode';
 
 const detector = new MarkdownReferenceExfiltrationDetector();
 const flags = (text: string) => detector.scan(text).threats.length > 0;
@@ -92,6 +93,23 @@ describe('reference-style markdown image exfiltration (#219)', () => {
     expect(flags('![x][r]\n\n[r]: <https://c.example/p.png?q=1 data=S>')).toBe(true); // a space inside <...>
     expect(flags('![x][r]\n\n[r]: https://c.example/p.png?v=%64')).toBe(false); // decodes to `d`, not a keyword
   });
+  it('looks through look-alike letters, invisible characters and odd whitespace in the destination', () => {
+    for (const url of ['https://e.x/p.png?d\u0430ta=Q', 'https://e.x/p.png?t\u043eken=Q', 'https://e.x/p.png?k\u0435y=Q', 'https://e.x/p.png?da\u200eta=Q', 'https://e.x/p.png?da\u202ata=Q', 'https://e.x/p.png&quest;data=Q', 'https&colon;//e.x/p.png?data=Q', 'https:&sol;&sol;e.x/p.png?data=Q', 'https:\\/\\/e.x/p.png?data=Q', '<https://e.x/p.png?q=\\>data=Q>']) {
+      expect(flags(`![x][r]\n\n[r]: ${url}`), url).toBe(true);
+    }
+    for (const gap of ['\u00a0', '\u2003', '\u3000', '\u202f', '\ufeff', '\n\u00a0']) {
+      expect(flags(`![x][r]\n\n[r]:${gap}https://e.x/p.png?data=Q`), JSON.stringify(gap)).toBe(true);
+    }
+  });
+  it('does not read a link label as an image label (badges inside links stay clean)', () => {
+    const clean = [
+      '[![Downloads][dl-image]][dl-url]\n\n[dl-image]: https://img.shields.io/npm/dm/pkg.svg\n[dl-url]: https://npmjs.org/package/pkg?data=1',
+      'Use `![alt][ref]` for images, see the [section 2][s2].\n\n[ref]: https://ok.example/a.png\n[s2]: https://x.example/?data=1',
+      '| Image | Link |\n|---|---|\n| ![fig][f] | [section 2][s2] |\n\n[f]: https://ok.example/a.png\n[s2]: https://x.example/?data=1',
+      '![fig][f] and later some text with a [section 2][s2].\n\n[f]: https://ok.example/a.png\n[s2]: https://x.example/?data=1',
+    ];
+    for (const text of clean) expect(flags(text), text).toBe(false);
+  });
   it('folds case the way CommonMark does', () => {
     expect(flags('![x][STRASSE]\n\n[stra\u00dfe]: https://c.example/p.png?data=1')).toBe(true);
     expect(flags('![x][Stra\u00dfe]\n\n[STRASSE]: https://c.example/p.png?data=1')).toBe(true);
@@ -174,6 +192,7 @@ function reference(content: string): Array<[number, number]> {
   const n = content.length;
   const KEYWORDS = ['data', 'token', 'secret', 'key', 'context', 'conversation', 'history', 'session', 'password', 'credential', 'api_key', 'api-key', 'apikey', 'env'];
   const isBreakChar = (c: string | undefined) => c === '\n' || c === '\r';
+  const GAPCHARS = /^[ \t\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000\ufeff]$/;
   const isWs = (c: string) => /\s/.test(c);
   const norm = (s: string) => s.trim().replace(/\s+/g, ' ').toLowerCase().toUpperCase().toLowerCase();
   const afterBreak = (i: number) => (content[i] === '\r' && content[i + 1] === '\n' ? i + 2 : isBreakChar(content[i]) ? i + 1 : i);
@@ -182,18 +201,19 @@ function reference(content: string): Array<[number, number]> {
     while (content[k] === ' ' || content[k] === '\t') k++;
     return k >= n || isBreakChar(content[k]);
   };
+  const NAMED: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", quest: '?', colon: ':', sol: '/', bsol: '\\', num: '#', equals: '=', period: '.', comma: ',', semi: ';', excl: '!', lowbar: '_', lpar: '(', rpar: ')', commat: '@', percnt: '%', plus: '+', Tab: '\t' };
   const decode = (url: string): string => {
-    let u = url.normalize('NFKC');
-    u = Array.from(u).filter((ch) => !'­​‌‍⁠﻿'.includes(ch)).join('');
+    let u = url;
     u = u.replace(/&#(\d{1,7});/g, (m, d) => { const cp = Number(d); return cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : m; });
     u = u.replace(/&#[xX]([0-9a-fA-F]{1,6});/g, (m, h) => { const cp = parseInt(h, 16); return cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : m; });
-    u = u.replace(/&(amp|lt|gt|quot|apos);/g, (_m, name) => ({ amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" } as Record<string, string>)[name]);
+    u = u.replace(/&([a-zA-Z]{2,6});/g, (m, name) => NAMED[name] ?? m);
+    u = u.replace(/\\([!-/:-@[-`{-~])/g, '$1');
     u = u.replace(/%([2-7][0-9A-Fa-f])/g, (m, h) => { const c = String.fromCharCode(parseInt(h, 16)); return /[A-Za-z0-9_-]/.test(c) ? c : m; });
-    return u;
+    return normalizeForScan(u).normalized;
   };
   const flaggedUrl = (raw: string): boolean => {
     const angle = raw.startsWith('<');
-    let u = decode(raw);
+    let u = decode(angle ? raw.replace(/\\>/g, '%3E') : raw);
     if (angle) u = u.slice(1);
     const m = /^(?:https?:)?\/\//i.exec(u);
     if (!m) return false;
@@ -254,12 +274,14 @@ function reference(content: string): Array<[number, number]> {
     const e = labelEnd(p);
     if (e < 0 || content[e + 1] !== ':') continue;
     let d = e + 2;
-    while (content[d] === ' ' || content[d] === '\t') d++;
-    if (isBreakChar(content[d])) { d = afterBreak(d); while (content[d] === ' ' || content[d] === '\t' || content[d] === '>') d++; }
+    while (d < n && GAPCHARS.test(content[d])) d++;
+    if (isBreakChar(content[d])) { d = afterBreak(d); while (d < n && (GAPCHARS.test(content[d]) || content[d] === '>')) d++; }
     let dest = '';
     if (content[d] === '<') {
       let g = d + 1;
-      while (g < n && content[g] !== '>' && !isBreakChar(content[g])) g++;
+      while (g < n && content[g] !== '>' && !isBreakChar(content[g])) {
+        if (content[g] === '\\') { if (isBreakChar(content[g + 1]) || g + 1 >= n) break; g += 2; } else g++;
+      }
       if (content[g] !== '>' || g - (d + 1) < 1) continue;
       dest = content.slice(d, g + 1);
     } else {
@@ -334,22 +356,32 @@ function reference(content: string): Array<[number, number]> {
     if (a) readImage(i, a);
     if (b && !(a && a.end === b.end)) readImage(i, b);
   }
-  // Reading C: any `][label]` after a `![` in the same paragraph is an image to that label.
+  // Reading C: an unpaired `]` before `[label]`, after an earlier `]`, in an image's paragraph, ends the alt text.
   let lastBang = -1;
+  let closes = 0;
+  let stack: number[] = [];
   for (let i = 0; i < n; ) {
     const c = content[i];
     if (c === '\\') { i += 2; continue; }
-    if (c === '[' && i > 0 && content[i - 1] === '!') lastBang = i - 1;
-    if (c === ']' && lastBang >= 0 && content[i + 1] === '[') {
-      const le = labelEnd(i + 1);
-      if (le >= 0) {
-        const key = norm(content.slice(i + 2, le));
-        if (key !== '' && flagged.has(key)) hits.push([lastBang, le + 1]);
+    if (c === '[') {
+      stack.push(i);
+      if (i > 0 && content[i - 1] === '!') { lastBang = i - 1; closes = 0; }
+    } else if (c === ']') {
+      const opened = stack.pop();
+      if (lastBang >= 0) {
+        if (opened === undefined && closes > 0 && content[i + 1] === '[') {
+          const le = labelEnd(i + 1);
+          if (le >= 0) {
+            const key = norm(content.slice(i + 2, le));
+            if (key !== '' && flagged.has(key)) hits.push([lastBang, le + 1]);
+          }
+        }
+        closes++;
       }
     }
     if (isBreakChar(c)) {
       const next = afterBreak(i);
-      if (blankLineAt(next)) lastBang = -1;
+      if (blankLineAt(next)) { lastBang = -1; stack = []; }
       i = next;
       continue;
     }
@@ -387,6 +419,7 @@ describe('matches a slow reference on generated documents (#219)', () => {
     '<https://c.example/p.png?secret=1>', 'https://c.example/?q=1&key=2', 'https://c.example/p.png?monkey=1', 'https://c.example/p.png?api_key=1',
     'ftp://c.example/?data=1', 'https://c.example/p.png?', 'https://c.example/p.png?env', '<https://c.example/p.png?data=1',
     'https://c.example/' + 'p'.repeat(300) + '.png?a=' + 'q'.repeat(300) + '&data=1', 'https://ok.example/a.png',
+    'https://c.example/p.png?d\u0430ta=1', 'https://c.example/p.png?da\u200eta=1', 'https://c.example/p.png&quest;data=1', 'https://c.example/p.png?q=\\>data=1', '<https://c.example/p.png?q=1\\>data=1>',
   ];
   const NOISE = ['text ', ' ', '\n', '\n\n', '\r\n', '\r', '\t', '(', ')', '[', ']', '[b]', '\\]', '\\[', '!', ':', '<', '>', '?', 'a', '\u2028', 'x'.repeat(40)];
   const label = (rand: () => number) => LABELS[Math.floor(rand() * LABELS.length)];
@@ -397,7 +430,7 @@ describe('matches a slow reference on generated documents (#219)', () => {
       const form = rand();
       const l = label(rand);
       if (form < 0.05) return `![${'alt '.repeat(300)}][${l}]`;
-      if (form < 0.12) return pick(rand, ['![a [b] c]', '![a\\]b]', '![first\nsecond]', '![first\r\nsecond]', '![a [b c]', '![[b]]', '![a `[` b]', '![a `]` b]', '![a <http://q.example/[> b]', '![a ] b]']) + `[${l}]`;
+      if (form < 0.12) return pick(rand, ['![a [b] c]', '![a\\]b]', '![first\nsecond]', '![first\r\nsecond]', '![a [b c]', '![[b]]', '![a `[` b]', '![a `]` b]', '![a <http://q.example/[> b]', '![a ] b]', '[![a][b]]', '![a][b] x [c]']) + `[${l}]`;
       if (form < 0.16) return pick(rand, ['![a [b] c]', '![first\nsecond]', '![a\\]b]']);
       if (form < 0.4) return `![alt][${l}]`;
       if (form < 0.6) return `![${l}][]`;
@@ -407,7 +440,7 @@ describe('matches a slow reference on generated documents (#219)', () => {
     }
     if (r < 0.62) {
       const indent = pick(rand, ['', ' ', '   ', '    ', '\t', '> ', '>> ', '- ', '1. ', '10) ', '- > ', '* ']);
-      const sep = pick(rand, [' ', '', '\t', '\n  ', '\n\n']);
+      const sep = pick(rand, [' ', '', '\t', '\n  ', '\n\n', '\u00a0', '\n\u00a0', '\u3000']);
       const title = rand() < 0.2 ? ' "title"' : '';
       return `\n${indent}[${label(rand)}]:${sep}${pick(rand, URLS)}${title}\n`;
     }
@@ -452,6 +485,8 @@ describe('stays linear (#219)', () => {
     ['long indent before a bracket', ' '.repeat(1000) + '[\n'],
     ['block quote markers', '> > > > > > [b]: https://x.example/?data=1\n'],
     ['image openers over one far bracket', '![![![![![![![![![![x]'],
+    ['openers sharing one huge label', '![' .repeat(2000) + 'x][' + 'r'.repeat(300000) + ']'],
+    ['many labels read once each', '![a][' + 'x'.repeat(50) + ']\n'],
     ['nested open brackets', '[[[[[[[[[[[[[[[['],
     ['image openers with nested brackets', '![[![[![[!['],
     ['backslash runs', '\\\\\\\\\\[x\\\\\\\\\\]'],

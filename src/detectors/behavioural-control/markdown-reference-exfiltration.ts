@@ -1,9 +1,13 @@
 import { BaseDetector, type PatternMatch } from '../base';
 import { applyEdits, mergeEdits } from '../../sanitize';
+import { normalizeForScan } from '../../normalize/unicode';
 import type { TextEdit, Threat, TrapCategory, TrapType } from '../../types';
 
 const KEYWORDS =
   '(?:data|token|secret|key|context|conversation|history|session|password|credential|api[_-]?key|env)';
+
+/** Whitespace a renderer trims around a destination: JavaScript's own trim set, minus line breaks. */
+const GAP = '[ \\t\\u00a0\\u1680\\u2000-\\u200a\\u202f\\u205f\\u3000\\ufeff]';
 
 /**
  * `[label]: destination`, preceded by any mix of spaces, tabs, `>` block quote
@@ -18,40 +22,49 @@ const KEYWORDS =
  * lookahead so a match only consumes `[label]:`: a line that happens to look
  * like a definition cannot swallow the real definition on the next line.
  */
-const DEFINITION =
-  /^(?:[ \t>]|[-*+](?=[ \t])|\d{1,9}[.)](?=[ \t]))*\[((?:[^[\]\\\r\n]|\\[\s\S]|(?:\r\n|\r|\n)(?![ \t]*(?:\r\n|\r|\n|(?![\s\S])))){1,})\]:(?=[ \t]*(?:(?:\r\n|\r|\n)[ \t>]*)?(<[^>\r\n]+>|[^\s<]\S*))/gm;
+const DEFINITION = new RegExp(
+  '^(?:[ \\t>]|[-*+](?=[ \\t])|\\d{1,9}[.)](?=[ \\t]))*\\[((?:[^[\\]\\\\\\r\\n]|\\\\[\\s\\S]|(?:\\r\\n|\\r|\\n)(?![ \\t]*(?:\\r\\n|\\r|\\n|(?![\\s\\S])))){1,})\\]:' +
+    '(?=' + GAP + '*(?:(?:\\r\\n|\\r|\\n)(?:' + GAP + '|>)*)?(<(?:[^>\\\\\\r\\n]|\\\\[^\\r\\n])+>|[^\\s<]\\S*))',
+  'gm',
+);
 
 /** A destination that sends data out: an http(s) or scheme-relative URL whose query holds a data keyword. */
 const EXFIL_DESTINATION = new RegExp('^<?(?:https?:)?\\/\\/[^\\s>?]*\\?[^\\s>]*?' + KEYWORDS + '\\b', 'i');
 /** The same inside `<...>`, where a destination may hold spaces (a renderer encodes them). */
 const EXFIL_ANGLE_DESTINATION = new RegExp('^<(?:https?:)?\\/\\/[^>?]*\\?[^>]*?' + KEYWORDS + '\\b', 'i');
 
-const NAMED_ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", quest: '?', colon: ':', sol: '/', bsol: '\\', num: '#', equals: '=',
+  period: '.', comma: ',', semi: ';', excl: '!', lowbar: '_', lpar: '(', rpar: ')', commat: '@', percnt: '%', plus: '+', Tab: '\t',
+};
 
 /**
- * What a renderer and the server behind the URL would see: Unicode
- * compatibility forms folded (fullwidth letters), invisible characters
- * dropped, HTML entities decoded, and percent-encoded letters and digits
- * decoded, so `%64ata`, `d&#97;ta` and `\uFF44ata` all read as `data`.
+ * What a renderer and the server behind the URL would see: HTML entities and
+ * backslash escapes resolved, percent-encoded letters and digits decoded, then
+ * the scan's own Unicode normalization applied (fullwidth forms, look-alike
+ * letters, invisible characters), so `%64ata`, `d&#97;ta`, `\uFF44ata` and a
+ * Cyrillic `\u0430` all read as `data`.
  */
 function decodeDestination(dest: string): string {
-  return dest
-    .normalize('NFKC')
-    .replace(/[\u00AD\u200B-\u200D\u2060\uFEFF]/g, '')
-    .replace(/&(?:#(\d{1,7})|#[xX]([0-9a-fA-F]{1,6})|([a-zA-Z]{2,5}));/g, (m, dec, hex, name) => {
+  const resolved = dest
+    .replace(/&(?:#(\d{1,7})|#[xX]([0-9a-fA-F]{1,6})|([a-zA-Z]{2,6}));/g, (m, dec, hex, name) => {
       if (name) return NAMED_ENTITIES[name] ?? m;
       const cp = dec ? parseInt(dec, 10) : parseInt(hex, 16);
       return cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : m;
     })
+    .replace(/\\([!-/:-@[-`{-~])/g, '$1')
     .replace(/%([2-7][0-9A-Fa-f])/g, (m, h) => {
       const c = String.fromCharCode(parseInt(h, 16));
       return /[A-Za-z0-9_-]/.test(c) ? c : m;
     });
+  return normalizeForScan(resolved).normalized;
 }
 
 function sendsDataOut(dest: string): boolean {
-  const decoded = decodeDestination(dest);
-  return (dest.startsWith('<') ? EXFIL_ANGLE_DESTINATION : EXFIL_DESTINATION).test(decoded);
+  const angle = dest.startsWith('<');
+  // `\>` inside `<...>` is part of the URL; keep it from ending the destination once unescaped.
+  const decoded = decodeDestination(angle ? dest.replace(/\\>/g, '%3E') : dest);
+  return (angle ? EXFIL_ANGLE_DESTINATION : EXFIL_DESTINATION).test(decoded);
 }
 
 /** Flagged images this close together (only whitespace between) are reported as one finding. */
@@ -75,7 +88,7 @@ interface BracketInfo {
   hasInner: Uint8Array;
   /** For each image's `[` (the one after `!`): the first unescaped `]` after it in the same paragraph. */
   firstClose: Map<number, number>;
-  /** Every `][` seen after an image opener in the same paragraph: the opener's `!` and the label's `[`. */
+  /** Each unpaired `]` followed by `[label]`, after an earlier `]`, in an image's paragraph: the opener's `!` and the label's `[`. */
   labelAfterImage: Array<{ bang: number; labelOpen: number }>;
 }
 
@@ -96,6 +109,7 @@ function analyzeBrackets(content: string): BracketInfo {
   const open: number[] = [];
   let waiting: number[] = []; // image `[`s still waiting for their first `]`
   let lastBang = -1;
+  let closesSinceBang = 0;
   let i = 0;
   while (i < n) {
     const c = content.charCodeAt(i);
@@ -106,6 +120,7 @@ function analyzeBrackets(content: string): BracketInfo {
       open.push(i);
       if (i > 0 && content.charCodeAt(i - 1) === 33) {
         lastBang = i - 1;
+        closesSinceBang = 0;
         waiting.push(i);
       }
       i++;
@@ -114,7 +129,14 @@ function analyzeBrackets(content: string): BracketInfo {
       if (o !== undefined) close[o] = i;
       for (const w of waiting) firstClose.set(w, i);
       waiting = [];
-      if (lastBang >= 0 && content.charCodeAt(i + 1) === 91) labelAfterImage.push({ bang: lastBang, labelOpen: i + 1 });
+      if (lastBang >= 0) {
+        // A `]` with nothing to close, after an earlier `]`, followed by `[label]`: the alt text ended
+        // here, and the earlier `]` (in a code span, say) was not its end.
+        if (o === undefined && closesSinceBang > 0 && content.charCodeAt(i + 1) === 91) {
+          labelAfterImage.push({ bang: lastBang, labelOpen: i + 1 });
+        }
+        closesSinceBang++;
+      }
       i++;
     } else if (c === 10 || c === 13) {
       i += c === 13 && content.charCodeAt(i + 1) === 10 ? 2 : 1;
@@ -175,26 +197,39 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
     const { close, hasInner, firstClose, labelAfterImage } = analyzeBrackets(content);
     const hits: Array<{ index: number; end: number; related: { index: number; length: number } }> = [];
 
+    // Each `[label]` is read once, however many image openers wait on it.
+    const labelCache = new Map<number, { end: number; norm: string; blank: boolean } | null>();
+    const labelAt = (open: number): { end: number; norm: string; blank: boolean } | null => {
+      const cached = labelCache.get(open);
+      if (cached !== undefined) return cached;
+      const labelEnd = close[open];
+      let info: { end: number; norm: string; blank: boolean } | null = null;
+      if (labelEnd >= 0 && !hasInner[open]) {
+        const text = content.slice(open + 1, labelEnd);
+        info = { end: labelEnd + 1, norm: normalizeLabel(text), blank: text.trim() === '' };
+      }
+      labelCache.set(open, info);
+      return info;
+    };
+
     /** The image whose alt text ends at `altEnd`, read as a full, collapsed or shortcut reference. */
     const readImage = (at: number, altEnd: number): void => {
       const altOpen = at + 1;
       const afterAlt = altEnd + 1;
       let end = afterAlt;
-      let labelText: string | undefined;
+      let label = '';
       if (content[afterAlt] === '[') {
-        const labelEnd = close[afterAlt];
-        if (labelEnd >= 0 && !hasInner[afterAlt]) {
-          end = labelEnd + 1;
-          const explicit = content.slice(afterAlt + 1, labelEnd);
-          if (explicit.trim() !== '') labelText = explicit;
-          else if (!hasInner[altOpen]) labelText = content.slice(altOpen + 1, altEnd);
+        const info = labelAt(afterAlt);
+        if (info) {
+          end = info.end;
+          if (!info.blank) label = info.norm;
+          else if (!hasInner[altOpen]) label = normalizeLabel(content.slice(altOpen + 1, altEnd));
         }
       } else if (content[afterAlt] === '(') {
         return; // an inline image, not a reference
       }
       // A shortcut reference (and a collapsed one) uses the alt text as its label, which cannot hold brackets.
-      if (labelText === undefined && end === afterAlt && !hasInner[altOpen]) labelText = content.slice(altOpen + 1, altEnd);
-      const label = labelText === undefined ? '' : normalizeLabel(labelText);
+      if (label === '' && end === afterAlt && !hasInner[altOpen]) label = normalizeLabel(content.slice(altOpen + 1, altEnd));
       const related = label === '' ? undefined : flagged.get(label);
       if (related) hits.push({ index: at, end, related });
     };
@@ -208,13 +243,12 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
       if (first !== undefined && first !== paired) readImage(at, first);
       at = content.indexOf('![', at + 1);
     }
-    // Any `![ ... ][label]` in one paragraph is an image to that label, whatever the alt text holds.
+    // An unpaired `]` before `[label]` after an earlier `]` ends the alt text, whatever it held.
     for (const { bang, labelOpen } of labelAfterImage) {
-      const labelEnd = close[labelOpen];
-      if (labelEnd < 0 || hasInner[labelOpen]) continue;
-      const label = normalizeLabel(content.slice(labelOpen + 1, labelEnd));
-      const related = label === '' ? undefined : flagged.get(label);
-      if (related) hits.push({ index: bang, end: labelEnd + 1, related });
+      const info = labelAt(labelOpen);
+      if (!info || info.norm === '') continue;
+      const related = flagged.get(info.norm);
+      if (related) hits.push({ index: bang, end: info.end, related });
     }
     if (hits.length === 0) return [];
 
