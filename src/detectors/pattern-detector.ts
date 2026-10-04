@@ -2,7 +2,7 @@ import { BaseDetector, type PatternMatch } from './base';
 import type { PatternEntry } from '../patterns/pattern-db';
 import { compilePattern } from '../patterns/pattern-db';
 import { findMatcher, type MatcherHit, type PatternMatcher } from '../patterns/matchers';
-import type { Threat, TrapCategory, TrapType } from '../types';
+import type { TextEdit, Threat, TrapCategory, TrapType } from '../types';
 
 const INSTRUCTION_SIGNALS =
   /(?:ignore|disregard|forget|override|system|assistant|you (?:are|must|should|will)|IMPORTANT|instruction|do not|instead|pretend|act as|role|new task|send to|transmit|summarise|summarize|say that|respond with|output|generate|write|tell the user|without\s+(?:restrictions?|scrutiny|review)|approve\s+(?:all|everything|any)|all\s+files|arbitrary|bypass|credentials?|privileged|unrestricted)/i;
@@ -126,6 +126,20 @@ export class PatternDetector extends BaseDetector {
     }
 
     return matches;
+  }
+
+  sanitizeEdits(_content: string, threats: Threat[]): TextEdit[] {
+    if (this.sanitizeMode === 'none') return [];
+    const replacement =
+      this.sanitizeMode === 'replace' && this.replaceText ? this.replaceText : '';
+    return threats
+      .filter((t) => t.location)
+      .map((t) => ({
+        offset: t.location!.offset,
+        length: t.location!.length,
+        replacement,
+        severity: t.severity,
+      }));
   }
 
   sanitize(content: string, threats: Threat[]): string {

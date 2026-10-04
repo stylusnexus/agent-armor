@@ -13,12 +13,14 @@ import type {
   SessionScanResult,
   Severity,
   Strictness,
+  TextEdit,
   Threat,
   TrapCategory,
   TrapType,
 } from './types';
 import { createHash, randomUUID } from 'node:crypto';
 import { evaluateAction } from './action-gate';
+import { alignedEdits, applyEdits, mergeEdits } from './sanitize';
 import type { PatternDatabase } from './patterns/pattern-db';
 import { DEFAULT_PATTERNS } from './patterns/default-patterns';
 import { PatternDetector, redactSecret } from './detectors/pattern-detector';
@@ -706,6 +708,41 @@ export class AgentArmor {
     };
   }
 
+  /**
+   * Clean `content` once. Every detector's edits are measured on the original
+   * text, so they are collected first, overlaps are merged, and the result is
+   * applied in a single pass; chaining detectors would hand each one offsets
+   * that an earlier detector's edit has already shifted (#169). A detector that
+   * returns only cleaned text is split into one edit per finding; one that
+   * also changes text outside its findings runs afterwards on the result.
+   */
+  private sanitizeContent(content: string, allThreats: Threat[]): string {
+    const edits: TextEdit[] = [];
+    // Detectors that edit outside their own findings can't be merged by span.
+    const outside: Array<{ detector: Detector; threats: Threat[] }> = [];
+    for (const detector of this.detectors) {
+      const relevant = allThreats.filter((t) => t.detectorId === detector.id);
+      if (relevant.length === 0) continue;
+      if (detector.sanitizeEdits) {
+        appendAll(edits, detector.sanitizeEdits(content, relevant));
+        continue;
+      }
+      const cleaned = detector.sanitize(content, relevant);
+      if (typeof cleaned !== 'string' || cleaned === content) continue;
+      const aligned = alignedEdits(content, cleaned, relevant);
+      if (aligned) appendAll(edits, aligned);
+      else outside.push({ detector, threats: relevant });
+    }
+    let result = applyEdits(content, mergeEdits(edits, content.length));
+    // These run last, on the cleaned text, so what they change elsewhere
+    // cannot put back text another detector removed.
+    for (const { detector, threats } of outside) {
+      const cleaned = detector.sanitize(result, threats);
+      if (typeof cleaned === 'string') result = cleaned;
+    }
+    return result;
+  }
+
   private runScanPipeline(content: string): ScanResult {
     if (content.length > this.config.maxInputLength) return this.oversizedResult(content);
     const start = performance.now();
@@ -745,15 +782,7 @@ export class AgentArmor {
       return b.confidence - a.confidence;
     });
 
-    let sanitized = content;
-    for (const detector of this.detectors) {
-      const relevantThreats = allThreats.filter(
-        (t) => t.detectorId === detector.id
-      );
-      if (relevantThreats.length > 0) {
-        sanitized = detector.sanitize(sanitized, relevantThreats);
-      }
-    }
+    const sanitized = this.sanitizeContent(content, allThreats);
 
     const durationMs = performance.now() - start;
 
@@ -825,15 +854,7 @@ export class AgentArmor {
       return b.confidence - a.confidence;
     });
 
-    let sanitized = content;
-    for (const detector of this.detectors) {
-      const relevantThreats = allThreats.filter(
-        (t) => t.detectorId === detector.id
-      );
-      if (relevantThreats.length > 0) {
-        sanitized = detector.sanitize(sanitized, relevantThreats);
-      }
-    }
+    const sanitized = this.sanitizeContent(content, allThreats);
 
     const durationMs = performance.now() - start;
 
