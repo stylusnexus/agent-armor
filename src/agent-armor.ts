@@ -24,6 +24,7 @@ import { alignedEdits, applyEdits, mergeEdits } from './sanitize';
 import type { PatternDatabase } from './patterns/pattern-db';
 import { DEFAULT_PATTERNS } from './patterns/default-patterns';
 import { PatternDetector, redactSecret } from './detectors/pattern-detector';
+import { MarkdownReferenceExfiltrationDetector } from './detectors/behavioural-control/markdown-reference-exfiltration';
 import {
   normalizeForScan,
   mapRangeToOriginal,
@@ -131,6 +132,8 @@ const DETECTOR_REGISTRY: Array<{
   /** Redact matched text before it becomes `Threat.evidence` — for detectors
    *  whose matches are themselves secrets. */
   maskEvidence?: boolean;
+  /** Code detectors that run alongside this entry's pattern detector, under the same config flag. */
+  extraDetectors?: () => Detector[];
 }> = [
   // Content Injection
   {
@@ -209,6 +212,7 @@ const DETECTOR_REGISTRY: Array<{
     sanitizeMode: 'replace',
     replaceText:
       '[BLOCKED: exfiltration instruction removed by AgentArmor]',
+    extraDetectors: () => [new MarkdownReferenceExfiltrationDetector()],
   },
   {
     configGroup: 'behaviouralControl',
@@ -642,11 +646,15 @@ export class AgentArmor {
         })
       );
 
+      const extras = reg.extraDetectors?.() ?? [];
+      this.detectors.push(...extras);
+
       // Structural detectors (content-injection) must see the raw bytes — they
       // exist to catch the invisible/obfuscation characters normalization
       // strips. Everything else scans the normalized skeleton.
       if (reg.category !== 'content-injection') {
         this.normalizedDetectorIds.add(reg.id);
+        for (const extra of extras) this.normalizedDetectorIds.add(extra.id);
       }
     }
 

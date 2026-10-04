@@ -12,7 +12,7 @@ import type { PatternDatabase } from './pattern-db';
  *           variation-selector runs (#69 item 1)
  */
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.4',
+  version: '0.9.5',
   updatedAt: '2026-10-04',
   detectors: {
     'hidden-html': [
@@ -617,16 +617,6 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         severity: 'critical',
         confidence: 0.85,
         label: 'Markdown image data exfiltration',
-      },
-      {
-        id: 'ex-markdown-ref-link',
-        regex: '!\\[[^\\]\\n]{0,60}\\]\\[([^\\]\\n]{1,60})\\][\\s\\S]{0,400}?^[ \\t]{0,3}\\[\\1\\]:[ \\t]*<?https?:\\/\\/[^\\s>?]{0,200}\\?[^\\s>]{0,200}?(?:data|token|secret|key|context|conversation|history|session|password|credential|api[_-]?key|env)\\b',
-        flags: 'gim',
-        category: 'behavioural-control',
-        type: 'data-exfiltration',
-        severity: 'critical',
-        confidence: 0.85,
-        label: 'Reference-style markdown image data exfiltration',
       },
       {
         id: 'ex-read-env',
