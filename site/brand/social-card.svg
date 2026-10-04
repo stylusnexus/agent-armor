@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" role="img" aria-label="Agent Armor: inference is probabilistic, the gate shouldn't be">
+  <rect width="1280" height="640" fill="#1E1E1D"/>
+  <g transform="translate(120 168) scale(1.36)">
+    <path d="M128 16 L220 48 L220 128 L196 188 L128 240 L60 188 L36 128 L36 48 Z" transform="translate(-36 -16)" fill="#2A7072" stroke="#2A7072" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M46 134 H92 L106 134 L118 98 L137 180 L153 116 L162 134 H210" transform="translate(-36 -16)" fill="none" stroke="#1E1E1D" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g font-family="Avenir Next, Helvetica Neue, Helvetica, Arial, sans-serif">
+    <text x="470" y="292" font-size="100" font-weight="700" fill="#FFFFFF">Agent Armor</text>
+    <text x="472" y="372" font-size="40" fill="#B0B2B2">Inference is probabilistic.</text>
+    <text x="472" y="424" font-size="40" fill="#B0B2B2">The gate shouldn't be.</text>
+    <text x="472" y="500" font-size="30" fill="#8C8E8D">agentarmor.dev</text>
+  </g>
+</svg>
