@@ -7,6 +7,19 @@ This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor 
 <!-- New entries are generated automatically by release-please from Conventional
 Commit messages on merge to main. Do not edit unreleased entries by hand. -->
 
+## [0.2.19](https://github.com/stylusnexus/agent-armor/compare/v0.2.18...v0.2.19) (2026-10-04)
+
+
+### Fixed
+
+* **core:** keep credential evidence masked ([#191](https://github.com/stylusnexus/agent-armor/issues/191)) ([5160b26](https://github.com/stylusnexus/agent-armor/commit/5160b26a03cbe222efbe663c93c02b5474f4836b))
+
+
+### Documentation
+
+* **readme:** add a keeping up to date section ([#190](https://github.com/stylusnexus/agent-armor/issues/190)) ([de7d2de](https://github.com/stylusnexus/agent-armor/commit/de7d2ded12b6517baf9a668ae9dfc96b27fda0ff))
+* **readme:** fix npx name and unsafe guidance ([#193](https://github.com/stylusnexus/agent-armor/issues/193)) ([2388fc4](https://github.com/stylusnexus/agent-armor/commit/2388fc43d62b9149ad24e064ab3acbac42c263c8)), closes [#183](https://github.com/stylusnexus/agent-armor/issues/183) [#185](https://github.com/stylusnexus/agent-armor/issues/185)
+
 ## [0.2.18](https://github.com/stylusnexus/agent-armor/compare/v0.2.17...v0.2.18) (2026-10-03)
 
 
