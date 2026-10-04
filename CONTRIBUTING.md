@@ -32,6 +32,7 @@ npm run test:run
 - Edit `src/patterns/default-patterns.ts`
 - Run the eval suite to verify no regressions: `npx tsx scripts/eval/run-eval.ts`
 - Include both adversarial and benign test cases when relevant
+- Keep scan time linear. `npm run test:run` runs every pattern against 200,000 characters of repeated trigger fragments and fails any that takes over a second. Avoid unbounded `[^x]*` runs on both sides of a keyword, lazy `[\s\S]*?` with no guaranteed closer, and `\s*` after a character that can repeat. If a pattern can't be written to pass, add a hand-written matcher in `src/patterns/matchers/` bound to the pattern's exact regex (see `types.ts`); `matchers-equivalence.test.ts` fuzzes it against the regex. Editing a regex that has a matcher drops the matcher, so the new regex must pass the speed test on its own
 
 ## Adding Eval Samples
 

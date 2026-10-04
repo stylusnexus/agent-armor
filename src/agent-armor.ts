@@ -32,6 +32,7 @@ const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
   strictness: 'balanced',
   allowedActions: [],
   normalizeUnicode: true,
+  maxInputLength: 1_000_000,
   contentInjection: {
     hiddenHTML: true,
     metadataInjection: true,
@@ -680,7 +681,33 @@ export class AgentArmor {
     });
   }
 
+  /**
+   * Result for input over `maxInputLength`. Nothing is scanned, so the result
+   * fails closed: one high-severity threat, and no sanitized text to forward.
+   */
+  private oversizedResult(content: string): ScanResult {
+    const threat: Threat = {
+      category: 'systemic',
+      type: 'congestion-trap',
+      severity: 'high',
+      confidence: 1,
+      description: `Input is ${content.length} characters, over the ${this.config.maxInputLength}-character limit (maxInputLength); it was not scanned`,
+      evidence: '',
+      detectorId: 'input-limit',
+      source: 'pattern',
+    };
+    return {
+      clean: false,
+      threats: [threat],
+      sanitized: '',
+      durationMs: 0,
+      riskLevel: computeRiskLevel(threat.severity, threat.confidence),
+      stats: { detectorsRun: 0, threatsFound: 1, highestSeverity: threat.severity },
+    };
+  }
+
   private runScanPipeline(content: string): ScanResult {
+    if (content.length > this.config.maxInputLength) return this.oversizedResult(content);
     const start = performance.now();
     const allThreats: Threat[] = [];
     const norm = this.config.normalizeUnicode
@@ -748,6 +775,7 @@ export class AgentArmor {
   }
 
   private async runScanPipelineAsync(content: string): Promise<ScanResult> {
+    if (content.length > this.config.maxInputLength) return this.oversizedResult(content);
     const start = performance.now();
     const allThreats: Threat[] = [];
     const norm = this.config.normalizeUnicode
