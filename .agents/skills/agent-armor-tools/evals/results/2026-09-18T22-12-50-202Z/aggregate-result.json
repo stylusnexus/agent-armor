@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "claudeVersion": "2.1.277",
+  "startedAt": "2026-09-18T22:12:50.202Z",
+  "durationSeconds": 0,
+  "costUsd": 0,
+  "partial": false,
+  "suite": {
+    "root": "/Applications/Development/Projects/agent-armor/.claude/skills/agent-armor-tools",
+    "ablation": "none",
+    "caseFilter": "version-check-triggers",
+    "threshold": 1,
+    "concurrency": 1,
+    "plugins": [
+      {
+        "name": "agent-armor-tools",
+        "version": "0.1.0",
+        "path": "/Applications/Development/Projects/agent-armor/.claude/skills/agent-armor-tools"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "version-check-triggers",
+      "dir": "evals/version-check-triggers",
+      "source": "mixed",
+      "promptMarkdown": "I'm about to run npm publish on this package. What version should I bump it to?",
+      "runsPerCase": 3,
+      "timeoutSeconds": 300,
+      "maxTurns": 10,
+      "graders": [
+        {
+          "name": "criteria",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "PASS if the response recommends 0.3.0 (a MINOR bump from 0.2.0) and cites the added required `source` field on the `Threat` interface in `src/types.ts` as the breaking-change evidence.\nFAIL if it recommends any other version, misses the breaking-change signal, or fabricates evidence not grounded in the actual git history.",
+          "config": {
+            "criteria": "PASS if the response recommends 0.3.0 (a MINOR bump from 0.2.0) and cites the added required `source` field on the `Threat` interface in `src/types.ts` as the breaking-change evidence.\nFAIL if it recommends any other version, misses the breaking-change signal, or fabricates evidence not grounded in the actual git history.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "skill-fired",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "\"skill\"\\s*:\\s*\"(?:[\\w-]+:)?version-check\""
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 0,
+            "costUsd": 0,
+            "judgeCostUsd": 0,
+            "durationSeconds": 0,
+            "startedAt": "2026-09-18T22:12:50.221Z",
+            "error": "the Docker (~/.docker, DOCKER_CONFIG) credential store on this machine holds a symbolic link inside it, so the Bash sandbox cannot reliably exclude it — a Bash-granting evaluation cannot run here; keep the store's contents in one plain directory (its root may be a link)",
+            "tracePath": "",
+            "skippedPaidGraders": false,
+            "graders": []
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0,
+        "passRate": 0
+      }
+    }
+  ],
+  "aggregates": {
+    "casesTotal": 1,
+    "casesPassed": 0,
+    "overallScore": 0,
+    "overallPassRate": 0
+  }
+}
