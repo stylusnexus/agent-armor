@@ -739,6 +739,8 @@ describe('stays linear (#219)', () => {
     const text = unit.repeat(Math.ceil(1_000_000 / unit.length)) + '\n[zz]: https://x.example/?data=1\n';
     const start = performance.now();
     detector.scan(text);
-    expect(performance.now() - start).toBeLessThan(400);
+    // The CI runner is several times slower than a laptop and runs test files in parallel; a quadratic path
+    // takes seconds to minutes at this size, so one second still catches it.
+    expect(performance.now() - start).toBeLessThan(1000);
   });
 });

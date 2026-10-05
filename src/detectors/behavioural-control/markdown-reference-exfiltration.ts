@@ -93,6 +93,8 @@ function normalizeLabel(label: string, dropQuoteMarkers: boolean): string {
 /** Both readings of a label's text, without duplicates. */
 function labelKeys(label: string): string[] {
   const plain = normalizeLabel(label, false);
+  // Without a line break there are no quote markers to drop: one reading.
+  if (!/[\r\n]/.test(label)) return [plain];
   const quoted = normalizeLabel(label, true);
   return plain === quoted ? [plain] : [plain, quoted];
 }
@@ -147,6 +149,8 @@ interface BlockEvents {
   at: number[];
   /** Where scanning resumes after it: the same offset, or past a fenced code block. */
   to: number[];
+  /** True when every boundary is a blank line outside any quote or list: the raw bracket pass already ends paragraphs there. */
+  plain: boolean;
 }
 
 /** Closing-fence candidates of one fence character, with a pointer to the next candidate whose run is longer. */
@@ -190,7 +194,7 @@ function buildCloserList(runOfLine: Int32Array, indentOfLine: Int32Array, strict
  */
 function blockEvents(content: string): BlockEvents {
   const n = content.length;
-  const out: BlockEvents = { at: [], to: [] };
+  const out: BlockEvents = { at: [], to: [], plain: true };
   const isSpace = (c: number): boolean => c === 32 || c === 9;
   /** Any character `String.prototype.trim` removes, other than a line break. */
   const isTrimmed = (c: number): boolean =>
@@ -307,9 +311,10 @@ function blockEvents(content: string): BlockEvents {
     return undefined;
   };
 
-  const push = (at: number, to: number): void => {
+  const push = (at: number, to: number, plain = false): void => {
     out.at.push(at);
     out.to.push(to);
+    if (!plain) out.plain = false;
   };
   let prevDepth = 0;
   for (let k = 0; k < m; ) {
@@ -329,7 +334,7 @@ function blockEvents(content: string): BlockEvents {
       } else {
         if (flags[k] & 1) push(line, line); // a list item starts a new block
         if (blank) {
-          push(line, line); // a blank or quote-only line
+          push(line, line, depth === 0 && (flags[k] & 1) === 0); // a blank or quote-only line
         } else if (c === 35) {
           let h = q;
           while (content.charCodeAt(h) === 35) h++;
@@ -376,7 +381,7 @@ function blockEvents(content: string): BlockEvents {
  * image can be read more than one way: a stray `[` inside the alt text (in a
  * code span, an autolink, or just unpaired) must not hide it.
  */
-function analyzeBrackets(content: string, renderer: boolean): BracketInfo {
+function analyzeBrackets(content: string, renderer: boolean, blocks?: BlockEvents): BracketInfo {
   const n = content.length;
   const close = new Int32Array(n).fill(-1);
   const hasInner = new Uint8Array(n);
@@ -389,7 +394,7 @@ function analyzeBrackets(content: string, renderer: boolean): BracketInfo {
   // Renderer mode: code spans, autolinks and block boundaries (headings, fences, list items, quote-only
   // lines) hide or end brackets the way a markdown parser does.
   const runs = renderer ? backtickRuns(content) : undefined;
-  const events: BlockEvents = renderer ? blockEvents(content) : { at: [], to: [] };
+  const events: BlockEvents = renderer ? (blocks ?? blockEvents(content)) : { at: [], to: [], plain: true };
   let ev = 0;
   const reset = (): void => {
     open.length = 0;
@@ -495,7 +500,11 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
     if (flagged.size === 0) return [];
 
     const raw = analyzeBrackets(content, false);
-    const rendered = analyzeBrackets(content, true);
+    // The renderer reading only differs from the raw one when the text has code spans, autolinks or block
+    // boundaries beyond plain blank lines; otherwise it would repeat the raw reading, so skip it.
+    const blocks = blockEvents(content);
+    const needsRendered = !blocks.plain || content.includes('`') || content.includes('<');
+    const rendered = needsRendered ? analyzeBrackets(content, true, blocks) : undefined;
     const hits: Array<{ index: number; end: number; related: { index: number; length: number } }> = [];
 
     const lookup = (keys: string[]): { index: number; length: number } | undefined => {
@@ -547,7 +556,7 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
       return { labelAt, readImage };
     };
     const rawReader = reader(raw);
-    const renderedReader = reader(rendered);
+    const renderedReader = rendered ? reader(rendered) : undefined;
 
     let at = content.indexOf('![');
     while (at >= 0) {
@@ -558,8 +567,10 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
       if (paired >= 0) rawReader.readImage(at, paired);
       const first = raw.firstClose.get(altOpen);
       if (first !== undefined && first !== paired) rawReader.readImage(at, first);
-      const renderedEnd = rendered.close[altOpen];
-      if (renderedEnd >= 0) renderedReader.readImage(at, renderedEnd);
+      if (rendered && renderedReader) {
+        const renderedEnd = rendered.close[altOpen];
+        if (renderedEnd >= 0) renderedReader.readImage(at, renderedEnd);
+      }
       at = content.indexOf('![', at + 1);
     }
     // An unpaired `]` before `[label]` after an earlier `]` ends the alt text, whatever it held.
