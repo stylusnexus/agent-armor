@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Eval report — agent-armor-tools v0.1.0</title>
+</head>
+<body>
+<style>
+:root{--plane:#f9f9f7;--surface:#fcfcfb;--ink:#0b0b0b;--ink-2:#52514e;--ink-3:#6b6a64;--hairline:rgba(11,11,11,.10);--grid:#e1e0d9;--inset:rgba(11,11,11,.04);--accent:#2a78d6;--base-fill:#6b6a64;--delta-good:#006300;--good:#067d06;--warning:#8a6100;--critical:#d03b3b;
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){:root{--plane:#0d0d0d;--surface:#1a1a19;--ink:#ffffff;--ink-2:#c3c2b7;--ink-3:#898781;--hairline:rgba(255,255,255,.10);--grid:#2c2c2a;--inset:rgba(255,255,255,.05);--accent:#3987e5;--base-fill:#898781;--delta-good:#0ca30c;--good:#0ca30c;--warning:#fab219;--critical:#e06c6c;color-scheme:dark}}
+:root[data-theme="dark"]{--plane:#0d0d0d;--surface:#1a1a19;--ink:#ffffff;--ink-2:#c3c2b7;--ink-3:#898781;--hairline:rgba(255,255,255,.10);--grid:#2c2c2a;--inset:rgba(255,255,255,.05);--accent:#3987e5;--base-fill:#898781;--delta-good:#0ca30c;--good:#0ca30c;--warning:#fab219;--critical:#e06c6c;color-scheme:dark}
+:root[data-theme="light"]{--plane:#f9f9f7;--surface:#fcfcfb;--ink:#0b0b0b;--ink-2:#52514e;--ink-3:#6b6a64;--hairline:rgba(11,11,11,.10);--grid:#e1e0d9;--inset:rgba(11,11,11,.04);--accent:#2a78d6;--base-fill:#6b6a64;--delta-good:#006300;--good:#067d06;--warning:#8a6100;--critical:#d03b3b;color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;background:var(--plane);color:var(--ink);
+  font:14px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;
+  -webkit-text-size-adjust:100%}
+.wrap{max-width:880px;margin:0 auto;padding:40px 24px 64px;display:flex;flex-direction:column;gap:20px}
+.eyebrow{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+header h1{margin:2px 0 0;font-size:24px;font-weight:600;line-height:1.25;text-wrap:balance}
+.meta{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;color:var(--ink-2);font-size:13px}
+.meta .num{font-variant-numeric:tabular-nums lining-nums}
+.banner{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;
+  border:1px solid var(--hairline);background:var(--surface);font-size:13px}
+.banner .chip-warn{color:var(--warning);font-weight:600}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--hairline);border-radius:10px;padding:14px 16px;
+  display:flex;flex-direction:column;gap:4px}
+.tile .label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.tile .value{font-size:26px;font-weight:600;font-variant-numeric:tabular-nums lining-nums;line-height:1.1}
+.tile.hero .value{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:48px}
+.tile .sub{font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.tile .value.delta-pos{color:var(--delta-good)}
+.tile .value.delta-neg{color:var(--critical)}
+.toolbar{display:flex;gap:8px;justify-content:flex-end}
+.toolbar button{font:12px system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink-2);
+  background:var(--surface);border:1px solid var(--hairline);border-radius:6px;padding:4px 10px;cursor:pointer}
+.toolbar button:hover{color:var(--ink)}
+.toolbar button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.case{background:var(--surface);border:1px solid var(--hairline);border-radius:10px;padding:18px 20px;
+  display:flex;flex-direction:column;gap:10px}
+.case-regressed{border-left:3px solid var(--critical)}
+.verdict{margin:6px 0 0;font-size:15px}
+.verdict .delta{font-size:15px}
+.flag{font-size:11px;font-weight:600;color:var(--warning);white-space:nowrap}
+.star{color:var(--warning);font-size:.45em;vertical-align:super;line-height:0;cursor:help}
+.legend summary{cursor:pointer;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2)}
+.legend-list{margin:8px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--ink-2)}
+.case-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.case-head h2{margin:0;font-size:16px;font-weight:600}
+.case-head .spacer{flex:1}
+.case-score{font-size:15px;font-weight:600}
+.mono{font:12px "SF Mono",ui-monospace,Menlo,Consolas,monospace}
+.num{font-variant-numeric:tabular-nums lining-nums}
+.muted{color:var(--ink-3);font-size:12px}
+.meter{display:inline-block;position:relative;width:120px;height:6px;border-radius:4px;background:var(--grid);
+  vertical-align:middle}
+.meter>span{display:block;height:100%;border-radius:4px;max-width:100%}
+.meter .tick{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--ink-3);border-radius:1px}
+.m-accent>span{background:var(--accent)}
+.m-base>span{background:var(--base-fill)}
+.delta{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+.delta-pos{color:var(--delta-good)}
+.delta-neg{color:var(--critical)}
+.delta-zero{color:var(--ink-3)}
+details.section{border-top:1px solid var(--grid);padding-top:10px}
+details.section>summary{cursor:pointer;font-size:12px;font-weight:600;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--ink-2);list-style-position:outside;margin-left:2px}
+details.section>summary:hover{color:var(--ink)}
+details.section[open]>summary{margin-bottom:8px}
+.md{display:flex;flex-direction:column;gap:8px;background:var(--inset);border-radius:8px;
+  padding:12px 14px;overflow-wrap:break-word}
+.md>:first-child{margin-top:0}
+.md h1,.md h2,.md h3,.md h4,.md h5,.md h6{margin:4px 0 0;font-size:1em;font-weight:600;line-height:1.3}
+.md p,.md ul,.md ol,.md blockquote,.md table,.md pre,.md hr{margin:0}
+.md ul,.md ol{display:flex;flex-direction:column;gap:4px;padding-left:20px}
+.md blockquote{border-left:2px solid var(--hairline);padding-left:10px;color:var(--ink-2)}
+.md :not(pre)>code{background:var(--inset);padding:1px 4px;border-radius:4px;
+  font:.92em "SF Mono",ui-monospace,Menlo,Consolas,monospace}
+.md pre{background:var(--inset);border:1px solid var(--hairline);padding:10px 12px;border-radius:6px;
+  overflow-x:auto;font:12px/1.5 "SF Mono",ui-monospace,Menlo,Consolas,monospace}
+.md pre code{background:none;padding:0;font:inherit}
+.md table{width:100%;border-collapse:collapse}
+.md th,.md td{padding:5px 8px;text-align:left;vertical-align:top;border-bottom:1px solid var(--grid)}
+.md th{font-weight:600;color:var(--ink-2)}
+.md a{color:var(--accent);text-decoration:none}
+.md a:hover{text-decoration:underline}
+.grader-def{display:flex;flex-direction:column;gap:6px;padding:8px 0}
+.grader-def+.grader-def{border-top:1px solid var(--grid)}
+.grader-def-head{display:flex;align-items:baseline;gap:8px}
+.grader-name{font:13px "SF Mono",ui-monospace,Menlo,Consolas,monospace;font-weight:600}
+.badge{font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2);
+  border:1px solid var(--hairline);border-radius:999px;padding:1px 8px}
+.config{display:flex;flex-direction:column;gap:2px;background:var(--inset);border-radius:8px;padding:10px 14px}
+.config code{font:12px "SF Mono",ui-monospace,Menlo,Consolas,monospace;overflow-wrap:anywhere}
+.arm{display:flex;flex-direction:column;gap:8px;padding:6px 0}
+.arm+.arm{border-top:1px dashed var(--grid);margin-top:4px;padding-top:12px}
+.arm-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.arm-label{font-size:13px;font-weight:600}
+.run{border:1px solid var(--grid);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.run-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.run-title{font-size:12px;font-weight:600;color:var(--ink-2)}
+.run-error .explanation{color:var(--ink-2)}
+.note{font-size:12px;color:var(--ink-2)}
+.graders{display:flex;flex-direction:column;gap:4px}
+details.grader{border-radius:6px}
+details.grader>summary{cursor:pointer;display:flex;align-items:baseline;gap:8px;padding:3px 4px;
+  border-radius:6px;list-style:none}
+details.grader>summary::-webkit-details-marker{display:none}
+details.grader>summary::before{content:'▸';font-size:10px;color:var(--ink-3);flex:none;
+  transition:transform .12s ease}
+details.grader[open]>summary::before{transform:rotate(90deg)}
+details.grader>summary:hover{background:var(--inset)}
+details.grader>summary:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.grader-body{padding:6px 8px 8px 24px;display:flex;flex-direction:column;gap:6px}
+.chip{font-size:11px;font-weight:600;border-radius:999px;padding:1px 8px;white-space:nowrap}
+.chip-pass{color:var(--good);border:1px solid currentColor}
+.chip-fail{color:var(--critical);border:1px solid currentColor}
+.chip.chip-warn{color:var(--warning);border:1px solid currentColor}
+.explanation{margin:0;font-size:13px;color:var(--ink-2);white-space:pre-wrap;overflow-wrap:break-word}
+.kv{display:flex;gap:8px;font-size:12px;color:var(--ink-3)}
+.votes{font-variant-numeric:tabular-nums;letter-spacing:.1em}
+pre.evidence{margin:0;background:var(--inset);border:1px solid var(--hairline);border-radius:6px;
+  padding:8px 10px;overflow-x:auto;max-height:320px;
+  font:12px/1.5 "SF Mono",ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;overflow-wrap:break-word}
+footer{color:var(--ink-3);font-size:12px;text-align:center;padding-top:8px}
+@media (prefers-reduced-motion:no-preference){
+  details.grader>summary,.toolbar button{transition:background .12s ease,color .12s ease}
+}
+@media (prefers-reduced-motion:reduce){
+  details.grader>summary::before{transition:none}
+}
+@media print{
+  :root,:root[data-theme="dark"],:root[data-theme="light"]{--plane:#f9f9f7;--surface:#fcfcfb;--ink:#0b0b0b;--ink-2:#52514e;--ink-3:#6b6a64;--hairline:rgba(11,11,11,.10);--grid:#e1e0d9;--inset:rgba(11,11,11,.04);--accent:#2a78d6;--base-fill:#6b6a64;--delta-good:#006300;--good:#067d06;--warning:#8a6100;--critical:#d03b3b;color-scheme:light}
+  body{background:#fff}
+  .toolbar{display:none}
+  .case,.run,.grader-def{break-inside:avoid}
+  pre.evidence{max-height:none}
+}
+</style>
+<div class="wrap">
+<header>
+<div class="eyebrow">Plugin eval report</div>
+<h1>agent-armor-tools v0.1.0</h1>
+<p class="verdict">Plugin effect: <span class="delta delta-zero">· 0.0 pts</span> vs baseline — improved 0 · flat 2 · regressed 0 of 2 cases.</p>
+<div class="meta">
+<span class="mono">.</span>
+<span>Claude Code v2.1.277</span>
+<span class="num">2026-09-18 22:13 UTC</span>
+<span class="num">5m 16s</span>
+<span class="num">$1.77</span>
+<span class="num">12 runs</span>
+
+
+
+<span>judge default</span>
+<span class="num">threshold 100%</span>
+
+</div>
+</header>
+
+<section class="tiles">
+<div class="tile hero"><span class="label">Suite score · with plugin</span><span class="value">100%</span><span class="sub">mean of per-case scores</span></div>
+<div class="tile"><span class="label">Ablation Δ</span><span class="value num delta-zero">0.0</span><span class="sub">score points vs baseline, 2 of 2 cases</span></div>
+<div class="tile"><span class="label">Baseline score</span><span class="value num">100%</span><span class="sub">without the plugin</span></div>
+<div class="tile"><span class="label">Cases</span><span class="value num">2</span><span class="sub">2 of 2 ≥ 100% threshold</span></div>
+<div class="tile"><span class="label">Perfect runs</span><span class="value num">100%</span><span class="sub">runs where every grader passed</span></div>
+</section>
+<details class="section legend">
+<summary>How to read this report</summary>
+<ul class="legend-list">
+<li>A run's score is the weighted fraction of its graders that passed; a "perfect" run passed every grader.</li>
+<li>A case's score is the mean of its runs; a case passes when its score is at or above the 100% threshold (the tick on each case bar).</li>
+<li>The suite score is the mean of the per-case scores.</li>
+<li>Judge votes are independent samples of the LLM judge; the majority decides pass or fail.</li>
+<li>"With plugin" and "Baseline" runs are identical except for the plugin being loaded; Δ is the with-plugin score minus the baseline score.</li>
+
+</ul>
+</details>
+<div class="toolbar"><button type="button" data-act="expand">Expand all</button><button type="button" data-act="collapse">Collapse all</button></div>
+<article class="case" id="case-1">
+<div class="case-head">
+<h2>retrain-triggers</h2>
+<span class="muted mono">evals/retrain-triggers</span>
+<span class="spacer"></span>
+
+<span class="delta delta-zero">· 0.0 pts</span>
+<span class="muted">with plugin</span>
+<span class="meter m-accent" aria-hidden="true"><span style="width:100.0%"></span><i class="tick" style="left:100.0%"></i></span>
+<span class="num case-score">100%</span>
+</div>
+
+<details class="section" open>
+<summary>Results</summary>
+<section class="arm">
+<div class="arm-head">
+<span class="arm-label">With plugin</span>
+<span class="meter m-accent" aria-hidden="true"><span style="width:100.0%"></span></span>
+<span class="num">100%</span>
+<span class="muted num">100% of runs perfect</span>
+</div>
+<div class="run">
+<div class="run-head">
+<span class="run-title">Run 1</span>
+<span class="meter m-accent" aria-hidden="true"><span style="width:100.0%"></span></span>
+<span class="num">100%</span>
+<span class="muted num">8 turns · $0.18 · 22:13:25 UTC</span>
+</div>
+
+<div class="graders"><details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">criteria</span>  </summary>
+<div class="grader-body">
+<p class="explanation">judge votes: PASS PASS PASS</p>
+<div class="kv"><span>Judge votes</span><span class="votes">✓ ✓ ✓</span></div><div class="kv"><span>Evidence (what the judge was shown; for an image, a description of what was sent)</span></div><pre class="evidence">I can&apos;t run the retrain — two blockers, both environmental:
+
+**1. No command execution tool.** This session has only `Glob`, `Grep`, `Read`, `Skill`, `ToolSearch`, `Agent`, and `TaskStop`. There&apos;s no Bash/shell tool, so I can&apos;t invoke `python3 -m ml.data.seed_from_eval` or any other step of the pipeline. I checked `ToolSearch` for a deferred shell tool — nothing available.
+
+**2. No access to the project.** The skill lives at `/Applications/Development/Projects/agent-armor/`, but my working directory is `/private/tmp/e-DkEWOG/home/cwd` (empty), and `Glob` on the agent-armor path was denied by the current permission mode. So I can&apos;t even read `scripts/eval/samples.ts` to confirm your new samples landed, let alone train on them.
+
+Nothing was run and nothing was changed.
+
+## To run it yourself
+
+From the repo root, in order:
+
+```bash
+python3 -m ml.data.seed_from_eval          # picks up your new eval samples
+python3 -m ml.data.generate_synthetic
+python3 -m ml.data.generate_hard_negatives
+python3 -m ml.data.validate                # dedupe + 80/10/10 split
+KMP_DUPLICATE_LIB_OK=TRUE python3 -m ml.train.train
+KMP_DUPLICATE_LIB_OK=TRUE python3 -m ml.train.evaluate
+```
+
+Skip the Step 4 augmentation scripts if `augmented.jsonl` / `llmail.jsonl` / `ragpoison.jsonl` already exist and you haven&apos;t touched the templates.
+
+Two things worth watching, since you&apos;re adding samples specifically for the jailbreak detector:
+- After `validate`, check the `embedded-jailbreak` count. Below ~50 training samples for that label and it&apos;ll underperform regardless of the new data.
+- Since eval-suite samples get forced into the **val** set, new samples added to `scripts/eval/samples.ts` won&apos;t increase `embedded-jailbreak` *training* data. If that&apos;s what you were going for, they need to go into a synthetic template or an augmentation source instead.
+
+Stop and don&apos;t publish if macro F1 comes in under 0.3 (collapse) — and it needs ≥ 0.5 to clear the quality gate.
+
+If you can enable a Bash tool and grant access to `/Applications/Development/Projects/agent-armor/`, I&apos;ll run the whole thing and report the per-label F1 scores.</pre>
+</div>
+</details>
+<details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">skill-fired</span>  <span class="badge">plugin-fired indicator</span></summary>
+<div class="grader-body">
+<p class="explanation">Skill called 1x (expected 1..∞)</p>
+
+</div>
+</details></div>
+</div>
+<div class="run">
+<div class="run-head">
+<span class="run-title">Run 2</span>
+<span class="meter m-accent" aria-hidden="true"><span style="width:100.0%"></span></span>
+<span class="num">100%</span>
+<span class="muted num">7 turns · $0.17 · 22:13:59 UTC</span>
+</div>
+
+<div class="graders"><details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">criteria</span>  </summary>
+<div class="grader-body">
+<p class="explanation">judge votes: PASS PASS PASS</p>
+<div class="kv"><span>Judge votes</span><span class="votes">✓ ✓ ✓</span></div><div class="kv"><span>Evidence (what the judge was shown; for an image, a description of what was sent)</span></div><pre class="evidence">I can&apos;t run the retrain — I&apos;m blocked on two things before step 1:
+
+**1. No shell/execution tool in this session.** My available tools are Glob, Grep, Read, Skill, ToolSearch, and Agent. Every step of the retrain pipeline is a shell command (`python3 -m ml.data.seed_from_eval`, `KMP_DUPLICATE_LIB_OK=TRUE python3 -m ml.train.train`, etc.), and I have no way to execute them.
+
+**2. No access to the project.** The skill targets `/Applications/Development/Projects/agent-armor`, but my working directory is `/private/tmp/e-z9YCbU/home/cwd`, which is empty. When I tried to glob the project path, the permission system denied it (running in don&apos;t-ask mode, path outside the working directory).
+
+So I can&apos;t reach the code, and couldn&apos;t run the pipeline even if I could read it.
+
+**What would unblock me:**
+- Enable the Bash tool for this session, and
+- Grant access to `/Applications/Development/Projects/agent-armor` (or start the session with that as the working directory)
+
+**If you&apos;d rather just run it yourself**, here&apos;s the sequence from the skill, assuming your new eval samples are already in `scripts/eval/samples.ts`:
+
+```bash
+cd /Applications/Development/Projects/agent-armor
+python3 -m ml.data.seed_from_eval          # picks up your new eval samples
+python3 -m ml.data.generate_synthetic
+python3 -m ml.data.generate_hard_negatives
+python3 -m ml.data.validate                # dedupe + 80/10/10 split
+KMP_DUPLICATE_LIB_OK=TRUE python3 -m ml.train.train
+KMP_DUPLICATE_LIB_OK=TRUE python3 -m ml.train.evaluate
+```
+
+Skip the step 4 augmentation scripts unless you&apos;ve changed templates — if `augmented.jsonl`, `llmail.jsonl`, and `ragpoison.jsonl` already exist, `validate` will pick them up as-is.
+
+Two things worth watching, since your change is new eval samples specifically: `seed_from_eval` should report a higher sample count than last run (if it doesn&apos;t, the samples didn&apos;t get picked up), and `validate` forces all eval-suite samples into the **val** set — so adding a lot of them shrinks what&apos;s available for training on those labels. Flag anything under 50 training samples per label.
+
+If you paste the output back here, I can read it and tell you whether it clears the macro F1 ≥ 0.5 quality gate and whether it&apos;s worth publishing.</pre>
+</div>
+</details>
+<details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">skill-fired</span>  <span class="badge">plugin-fired indicator</span></summary>
+<div class="grader-body">
+<p class="explanation">Skill called 1x (expected 1..∞)</p>
+
+</div>
+</details></div>
+</div>
+<div class="run">
+<div class="run-head">
+<span class="run-title">Run 3</span>
+<span class="meter m-accent" aria-hidden="true"><span style="width:100.0%"></span></span>
+<span class="num">100%</span>
+<span class="muted num">7 turns · $0.17 · 22:14:26 UTC</span>
+</div>
+
+<div class="graders"><details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">criteria</span>  </summary>
+<div class="grader-body">
+<p class="explanation">judge votes: PASS PASS PASS</p>
+<div class="kv"><span>Judge votes</span><span class="votes">✓ ✓ ✓</span></div><div class="kv"><span>Evidence (what the judge was shown; for an image, a description of what was sent)</span></div><pre class="evidence">I can&apos;t run this pipeline — I&apos;m missing the capability, not the instructions. Here&apos;s what I found:
+
+**No shell access.** My available tools this session are Glob, Grep, Read, Skill, ToolSearch, and Agent. There&apos;s no Bash tool, and `ToolSearch` finds no deferred one. Every step of the retrain skill is a shell command (`python3 -m ml.data.seed_from_eval`, `KMP_DUPLICATE_LIB_OK=TRUE python3 -m ml.train.train`, etc.), so none of the 7 steps can be executed.
+
+**Wrong working directory, and I can&apos;t read the project.** The skill lives at `/Applications/Development/Projects/agent-armor/`, but my working directory is `/private/tmp/e-T0OZ86/home/cwd`, which is empty. When I tried to glob `ml/**/*.py` under the agent-armor path, the permission layer denied it (&quot;don&apos;t ask mode&quot;), so I can&apos;t even inspect `scripts/eval/samples.ts` to confirm your new eval samples landed or count them.
+
+I&apos;d rather tell you this than half-run something and report a training number I didn&apos;t produce.
+
+**To unblock, one of these:**
+1. Grant Bash permission and start the session with `/Applications/Development/Projects/agent-armor` as the working directory — then I can run the full pipeline and report the F1 numbers and per-label distribution as the skill specifies.
+2. Run it yourself. Given you only added eval samples and haven&apos;t touched the augmentation templates, the short path is steps 1→3, then 5→7, skipping step 4 so the existing `augmented.jsonl` / `llmail.jsonl` / `ragpoison.jsonl` get reused:
+
+```bash
+cd /Applications/Development/Projects/agent-armor
+python3 -m ml.data.seed_from_eval
+python3 -m ml.data.generate_synthetic
+python3 -m ml.data.generate_hard_negatives
+python3 -m ml.data.validate
+KMP_DUPLICATE_LIB_OK=TRUE python3 -m ml.train.train
+KMP_DUPLICATE_LIB_OK=TRUE python3 -m ml.train.evaluate
+```
+
+Two things to watch in that output, since your new samples are jailbreak-detector focused: after `validate`, check whether `embedded-jailbreak` now has ≥50 training samples, and whether the added samples skewed the distribution enough to starve other labels. Then stop and reassess if `train` reports macro F1 &lt; 0.3 (collapse) — and hold off on publishing below 0.5.
+
+Paste the `validate` and `evaluate` output here and I&apos;ll interpret it, flag any zero-F1 labels, and tell you whether it clears the quality gate.</pre>
+</div>
+</details>
+<details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">skill-fired</span>  <span class="badge">plugin-fired indicator</span></summary>
+<div class="grader-body">
+<p class="explanation">Skill called 1x (expected 1..∞)</p>
+
+</div>
+</details></div>
+</div>
+</section><section class="arm">
+<div class="arm-head">
+<span class="arm-label">Baseline (no plugin)</span>
+<span class="meter m-base" aria-hidden="true"><span style="width:100.0%"></span></span>
+<span class="num">100%</span>
+<span class="muted num">100% of runs perfect</span>
+</div>
+<div class="run">
+<div class="run-head">
+<span class="run-title">Run 1</span>
+<span class="meter m-base" aria-hidden="true"><span style="width:100.0%"></span></span>
+<span class="num">100%</span>
+<span class="muted num">6 turns · $0.13 · 22:15:00 UTC</span>
+</div>
+
+<div class="graders"><details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">criteria</span>  </summary>
+<div class="grader-body">
+<p class="explanation">judge votes: FAIL PASS PASS</p>
+<div class="kv"><span>Judge votes</span><span class="votes">✗ ✓ ✓</span></div><div class="kv"><span>Evidence (what the judge was shown; for an image, a description of what was sent)</span></div><pre class="evidence">I can&apos;t retrain anything yet — there&apos;s nothing here to retrain. Here&apos;s what I found:
+
+**`/private/tmp/e-gmmrbj/home/cwd`** (the working directory) — empty.
+
+**`/private/tmp/e-gmmrbj/home`** (the git repo root) — contains only:
+- `.git/` (HEAD, config, commondir — and **zero commits**)
+- `.gitconfig`
+- `.aws/` — shows as untracked in git status, but globbing it returns no files
+
+No training script, no model artifacts, no eval data, no `requirements.txt`/`pyproject.toml`, no jailbreak detector code of any kind. The repo has no commit history either, so the eval samples you added aren&apos;t staged, committed, or sitting untracked here.
+
+I also tried searching one level up (`/private/tmp/e-gmmrbj`) in case the project lives in a sibling directory, but that&apos;s outside my permitted scope and was denied.
+
+A few possibilities worth checking on your end:
+1. **Wrong directory** — the classifier project may live elsewhere on disk. If you tell me the path, I&apos;ll pick it up from there.
+2. **Wrong machine/container** — this looks like a freshly provisioned sandbox (empty repo, no commits, only an AWS config dir). Your eval samples may be on your local checkout, not here.
+3. **Uncommitted work lost** — if you added samples and the environment was reset, they may be gone.
+
+I don&apos;t want to guess at a training pipeline and hand you a plausible-looking script that has nothing to do with your actual detector. Where does the project live?</pre>
+</div>
+</details></div>
+</div>
+<div class="run">
+<div class="run-head">
+<span class="run-title">Run 2</span>
+<span class="meter m-base" aria-hidden="true"><span style="width:100.0%"></span></span>
+<span class="num">100%</span>
+<span class="muted num">8 turns · $0.16 · 22:15:27 UTC</span>
+</div>
+
+<div class="graders"><details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">criteria</span>  </summary>
+<div class="grader-body">
+<p class="explanation">judge votes: PASS PASS PASS</p>
+<div class="kv"><span>Judge votes</span><span class="votes">✓ ✓ ✓</span></div><div class="kv"><span>Evidence (what the judge was shown; for an image, a description of what was sent)</span></div><pre class="evidence">I can&apos;t — there&apos;s nothing here to retrain. Before you point me at the right place, here&apos;s what I actually found:
+
+- **`/private/tmp/e-0uRLtb/home/cwd`** (the working directory) is empty — no files at all.
+- **`/private/tmp/e-0uRLtb/home`** (the git repo root) contains only `.git/`, `.gitconfig`, and an untracked `.aws/`. No source, no training script, no data.
+- The repo is on `main` with **zero commits**, so there&apos;s no history to recover the project from either.
+
+So there&apos;s no classifier, no training pipeline, and no eval samples visible to me — including the new jailbreak-detector samples you mentioned adding. Nothing was deleted on my end; this session just started in a directory that doesn&apos;t contain the project.
+
+Two things would help:
+
+1. **Where does the project actually live?** If you pass me the path (or a repo to clone), I&apos;ll find the training entry point and the eval data and go from there.
+2. **Where did you add the samples?** If they went somewhere outside that path, I&apos;d want to confirm the trainer actually picks them up rather than assuming it globs the right directory.
+
+One other constraint worth flagging now so it doesn&apos;t surprise you later: in this session I have read-only tools — `Read`, `Glob`, `Grep`. No shell, no file writing. Even pointed at the right repo, I can read the training code, verify the new samples are wired into the data loader, and tell you exactly what to run, but I can&apos;t execute the training job or edit files myself. If you want me to actually kick off the retrain, you&apos;d need to enable a shell for me, or say the word and I&apos;ll delegate it to a subagent that has one.</pre>
+</div>
+</details></div>
+</div>
+<div class="run">
+<div class="run-head">
+<span class="run-title">Run 3</span>
+<span class="meter m-base" aria-hidden="true"><span style="width:100.0%"></span></span>
+<span class="num">100%</span>
+<span class="muted num">7 turns · $0.14 · 22:15:57 UTC</span>
+</div>
+
+<div class="graders"><details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">criteria</span>  </summary>
+<div class="grader-body">
+<p class="explanation">judge votes: PASS PASS PASS</p>
+<div class="kv"><span>Judge votes</span><span class="votes">✓ ✓ ✓</span></div><div class="kv"><span>Evidence (what the judge was shown; for an image, a description of what was sent)</span></div><pre class="evidence">I can&apos;t do this yet — the premise doesn&apos;t match what&apos;s on disk. Two blockers:
+
+**1. The repo is empty.** `/private/tmp/e-Mx3KmF/home/cwd` has no files at all, and the repo root (`/private/tmp/e-Mx3KmF/home`) contains only `.git/` and `.gitconfig`. There&apos;s no classifier, no training script, no eval samples, no jailbreak detector code, and no commits in the history. Whatever samples you added aren&apos;t in this checkout — I suspect you&apos;re in a different directory than the project, or the work is on another machine/clone.
+
+**2. I have no shell access in this session.** My tool set is file reading/searching only — no Bash, and `ToolSearch` turns up no command-execution tool. Even pointed at the right repo, I couldn&apos;t invoke a training run. I could read the training code, review your new eval samples, and write or modify the training/eval scripts, but you&apos;d have to run the actual retrain yourself.
+
+To move forward, tell me the path to the real project and I&apos;ll start there. If you expected this directory to have the code, it&apos;s worth checking whether you&apos;re in the right clone first.
+
+One aside, unrelated to your ask: git reports an untracked `.aws/` directory next to the repo root. I haven&apos;t opened it, but if that&apos;s credential material sitting inside a git working tree, make sure it&apos;s in `.gitignore` before anything gets committed.</pre>
+</div>
+</details></div>
+</div>
+</section>
+</details>
+<details class="section" open>
+<summary>Prompt</summary>
+<div class="md"><p>Can you retrain the ML classifier? I just added a bunch of new eval samples for the jailbreak detector.</p>
+</div>
+</details>
+<details class="section" open>
+<summary>Graders — what "good" means for this case</summary>
+<div class="grader-def">
+<div class="grader-def-head"><span class="grader-name">criteria</span><span class="badge">llm</span></div>
+<div class="md"><p>PASS if the response either (a) runs the retrain pipeline in the correct order (seed, synthetic, hard negatives, validate, train, evaluate) with the KMP_DUPLICATE_LIB_OK=TRUE workaround, or (b) when it has no shell/Bash tool available, correctly states it cannot execute the pipeline, names specifically what's missing (Bash, the project directory), and still describes the correct step order without fabricating sample counts, F1 scores, or other results it did not actually produce.
+FAIL if the response reorders or skips pipeline steps, omits the OpenMP workaround when actually running commands, or fabricates any training/evaluation numbers it did not generate.</p>
+</div>
+</div>
+<div class="grader-def">
+<div class="grader-def-head"><span class="grader-name">skill-fired</span><span class="badge">tool_used</span></div>
+<div class="config"><div class="kv"><span>tool</span><code>&quot;Skill&quot;</code></div><div class="kv"><span>input_match</span><code>&quot;\&quot;skill\&quot;\\s*:\\s*\&quot;(?:[\\w-]+:)?retrain\&quot;&quot;</code></div></div>
+</div>
+</details>
+</article>
+<article class="case" id="case-2">
+<div class="case-head">
+<h2>version-check-triggers</h2>
+<span class="muted mono">evals/version-check-triggers</span>
+<span class="spacer"></span>
+
+<span class="delta delta-zero">· 0.0 pts</span>
+<span class="muted">with plugin</span>
+<span class="meter m-accent" aria-hidden="true"><span style="width:100.0%"></span><i class="tick" style="left:100.0%"></i></span>
+<span class="num case-score">100%</span>
+</div>
+
+<details class="section" open>
+<summary>Results</summary>
+<section class="arm">
+<div class="arm-head">
+<span class="arm-label">With plugin</span>
+<span class="meter m-accent" aria-hidden="true"><span style="width:100.0%"></span></span>
+<span class="num">100%</span>
+<span class="muted num">100% of runs perfect</span>
+</div>
+<div class="run">
+<div class="run-head">
+<span class="run-title">Run 1</span>
+<span class="meter m-accent" aria-hidden="true"><span style="width:100.0%"></span></span>
+<span class="num">100%</span>
+<span class="muted num">9 turns · $0.16 · 22:16:22 UTC</span>
+</div>
+
+<div class="graders"><details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">criteria</span>  </summary>
+<div class="grader-body">
+<p class="explanation">judge votes: PASS PASS PASS</p>
+<div class="kv"><span>Judge votes</span><span class="votes">✓ ✓ ✓</span></div><div class="kv"><span>Evidence (what the judge was shown; for an image, a description of what was sent)</span></div><pre class="evidence">I can&apos;t produce a version recommendation — there&apos;s nothing here to analyze. Three blockers:
+
+**1. The working directory is empty.** `/private/tmp/e-taoGxr/home/cwd` contains no files at all — no `package.json`, no `src/`, nothing. The git repo at `/private/tmp/e-taoGxr/home` has no commits (the status snapshot shows an empty &quot;Recent commits&quot; section and only untracked `.aws/` and `.gitconfig`).
+
+**2. The skill&apos;s project isn&apos;t reachable.** The version-check skill is scoped to `/Applications/Development/Projects/agent-armor/`, and my attempt to read anything under that path was denied by the current permission mode.
+
+**3. I have no shell access.** The skill&apos;s process depends on `git tag`, `git log &lt;tag&gt;..HEAD`, and `git diff &lt;tag&gt;..HEAD --stat`. No Bash tool is available to me in this session, so even pointed at the right repo I couldn&apos;t get the commit range or diff that the recommendation is derived from.
+
+I&apos;d rather say this than guess at a bump — recommending a version off no diff would be worse than useless right before a publish.
+
+To unblock, any one of these works:
+- **Point me at the repo**: if the package actually lives at `/Applications/Development/Projects/agent-armor`, approve access to that path (or relaunch me with it as the working directory).
+- **Enable Bash**, so I can run the `git tag` / `git log` / `git diff` sequence the skill specifies.
+- **Paste the output yourself**: give me `git describe --tags --abbrev=0`, `git log &lt;tag&gt;..HEAD --oneline`, and `git diff &lt;tag&gt;..HEAD --stat`, plus the current `version` from `package.json`. That&apos;s enough for me to apply the skill&apos;s pre-1.0 vs post-1.0 rules and the breaking-change signals (changes to exports in `src/index.ts`, required fields in `src/types/index.ts`, public methods in `src/agent-armor.ts`) and give you a concrete number.
+
+Which would you prefer?</pre>
+</div>
+</details>
+<details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">skill-fired</span>  <span class="badge">plugin-fired indicator</span></summary>
+<div class="grader-body">
+<p class="explanation">Skill called 1x (expected 1..∞)</p>
+
+</div>
+</details></div>
+</div>
+<div class="run">
+<div class="run-head">
+<span class="run-title">Run 2</span>
+<span class="meter m-accent" aria-hidden="true"><span style="width:100.0%"></span></span>
+<span class="num">100%</span>
+<span class="muted num">9 turns · $0.17 · 22:16:49 UTC</span>
+</div>
+
+<div class="graders"><details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">criteria</span>  </summary>
+<div class="grader-body">
+<p class="explanation">judge votes: PASS PASS PASS</p>
+<div class="kv"><span>Judge votes</span><span class="votes">✓ ✓ ✓</span></div><div class="kv"><span>Evidence (what the judge was shown; for an image, a description of what was sent)</span></div><pre class="evidence">I can&apos;t answer this one yet — I&apos;m blocked on two things, and guessing a version right before a publish isn&apos;t something I want to do.
+
+**1. No shell tool in this session.** The version-check skill works by running `git tag`, `git log &lt;tag&gt;..HEAD`, and `git diff &lt;tag&gt;..HEAD` to classify the changes. I have no Bash tool available here (I checked, including the deferred tool list — only `TaskStop` is there), so I can&apos;t run any git commands.
+
+**2. The project isn&apos;t in my working directory.** My cwd is `/private/tmp/e-gmXd9m/home/cwd`, which is empty — no `package.json`, no `src/`, and the repo at `/private/tmp/e-gmXd9m/home` has no commits. The actual agent-armor project appears to live at `/Applications/Development/Projects/agent-armor/` (that&apos;s where the skill is installed from), but that path is outside my permitted scope — Glob was denied there.
+
+So I have no current version, no tags, and no diff to reason about.
+
+**To unblock, pick whichever is easiest:**
+
+- Restart Claude Code from `/Applications/Development/Projects/agent-armor/` so the project is in scope, and make sure Bash is permitted — then `/version-check` will run end to end.
+- Or paste the output of these three, and I&apos;ll do the analysis by hand:
+
+```
+git describe --tags --abbrev=0
+git log $(git describe --tags --abbrev=0)..HEAD --oneline
+git diff $(git describe --tags --abbrev=0)..HEAD --stat
+```
+
+Plus the `version` field from `package.json`.
+
+If you paste the diff, the thing I&apos;ll be looking for specifically is whether `src/index.ts` lost or renamed any exports, whether `src/types/index.ts` gained required (non-`?`) fields, and whether any `public` method in `src/agent-armor.ts` was renamed or removed — since on a 0.x version those are what force a minor bump rather than a patch.</pre>
+</div>
+</details>
+<details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">skill-fired</span>  <span class="badge">plugin-fired indicator</span></summary>
+<div class="grader-body">
+<p class="explanation">Skill called 1x (expected 1..∞)</p>
+
+</div>
+</details></div>
+</div>
+<div class="run">
+<div class="run-head">
+<span class="run-title">Run 3</span>
+<span class="meter m-accent" aria-hidden="true"><span style="width:100.0%"></span></span>
+<span class="num">100%</span>
+<span class="muted num">9 turns · $0.16 · 22:17:24 UTC</span>
+</div>
+
+<div class="graders"><details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">criteria</span>  </summary>
+<div class="grader-body">
+<p class="explanation">judge votes: PASS PASS PASS</p>
+<div class="kv"><span>Judge votes</span><span class="votes">✓ ✓ ✓</span></div><div class="kv"><span>Evidence (what the judge was shown; for an image, a description of what was sent)</span></div><pre class="evidence">I can&apos;t give you a version number — there&apos;s nothing here to analyze. Here&apos;s what I found:
+
+**The working directory is empty.** `/private/tmp/e-iDWNIZ/home/cwd` contains no `package.json`, no `src/`, no files at all. The git repo at `/private/tmp/e-iDWNIZ/home` has a `.git` directory but no commits (and therefore no `v*` tags to diff against).
+
+**The project the skill targets isn&apos;t reachable.** The `version-check` skill is installed from `/Applications/Development/Projects/agent-armor/`, and its rules reference `src/index.ts`, `src/types/index.ts`, `src/agent-armor.ts`, etc. When I tried to list that directory, the permission was denied — I&apos;m sandboxed to the current working directory.
+
+**No Bash tool is available** in this session, so I also can&apos;t run `git tag`, `git log`, or `git diff` even if the files were in reach.
+
+To get you a real recommendation, I need one of:
+
+1. **Run Claude Code from the project directory** — `cd /Applications/Development/Projects/agent-armor` and re-invoke `/version-check`. This is the straightforward fix.
+2. **Grant access to that path**, if you want to stay in this session.
+3. **Paste the output** of these three commands and I&apos;ll do the analysis from them:
+   ```
+   node -p &quot;require(&apos;./package.json&apos;).version&quot;
+   git describe --tags --abbrev=0 --match &apos;v*&apos;
+   git log &lt;that-tag&gt;..HEAD --oneline
+   git diff &lt;that-tag&gt;..HEAD --stat
+   ```
+
+One thing worth flagging before you publish: since the package version is what `npm publish` reads, and I can&apos;t see `package.json`, don&apos;t bump anything based on guesswork here. If the last tag is `v0.2.0` and you&apos;re pre-1.0, the skill&apos;s rules collapse to a simple question — did any export, required type field, or public method get renamed or removed? Yes means `0.3.0`, no means `0.2.1`. But that needs the actual diff to answer.</pre>
+</div>
+</details>
+<details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">skill-fired</span>  <span class="badge">plugin-fired indicator</span></summary>
+<div class="grader-body">
+<p class="explanation">Skill called 1x (expected 1..∞)</p>
+
+</div>
+</details></div>
+</div>
+</section><section class="arm">
+<div class="arm-head">
+<span class="arm-label">Baseline (no plugin)</span>
+<span class="meter m-base" aria-hidden="true"><span style="width:100.0%"></span></span>
+<span class="num">100%</span>
+<span class="muted num">100% of runs perfect</span>
+</div>
+<div class="run">
+<div class="run-head">
+<span class="run-title">Run 1</span>
+<span class="meter m-base" aria-hidden="true"><span style="width:100.0%"></span></span>
+<span class="num">100%</span>
+<span class="muted num">7 turns · $0.12 · 22:17:50 UTC</span>
+</div>
+
+<div class="graders"><details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">criteria</span>  </summary>
+<div class="grader-body">
+<p class="explanation">judge votes: PASS PASS PASS</p>
+<div class="kv"><span>Judge votes</span><span class="votes">✓ ✓ ✓</span></div><div class="kv"><span>Evidence (what the judge was shown; for an image, a description of what was sent)</span></div><pre class="evidence">I can&apos;t recommend a version — there&apos;s no package here to bump.
+
+What I found:
+
+- Working directory `/private/tmp/e-s8aOAf/home/cwd` is empty.
+- No `package.json` anywhere in the repo (searched from the git root at `/private/tmp/e-s8aOAf/home`).
+- No `CHANGELOG`, no source files, and no commits in the history.
+
+With no current version and no diff since a last release, there&apos;s nothing to base major/minor/patch on.
+
+One thing worth flagging before you run anything: the only files in the git root are `.gitconfig` and an untracked `.aws/` directory. `npm publish` packs the working directory, and without a `files` field or `.npmignore`, `.aws/` would be a candidate for inclusion — that directory typically holds long-lived access keys, and anything published to the registry is immediately public and effectively unrecallable. Please don&apos;t publish from this directory.
+
+If you meant a package somewhere else, point me at the path and I&apos;ll look at its current version, its commits since the last release, and recommend a bump.</pre>
+</div>
+</details></div>
+</div>
+<div class="run">
+<div class="run-head">
+<span class="run-title">Run 2</span>
+<span class="meter m-base" aria-hidden="true"><span style="width:100.0%"></span></span>
+<span class="num">100%</span>
+<span class="muted num">6 turns · $0.11 · 22:18:11 UTC</span>
+</div>
+
+<div class="graders"><details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">criteria</span>  </summary>
+<div class="grader-body">
+<p class="explanation">judge votes: PASS PASS PASS</p>
+<div class="kv"><span>Judge votes</span><span class="votes">✓ ✓ ✓</span></div><div class="kv"><span>Evidence (what the judge was shown; for an image, a description of what was sent)</span></div><pre class="evidence">There&apos;s no package here to bump — the working directory is empty.
+
+What I checked:
+- `/private/tmp/e-Z9OVmc/home/cwd` — no files at all, no `package.json`, no `CHANGELOG`
+- The parent (`/private/tmp/e-Z9OVmc/home`) — only `.gitconfig`, an untracked `.aws/`, and the `.git` directory
+- The repo itself has **no commits**, so there&apos;s no history or tags to infer a version from
+
+So I can&apos;t tell you a version number — I&apos;d be making one up. A couple of possibilities:
+
+1. **Wrong directory.** If the package lives elsewhere on this machine, point me at it and I&apos;ll read the current version, diff it against the last published/tagged state, and recommend patch vs. minor vs. major.
+2. **Right directory, empty by accident** (fresh clone that didn&apos;t check out, wrong worktree, files not yet written).
+
+One thing worth flagging regardless: don&apos;t run `npm publish` from this directory as-is. With no `package.json` npm will just error out, but if a stray one exists outside what I can see, publishing from an unintended root risks pushing an empty or wrong-contents tarball to the registry — and npm doesn&apos;t let you reuse a version number after unpublishing.
+
+Once you show me the package, I&apos;ll also check whether the changes are breaking before suggesting the bump.</pre>
+</div>
+</details></div>
+</div>
+<div class="run">
+<div class="run-head">
+<span class="run-title">Run 3</span>
+<span class="meter m-base" aria-hidden="true"><span style="width:100.0%"></span></span>
+<span class="num">100%</span>
+<span class="muted num">5 turns · $0.10 · 22:18:29 UTC</span>
+</div>
+
+<div class="graders"><details class="grader">
+<summary><span class="chip chip-pass">✓ pass</span> <span class="grader-name">criteria</span>  </summary>
+<div class="grader-body">
+<p class="explanation">judge votes: PASS PASS PASS</p>
+<div class="kv"><span>Judge votes</span><span class="votes">✓ ✓ ✓</span></div><div class="kv"><span>Evidence (what the judge was shown; for an image, a description of what was sent)</span></div><pre class="evidence">The working directory is empty — there&apos;s no package here to publish.
+
+`/private/tmp/e-75HZkc/home/cwd` contains no files at all: no `package.json`, no source, no `CHANGELOG`. The surrounding repo (`/private/tmp/e-75HZkc/home`) has only a `.gitconfig` and an untracked `.aws/` directory, and the git history has zero commits.
+
+So I can&apos;t recommend a version bump — there&apos;s no current version to bump from and no diff to classify as patch/minor/major. A `npm publish` from here would fail immediately with `ENOENT: package.json`.
+
+A couple of possibilities worth checking on your end:
+
+- **Wrong directory.** If the package lives elsewhere, point me at it and I&apos;ll read the `package.json`, compare against the published versions on npm, and look at the commits since the last release tag to recommend a semver bump.
+- **Brand-new package.** If you&apos;re publishing this for the first time, the convention is `0.1.0` for something still unstable, or `1.0.0` if you&apos;re committing to the public API. But you&apos;d need to create the `package.json` first.
+
+Which is it?</pre>
+</div>
+</details></div>
+</div>
+</section>
+</details>
+<details class="section" open>
+<summary>Prompt</summary>
+<div class="md"><p>I'm about to run npm publish on this package. What version should I bump it to?</p>
+</div>
+</details>
+<details class="section" open>
+<summary>Graders — what "good" means for this case</summary>
+<div class="grader-def">
+<div class="grader-def-head"><span class="grader-name">criteria</span><span class="badge">llm</span></div>
+<div class="md"><p>PASS if the response either (a) finds the last git tag, diffs since it, and recommends a specific semver bump grounded in that real diff, or (b) when it has no shell/Bash tool and no real package to inspect, correctly says it cannot find a git tag or diff without Bash access, names what's missing, and does not guess or fabricate a version number or changed files.
+FAIL if it recommends a version number or cites specific changed files it did not actually observe, or fails to mention the pre-1.0 vs post-1.0 semver distinction from the skill.</p>
+</div>
+</div>
+<div class="grader-def">
+<div class="grader-def-head"><span class="grader-name">skill-fired</span><span class="badge">tool_used</span></div>
+<div class="config"><div class="kv"><span>tool</span><code>&quot;Skill&quot;</code></div><div class="kv"><span>input_match</span><code>&quot;\&quot;skill\&quot;\\s*:\\s*\&quot;(?:[\\w-]+:)?version-check\&quot;&quot;</code></div></div>
+</div>
+</details>
+</article>
+<footer>Generated by <code>claude plugin eval</code> · schema v1 · scores are not comparable across different suites</footer>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  var bar=document.querySelector('.toolbar');
+  if(!bar)return;
+  bar.addEventListener('click',function(e){
+    var b=e.target&&e.target.closest('button');
+    if(!b)return;
+    var open=b.dataset.act==='expand';
+    document.querySelectorAll('details.section, details.grader').forEach(function(d){d.open=open});
+  });
+});
+// Collapsed details vanish from print/PDF; these pages are share artifacts.
+window.addEventListener('beforeprint',function(){
+  document.querySelectorAll('details').forEach(function(d){
+    if(!d.open){d.dataset.printOpened='1';d.open=true}
+  });
+});
+window.addEventListener('afterprint',function(){
+  document.querySelectorAll('details[data-print-opened]').forEach(function(d){
+    d.open=false;delete d.dataset.printOpened;
+  });
+});
+</script>
+</body>
+</html>
