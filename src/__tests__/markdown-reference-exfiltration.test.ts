@@ -150,8 +150,42 @@ describe('reference-style markdown image exfiltration (#219)', () => {
       expect(flags(text), JSON.stringify(prefix)).toBe(true);
     }
   });
-  it('an unclosed fence hides nothing after it (#224)', () => {
-    expect(flags(`\`\`\`\nx\n\nsee [ ![a \`]\` b][r]\n\n${DEF}`)).toBe(true);
+  it('a fence that closes leaves the image after it readable (#225)', () => {
+    expect(flags(`\`\`\`\nx\n\`\`\`\n\nsee [ ![a \`]\` b][r]\n\n${DEF}`)).toBe(true);
+  });
+  describe('each shape in #225 (renders in markdown-it, scanned clean before)', () => {
+    const IMG = '[ ![a `]` b][r]'; // the `]` sits inside a code span, so a renderer reads the image whole
+    const shapes: Array<[string, string]> = [
+      ['a table cell', `| h1 | h2 |\n|---|---|\n| \` | ${IMG} \` |\n\n${DEF}`],
+      ['a backtick in a link destination', `[x](a\`b) ${IMG}\n\n${DEF}`],
+      ['a backtick in a link title', `[x](a "\`") ${IMG}\n\n${DEF}`],
+      ['a backtick in a definition title', `[z]: https://ok.example/a.png "\`"\n${IMG}\n\n${DEF}`],
+      ['an ordered list not starting at 1 inside a paragraph', `para \`\n2. \` ${IMG}\n\n${DEF}`],
+      ['an ordered list marker with a parenthesis', `para \`\n7) \` ${IMG}\n\n${DEF}`],
+      ['a dash indented four columns under a paragraph', `para \`\n    - \` ${IMG}\n\n${DEF}`],
+      ['a quote marker indented four columns under a paragraph', `para \`\n    > \` ${IMG}\n\n${DEF}`],
+      ['a numbered marker indented four columns under a paragraph', `para \`\n    1. \` ${IMG}\n\n${DEF}`],
+      ['a line that leaves a list item and closes its fence', `${DEF}\n\n- \`\`\`\n${IMG}\n\n\`\`\``],
+      ['a setext heading underline', `para \`\n===\n${IMG} \`\n\n${DEF}`],
+      ['a setext heading with a dash underline', `para \`\n-\n${IMG} \`\n\n${DEF}`],
+      ['a four-space continuation inside a quote', '> x ![a][a\n>     > b]\n\n> [a > b]: https://e.x/p.png?data=Q'],
+    ];
+    it.each(shapes)('flags %s', (_name, text) => {
+      expect(flags(text)).toBe(true);
+    });
+    it('reads inline HTML and HTML blocks, for renderers with HTML on', () => {
+      expect(flags(`x <!-- \` --> ${IMG}\n\n${DEF}`)).toBe(true);
+      expect(flags(`<span title="\`"> ${IMG}\n\n${DEF}`)).toBe(true);
+    });
+    it('stays clean for honest text with the same constructs', () => {
+      const clean = [
+        '| Package | Downloads |\n|---|---|\n| ![logo][l] | [badge][b] |\n\n[l]: https://example.com/logo.png\n[b]: https://img.shields.io/npm/dm/x?data=1',
+        '- item with `code` and a [link](https://example.com)\n- ![diagram][d]\n\n[d]: https://example.com/d.png',
+        '> quote with `code`\n\n![diagram][d]\n\n[d]: https://example.com/d.png',
+        '# Title\n\n```\n![x][d]\n```\n\n[d]: https://example.com/d.png?v=1',
+      ];
+      for (const text of clean) expect(flags(text), text).toBe(false);
+    });
   });
   it('matches a NUL in a label to U+FFFD, and a label split across block quote lines (#224)', () => {
     expect(flags('![a][r\u0000]\n\n[r\ufffd]: https://e.x/p.png?data=Q')).toBe(true);
@@ -386,172 +420,6 @@ function reference(content: string): Array<[number, number]> {
     return undefined;
   };
 
-  // Renderer reading: block structure first (a parser splits blocks before it reads inline text), then
-  // brackets pair within one block with code spans and autolinks hidden.
-  const seg = new Int32Array(n + 1);
-  {
-    const lines: Array<{ pos: number; e: number; next: number }> = [];
-    for (let pos = 0; ; ) {
-      let e = pos;
-      while (e < n && !isBreakChar(content[e])) e++;
-      const next = e + (content[e] === '\r' && content[e + 1] === '\n' ? 2 : 1);
-      lines.push({ pos, e, next });
-      if (e >= n || next >= n) break;
-      pos = next;
-    }
-    const parse = (text: string) => {
-      const lead = /^[ \t]*/.exec(text)![0];
-      let indent = 0;
-      for (const ch of lead) indent = ch === '\t' ? indent + 4 - (indent % 4) : indent + 1;
-      let rest = text.slice(lead.length);
-      let depth = 0;
-      let list = false;
-      let thematic = false;
-      let allowThematic = true; // at the line start and after a quote marker, not after a list marker
-      for (;;) {
-        rest = rest.replace(/^[ \t]+/, '');
-        if (allowThematic && /^(?:-[ \t]*){3,}$|^(?:\*[ \t]*){3,}$|^(?:_[ \t]*){3,}$/.test(rest)) { thematic = true; break; }
-        allowThematic = false;
-        if (rest[0] === '>') { depth++; rest = rest.slice(1); allowThematic = true; continue; }
-        const m = /^(?:[-*+]|\d{1,9}[.)])[ \t]/.exec(rest);
-        if (m) { list = true; rest = rest.slice(m[0].length); continue; }
-        break;
-      }
-      return { indent, depth, list, thematic, container: depth > 0 || list, rest: rest.replace(/^[ \t]+/, '') };
-    };
-    const infos = lines.map((l) => parse(content.slice(l.pos, l.e)));
-    let cur = 0;
-    let prevDepth = 0;
-    let fence: { ch: string; len: number; depth: number; container: boolean } | undefined;
-    const closesFence = (info: ReturnType<typeof parse>, f: { ch: string; len: number; container: boolean }): boolean => {
-      const m = /^(`+|~+)\s*$/.exec(info.rest);
-      return !!m && m[1][0] === f.ch && m[1].length >= f.len && (info.indent < 4 || f.container);
-    };
-    for (let li = 0; li < lines.length; li++) {
-      const { pos, e, next } = lines[li];
-      const info = infos[li];
-      let lineSeg = cur;
-      let done = false;
-      if (fence) {
-        if (info.depth < fence.depth) {
-          fence = undefined; // the quote ended, and the fence with it
-          cur++;
-        } else {
-          lineSeg = -1;
-          if (closesFence(info, fence)) { fence = undefined; cur++; }
-          done = true;
-        }
-      }
-      if (!done) {
-        const indentedText = info.rest !== '' && info.indent >= 4 && !info.container;
-        if (info.depth > prevDepth && !indentedText) cur++;
-        prevDepth = info.depth;
-        if (indentedText) {
-          lineSeg = cur;
-        } else if (info.thematic) {
-          cur++;
-          lineSeg = -1;
-        } else {
-          if (info.list) cur++;
-          lineSeg = cur;
-          const rest = info.rest;
-          const opens = /^(`{3,})[^`]*$/.exec(rest) ?? /^(~{3,})/.exec(rest);
-          if (rest === '') {
-            cur++;
-            lineSeg = -1;
-          } else if (/^#{1,6}(?:[ \t]|$)/.test(rest)) {
-            cur++; lineSeg = cur; cur++;
-          } else if (opens) {
-            const f = { ch: opens[1][0], len: opens[1].length, depth: info.depth, container: info.container };
-            let closes = false;
-            for (let lj = li + 1; lj < lines.length; lj++) {
-              if (infos[lj].depth < f.depth || closesFence(infos[lj], f)) { closes = true; break; }
-            }
-            cur++;
-            if (closes) { lineSeg = -1; fence = f; } else { lineSeg = cur; }
-          }
-        }
-      }
-      for (let k = pos; k < Math.min(Math.max(next, e), n); k++) seg[k] = lineSeg;
-    }
-  }
-  const AUTO = /^<(?:[A-Za-z][A-Za-z0-9+.-]{1,31}:[^\s<>]*|[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*)>/;
-  /** The end of a code span or autolink starting at `i` inside block `block`, or -1 if none starts there. */
-  const inlineEnd = (i: number, block: number): number => {
-    if (content[i] === '`') {
-      let k = 0;
-      while (content[i + k] === '`') k++;
-      for (let j = i + k; j < n; ) {
-        if (seg[j] !== block) break;
-        if (content[j] !== '`') { j++; continue; }
-        let m = 0;
-        while (content[j + m] === '`') m++;
-        if (m === k) return j + m;
-        j += m;
-      }
-      return -1;
-    }
-    if (content[i] === '<') {
-      const m = AUTO.exec(content.slice(i, i + 400));
-      return m ? i + m[0].length : -1;
-    }
-    return -1;
-  };
-  // Which characters a renderer reads as code or a URL (spans and autolinks, left to right), so brackets
-  // inside them are not brackets, and an image inside one is not an image.
-  const hidden = new Uint8Array(n + 1);
-  for (let i = 0; i < n; ) {
-    const block = seg[i];
-    if (block < 0) { i++; continue; }
-    const c = content[i];
-    if (c === '\\') { i += PUNCT.test(content[i + 1] ?? '') ? 2 : 1; continue; }
-    if (c === '`') {
-      const end = inlineEnd(i, block);
-      let k = 0;
-      while (content[i + k] === '`') k++;
-      if (end >= 0) { for (let j = i; j < end; j++) hidden[j] = 1; i = end; } else i += k;
-      continue;
-    }
-    if (c === '<') {
-      const end = inlineEnd(i, block);
-      if (end >= 0) { for (let j = i; j < end; j++) hidden[j] = 1; i = end; continue; }
-    }
-    i++;
-  }
-  /** The `[` at `open` paired by nesting in the renderer reading. */
-  const renderedNestedEnd = (open: number): { end: number; inner: boolean } | undefined => {
-    const block = seg[open];
-    if (block < 0 || hidden[open]) return undefined;
-    let depth = 0;
-    let inner = false;
-    for (let i = open; i < n; ) {
-      if (seg[i] !== block) return undefined;
-      const c = content[i];
-      if (hidden[i]) { i++; continue; }
-      if (c === '\\') { i += PUNCT.test(content[i + 1] ?? '') ? 2 : 1; continue; }
-      if (c === '[') { depth++; if (depth > 1) inner = true; }
-      else if (c === ']') { depth--; if (depth === 0) return { end: i, inner }; }
-      i++;
-    }
-    return undefined;
-  };
-  /** A bracketed label whose `[` is at `open` in the renderer reading: no brackets inside; returns the `]` or -1. */
-  const renderedLabelEnd = (open: number, allowEmpty = false): number => {
-    const block = seg[open];
-    if (block < 0 || hidden[open]) return -1;
-    let items = 0;
-    for (let i = open + 1; i < n; ) {
-      if (seg[i] !== block) return -1;
-      const c = content[i];
-      if (hidden[i]) { i++; items++; continue; }
-      if (c === ']') return items >= 1 || allowEmpty ? i : -1;
-      if (c === '[') return -1;
-      if (c === '\\') { i += PUNCT.test(content[i + 1] ?? '') ? 2 : 1; items++; continue; }
-      i++; items++;
-    }
-    return -1;
-  };
-
   const hits: Array<[number, number]> = []; // [start, end)
   const readImage = (at: number, alt: { end: number; inner: boolean }, labelEndFn: (open: number, allowEmpty?: boolean) => number = labelEnd) => {
     const afterAlt = alt.end + 1;
@@ -575,8 +443,6 @@ function reference(content: string): Array<[number, number]> {
     const b = firstEnd(i + 1);
     if (a) readImage(i, a);
     if (b && !(a && a.end === b.end)) readImage(i, b);
-    const r = hidden[i] ? undefined : renderedNestedEnd(i + 1);
-    if (r) readImage(i, r, renderedLabelEnd);
   }
   // Reading C: an unpaired `]` before `[label]`, after an earlier `]`, in an image's paragraph, ends the alt text.
   let lastBang = -1;
@@ -668,7 +534,7 @@ describe('matches a slow reference on generated documents (#219)', () => {
     }
     return pick(rand, NOISE);
   };
-  it(`agrees on ${process.env.FUZZ_CASES ?? 30_000} structured inputs and finds real matches`, () => {
+  it(`finds everything the raw reading finds in ${process.env.FUZZ_CASES ?? 30_000} structured inputs`, () => {
     const cases = Number(process.env.FUZZ_CASES ?? 30_000);
     const rand = rng(Number(process.env.FUZZ_SEED ?? 219));
     let withMatch = 0;
@@ -683,7 +549,10 @@ describe('matches a slow reference on generated documents (#219)', () => {
       const actual = detector.scan(text).threats.map((t) => [t.location!.offset, t.location!.length]);
       const expected = reference(text);
       if (expected.length > 0) withMatch++;
-      if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+      // The scan also reads the text the way a renderer does (#224, #225), so it may find more; it must
+      // never find less than the independent raw reading.
+      const covered = expected.every(([start, length]) => actual.some(([at, len]) => at <= start && at + len >= start + length));
+      if (!covered) {
         expect.fail(`case ${n}\ninput: ${JSON.stringify(text).replace(/[\u2028\u2029]/g, (c) => '\\u' + c.charCodeAt(0).toString(16))}\nexpected: ${JSON.stringify(expected)}\nactual: ${JSON.stringify(actual)}`);
       }
     }
@@ -724,6 +593,25 @@ describe('stays linear (#219)', () => {
     ['unclosed fences on ordered lines', '1. ```a\n'],
     ['unclosed fences in quotes', '> ~~~\n'],
     ['thematic runs', '- - - - - - - - - - - - x\n'],
+    ['link openers', '[a]('],
+    ['link destinations with words', '[a](b '],
+    ['link titles with double quotes', '[a](b "'],
+    ['link titles with parentheses', '[a](b ('],
+    ['angle link destinations', '![a](<'],
+    ['unterminated html attributes', '<a b="'],
+    ['html comment openers', '<!--'],
+    ['html instruction openers', '<?'],
+    ['definition titles', '[a]: x "\n'],
+    ['definition labels over lines', '[a]:\n'],
+    ['table rows', '| a | b |\n|---|---|\n| c | d |\n'],
+    ['table pipes', '|'],
+    ['pipes around backticks', '| ` |'],
+    ['html blocks', '<div>\n'],
+    ['html block script openers', '<script>\n'],
+    ['setext headings', 'a\n===\n'],
+    ['indented code lines', '    x\n'],
+    ['quotes and lists nested on one line', '> - > 1. > - '],
+    ['fences in list items', '- ```\n  x\n'],
     ['list fences and quotes', '> - ```\n>   x\n>   ```\n- ```\n![a `]` b][r]\n[r]: https://x.example/?data=1\n'],
     ['thematic breaks and quote depth', '***\n> x\n>> y\n---\n![a][r]\n[r]: https://x.example/?data=1\n'],
     ['headings and fences', '# [\n```\n[\n```\n- [\n![a][r]\n[r]: https://x.example/?data=1\n'],
@@ -734,6 +622,18 @@ describe('stays linear (#219)', () => {
     ['alt text spanning many lines', '![' + 'line\n'.repeat(150) + '][b]\n'],
     ['blank lines between brackets', '![a\n\n][b\n\n]\n'],
   ];
+  it('a staircase of ever deeper list items scans in well under a second', () => {
+    const text = Array.from({ length: 700 }, (_, i) => ' '.repeat(i * 2) + '- x\n').join('') + '\n[zz]: https://x.example/?data=1\n';
+    const start = performance.now();
+    detector.scan(text);
+    expect(performance.now() - start).toBeLessThan(1000);
+  });
+  it('a million-character link destination scans in well under a second', () => {
+    const text = '[a](' + 'x'.repeat(1_000_000) + '\n[zz]: https://x.example/?data=1\n';
+    const start = performance.now();
+    detector.scan(text);
+    expect(performance.now() - start).toBeLessThan(1000);
+  });
   it.each(shapes)('1,000,000 characters of %s scan in well under a second', (_name, unit) => {
     // A flagged definition makes the scan read brackets and blocks, so every shape reaches the slow paths.
     const text = unit.repeat(Math.ceil(1_000_000 / unit.length)) + '\n[zz]: https://x.example/?data=1\n';
