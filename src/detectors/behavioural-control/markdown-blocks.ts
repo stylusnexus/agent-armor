@@ -58,7 +58,16 @@ const HTML_TYPE4 = /^<![A-Za-z]/;
 const HTML_TAG_NAME = /^<\/?([A-Za-z][A-Za-z0-9-]*)(?:[ \t/>]|$)/;
 const HTML_TYPE7 =
   /^(?:<[A-Za-z][A-Za-z0-9-]*(?:[ \t]+[A-Za-z_:][A-Za-z0-9_.:-]*(?:[ \t]*=[ \t]*(?:[^ \t"'=<>`]+|'[^']*'|"[^"]*"))?)*[ \t]*\/?>|<\/[A-Za-z][A-Za-z0-9-]*[ \t]*>)[ \t]*$/;
-const TABLE_DELIMITER = /^\|?[ \t]*:?-+:?[ \t]*(?:\|[ \t]*:?-+:?[ \t]*)*\|?[ \t]*$/;
+/** A GFM table delimiter row, read in place (sticky) up to the end of its line. */
+const TABLE_DELIMITER = /\|?[ \t]*:?-+:?[ \t]*(?:\|[ \t]*:?-+:?[ \t]*)*\|?[ \t]*(?![^\r\n])/y;
+
+/** A character `String.prototype.trim` removes. */
+function isTrimmed(c: number): boolean {
+  return (
+    c === 32 || c === 9 || c === 10 || c === 11 || c === 12 || c === 13 || c === 0xa0 || c === 0x1680 || (c >= 0x2000 && c <= 0x200a) ||
+    c === 0x2028 || c === 0x2029 || c === 0x202f || c === 0x205f || c === 0x3000 || c === 0xfeff
+  );
+}
 
 /** The next occurrence of an unescaped `needle` at or after `from`, cached so repeated searches stay linear. */
 function makeFinder(content: string, needle: string, skipEscaped: boolean): (from: number) => number {
@@ -79,7 +88,23 @@ function makeFinder(content: string, needle: string, skipEscaped: boolean): (fro
   };
 }
 
-export function blockEvents(content: string, opts: BlockOptions): BlockEvents {
+/** Where each blank line (only spaces and tabs) starts, in order. */
+export function blankLineStarts(content: string): number[] {
+  const n = content.length;
+  const starts: number[] = [];
+  for (let i = 0; i <= n; ) {
+    let k = i;
+    while (k < n && (content.charCodeAt(k) === 32 || content.charCodeAt(k) === 9)) k++;
+    if (k >= n || content.charCodeAt(k) === 10 || content.charCodeAt(k) === 13) starts.push(i);
+    while (k < n && content.charCodeAt(k) !== 10 && content.charCodeAt(k) !== 13) k++;
+    if (k >= n) break;
+    i = k + (content.charCodeAt(k) === 13 && content.charCodeAt(k + 1) === 10 ? 2 : 1);
+  }
+  return starts;
+}
+
+/** `sharedBlankLines`, when given, returns `blankLineStarts(content)`, so several calls on one text list them once. */
+export function blockEvents(content: string, opts: BlockOptions, sharedBlankLines?: () => number[]): BlockEvents {
   const n = content.length;
   const out: BlockEvents = { at: [], to: [], plain: true };
 
@@ -102,20 +127,12 @@ export function blockEvents(content: string, opts: BlockOptions): BlockEvents {
   const findPiEnd = makeFinder(content, '?>', false);
   const findCdataEnd = makeFinder(content, ']]>', false);
   const findDeclEnd = makeFinder(content, '>', false);
-  // Where the next blank line starts at or after a position, so a title cannot run across one.
-  const blankLines: number[] = [];
-  {
-    for (let i = 0; i <= n; ) {
-      let k = i;
-      while (k < n && (content.charCodeAt(k) === 32 || content.charCodeAt(k) === 9)) k++;
-      if (k >= n || content.charCodeAt(k) === 10 || content.charCodeAt(k) === 13) blankLines.push(i);
-      while (k < n && content.charCodeAt(k) !== 10 && content.charCodeAt(k) !== 13) k++;
-      if (k >= n) break;
-      i = k + (content.charCodeAt(k) === 13 && content.charCodeAt(k + 1) === 10 ? 2 : 1);
-    }
-  }
+  // Where the next blank line starts at or after a position, so a title cannot run across one. Listed on
+  // first use (only a definition with a title needs it), and shared with other calls on the same text.
+  let blankLines: number[] | undefined;
   let blankCursor = 0;
   const nextBlank = (from: number): number => {
+    blankLines ??= sharedBlankLines ? sharedBlankLines() : blankLineStarts(content);
     while (blankCursor < blankLines.length && blankLines[blankCursor] < from) blankCursor++;
     return blankCursor < blankLines.length ? blankLines[blankCursor] : n + 1;
   };
@@ -143,28 +160,38 @@ export function blockEvents(content: string, opts: BlockOptions): BlockEvents {
     }
   };
 
-  /** How many cells a table line has, by unescaped pipes. */
-  const cellCount = (text: string): number => {
-    let t = text.trim();
-    if (t.startsWith('|')) t = t.slice(1);
-    if (t.endsWith('|') && !t.endsWith('\\|')) t = t.slice(0, -1);
+  /** How many cells the table line `from`..`to` has, by unescaped pipes (outer pipes and whitespace trimmed). */
+  const cellCount = (from: number, to: number): number => {
+    let a = from;
+    let b = to;
+    while (a < b && isTrimmed(content.charCodeAt(a))) a++;
+    while (b > a && isTrimmed(content.charCodeAt(b - 1))) b--;
+    if (a < b && content.charCodeAt(a) === 124) a++;
+    if (b > a && content.charCodeAt(b - 1) === 124 && !(b - 2 >= a && content.charCodeAt(b - 2) === 92)) b--;
     let count = 1;
-    for (let i = 0; i < t.length; i++) if (t.charCodeAt(i) === 124 && !(i > 0 && t.charCodeAt(i - 1) === 92)) count++;
+    for (let i = a; i < b; i++) if (content.charCodeAt(i) === 124 && !(i > a && content.charCodeAt(i - 1) === 92)) count++;
     return count;
+  };
+
+  const hasPipe = (from: number, to: number): boolean => {
+    for (let i = from; i < to; i++) if (content.charCodeAt(i) === 124) return true;
+    return false;
   };
 
   const isTableStart = (q: number, lineEnd: number): boolean => {
     if (!opts.tables) return false;
     const next = nextLineOf(lineEnd);
     if (next > n) return false;
-    const nextEnd = lineEndOf(next);
     let d = next;
-    while (d < nextEnd && (content.charCodeAt(d) === 32 || content.charCodeAt(d) === 9 || content.charCodeAt(d) === 62)) d++;
-    const delimiter = content.slice(d, nextEnd);
-    if (!TABLE_DELIMITER.test(delimiter)) return false;
-    const header = content.slice(q, lineEnd);
-    if (!header.includes('|') && !delimiter.includes('|')) return false;
-    return cellCount(header) === cellCount(delimiter);
+    while (d < n && (content.charCodeAt(d) === 32 || content.charCodeAt(d) === 9 || content.charCodeAt(d) === 62)) d++;
+    // A delimiter row starts with `|`, `:` or `-` (the line's indent and quote markers are skipped above).
+    const first = content.charCodeAt(d);
+    if (first !== 124 && first !== 58 && first !== 45) return false;
+    TABLE_DELIMITER.lastIndex = d;
+    if (!TABLE_DELIMITER.test(content)) return false;
+    const nextEnd = lineEndOf(d);
+    if (!hasPipe(q, lineEnd) && !hasPipe(d, nextEnd)) return false;
+    return cellCount(q, lineEnd) === cellCount(d, nextEnd);
   };
 
   /** A list marker at `q`: its width including the spaces after it, whether the item is empty, and an ordered number. */
@@ -316,16 +343,12 @@ export function blockEvents(content: string, opts: BlockOptions): BlockEvents {
     }
     if (i >= n || !any || content.charCodeAt(i + 1) !== 58) return -1;
     i += 2;
-    const skipBlank = (from: number): number => {
-      let x = from;
-      while (x < n && (content.charCodeAt(x) === 32 || content.charCodeAt(x) === 9)) x++;
-      if (x < n && (content.charCodeAt(x) === 10 || content.charCodeAt(x) === 13)) {
-        x = nextLineOf(x);
-        while (x < n && (content.charCodeAt(x) === 32 || content.charCodeAt(x) === 9 || (inQuote && content.charCodeAt(x) === 62))) x++;
-      }
-      return x;
-    };
-    i = skipBlank(i);
+    // whitespace, and at most one line break, before the destination
+    while (i < n && (content.charCodeAt(i) === 32 || content.charCodeAt(i) === 9)) i++;
+    if (i < n && (content.charCodeAt(i) === 10 || content.charCodeAt(i) === 13)) {
+      i = nextLineOf(i);
+      while (i < n && (content.charCodeAt(i) === 32 || content.charCodeAt(i) === 9 || (inQuote && content.charCodeAt(i) === 62))) i++;
+    }
     if (i >= n) return -1;
     // destination
     if (content.charCodeAt(i) === 60) {
@@ -338,13 +361,6 @@ export function blockEvents(content: string, opts: BlockOptions): BlockEvents {
       while (i < n && content.charCodeAt(i) !== 32 && content.charCodeAt(i) !== 9 && content.charCodeAt(i) !== 10 && content.charCodeAt(i) !== 13) i++;
       if (i === start) return -1;
     }
-    const destLineEnd = (): number => {
-      let x = i;
-      while (x < n && (content.charCodeAt(x) === 32 || content.charCodeAt(x) === 9)) x++;
-      if (x >= n) return n + 1;
-      if (content.charCodeAt(x) === 10 || content.charCodeAt(x) === 13) return nextLineOf(x);
-      return -1;
-    };
     // optional title, separated by whitespace
     const afterDest = i;
     let t = i;
@@ -380,35 +396,46 @@ export function blockEvents(content: string, opts: BlockOptions): BlockEvents {
         if (content.charCodeAt(x) === 10 || content.charCodeAt(x) === 13) return nextLineOf(x);
       }
     }
-    return destLineEnd();
+    // no title: the destination ends the line
+    let x = i;
+    while (x < n && (content.charCodeAt(x) === 32 || content.charCodeAt(x) === 9)) x++;
+    if (x >= n) return n + 1;
+    if (content.charCodeAt(x) === 10 || content.charCodeAt(x) === 13) return nextLineOf(x);
+    return -1;
+  };
+
+  // The line being read: where it ends, the reading position in it and its column.
+  let lineEnd = 0;
+  let p = 0;
+  let col = 0;
+  let owed = 0; // whitespace columns consumed that `p` has not yet moved past
+  const catchUp = (): void => {
+    while (owed > 0 && p < lineEnd && (content.charCodeAt(p) === 32 || content.charCodeAt(p) === 9)) {
+      const step = content.charCodeAt(p) === 9 ? 4 - (col % 4) : 1;
+      owed -= step;
+      col += step;
+      p++;
+    }
+    owed = 0;
   };
 
   let pos = 0;
   while (pos <= n) {
     const lineStart = pos;
-    const lineEnd = lineEndOf(lineStart);
+    lineEnd = lineEndOf(lineStart);
     const next = nextLineOf(lineEnd);
     pos = next;
     if (lineStart < skipUntil) continue; // inside a definition already read
 
     // 1. Match the open containers against this line.
-    let p = lineStart;
-    let col = 0;
+    p = lineStart;
+    col = 0;
+    owed = 0;
     let matched = 0;
     // Leading whitespace is measured once and consumed column by column, so matching many nested list items
     // costs one step each, not a rescan of the indent.
     let wsCols = -1; // whitespace columns available at `p` (plus `owed` already taken), or -1 if not measured
-    let owed = 0; // columns consumed from them that `p` has not yet moved past
     let wsBlank = false;
-    const catchUp = (): void => {
-      while (owed > 0 && p < lineEnd && (content.charCodeAt(p) === 32 || content.charCodeAt(p) === 9)) {
-        const step = content.charCodeAt(p) === 9 ? 4 - (col % 4) : 1;
-        owed -= step;
-        col += step;
-        p++;
-      }
-      owed = 0;
-    };
     for (; matched < containers.length; matched++) {
       const w = containers[matched];
       if (w === 0) {
@@ -837,15 +864,13 @@ export function legacyBlockEvents(content: string): BlockEvents {
       stack.push(k);
     }
   }
-  const closers = {
-    backtick: [buildCloserList(backtickRun, indentOf, true), buildCloserList(backtickRun, indentOf, false)],
-    tilde: [buildCloserList(tildeRun, indentOf, true), buildCloserList(tildeRun, indentOf, false)],
-  };
+  // Closer lists, built on first use, at (tilde ? 2 : 0) + (container ? 1 : 0). Outside a container an indented line cannot close.
+  const closers: Array<CloserList | undefined> = [];
   /** Where a fence opened on line `k` ends: the line to resume at, and whether that line is the closing fence (consumed). */
   const fenceEnd = (k: number, tilde: boolean, len: number, depth: number, container: boolean): { resume: number; consumed: boolean } | undefined => {
     let quoteEnds = k + 1;
     while (quoteEnds < m && depthOf[quoteEnds] >= depth) quoteEnds = nextShallower[quoteEnds];
-    const list = (tilde ? closers.tilde : closers.backtick)[container ? 1 : 0];
+    const list = (closers[(tilde ? 2 : 0) + (container ? 1 : 0)] ??= buildCloserList(tilde ? tildeRun : backtickRun, indentOf, !container));
     while (list.from < list.line.length && list.line[list.from] <= k) list.from++;
     let at = list.from;
     while (at < list.line.length && list.run[at] < len) at = list.longer[at];
@@ -921,11 +946,15 @@ export function legacyBlockEvents(content: string): BlockEvents {
 /**
  * One linear pass over the lines to find which renderer readings the text needs. Plain scans, not regular
  * expressions, so a long line of pipes or list markers cannot make it slow.
+ *
+ * `htmlBlock` is false when no line's text (after its indent, quote and list markers) starts with `<`: then
+ * no HTML block can start, and `blockEvents` returns the same events with `html` on as off.
  */
-export function blockTriggers(content: string, htmlLike: boolean): { table: boolean; mdit: boolean } {
+export function blockTriggers(content: string, htmlLike: boolean): { table: boolean; mdit: boolean; htmlBlock: boolean } {
   const n = content.length;
   let table = false;
   let mdit = false;
+  let htmlBlock = false;
   let prevDefinition = false;
   let prevQuote = false;
   let prevHasPipe = false;
@@ -961,6 +990,8 @@ export function blockTriggers(content: string, htmlLike: boolean): { table: bool
       break;
     }
     const blank = q >= e;
+    // An HTML block can only start at a `<` that begins a line's text, after its indent, quote and list markers.
+    if (content.charCodeAt(q) === 60) htmlBlock = true;
     // A table needs a delimiter row (`|---|:-:|`) right after a line that has a pipe.
     if (!table && prevHasPipe && !blank && isDelimiterRow(content, q, e)) table = true;
     // markdown-it differs when text follows a definition, when a line without `>` follows a quoted line, or at a lone closing raw tag.
@@ -978,11 +1009,11 @@ export function blockTriggers(content: string, htmlLike: boolean): { table: bool
     prevDefinition = definition;
     prevQuote = quote && !blank;
     prevHasPipe = hasPipe;
-    if (table && mdit) break;
+    if (table && mdit && htmlBlock) break;
     if (e >= n) break;
     i = e + (content.charCodeAt(e) === 13 && content.charCodeAt(e + 1) === 10 ? 2 : 1);
   }
-  return { table, mdit };
+  return { table, mdit, htmlBlock };
 }
 
 /** `|---|:-:|`-style row: optional pipes around dash runs (with optional colons) separated by pipes. */
