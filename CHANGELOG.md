@@ -7,6 +7,33 @@ This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor 
 <!-- New entries are generated automatically by release-please from Conventional
 Commit messages on merge to main. Do not edit unreleased entries by hand. -->
 
+## [0.2.21](https://github.com/stylusnexus/agent-armor/compare/v0.2.20...v0.2.21) (2026-10-05)
+
+
+### Added
+
+* **detectors:** add first feed-refresh batch of patterns ([#220](https://github.com/stylusnexus/agent-armor/issues/220)) ([4a1f778](https://github.com/stylusnexus/agent-armor/commit/4a1f778d0d17d1710ed08c8daf6b413166f4ad6a)), closes [#215](https://github.com/stylusnexus/agent-armor/issues/215)
+* **detectors:** follow CommonMark label rules in reference scan ([#223](https://github.com/stylusnexus/agent-armor/issues/223)) ([6242ad6](https://github.com/stylusnexus/agent-armor/commit/6242ad65b4e69b05eab9661ff5626da1990be9be))
+* **detectors:** read blocks and inline text as a renderer does ([#229](https://github.com/stylusnexus/agent-armor/issues/229)) ([2a222c4](https://github.com/stylusnexus/agent-armor/commit/2a222c41b92db6ec8b9be8b618010c470bfad143))
+* **detectors:** scan reference-style image exfiltration in code ([#221](https://github.com/stylusnexus/agent-armor/issues/221)) ([6967f58](https://github.com/stylusnexus/agent-armor/commit/6967f5863bc33a3742854b47ceb45ead2d38ec99))
+
+
+### Fixed
+
+* **detectors:** match labels by quote context ([#231](https://github.com/stylusnexus/agent-armor/issues/231)) ([9097cab](https://github.com/stylusnexus/agent-armor/commit/9097caba94eba18ad9651cd339f0ee252d5a5156)), closes [#227](https://github.com/stylusnexus/agent-armor/issues/227)
+* **detectors:** read reference images as a renderer does ([#228](https://github.com/stylusnexus/agent-armor/issues/228)) ([3f166ef](https://github.com/stylusnexus/agent-armor/commit/3f166ef60474b290f433b038988e3d3a53db23d8))
+* **detectors:** sanitize definitions with images ([#230](https://github.com/stylusnexus/agent-armor/issues/230)) ([3d5ebac](https://github.com/stylusnexus/agent-armor/commit/3d5ebac39304217ba9aa6f98a4021078285a6953)), closes [#226](https://github.com/stylusnexus/agent-armor/issues/226)
+* **detectors:** widen the agent-command addressee ([#214](https://github.com/stylusnexus/agent-armor/issues/214)) ([cdac59c](https://github.com/stylusnexus/agent-armor/commit/cdac59c94deb1bba168c604f8d6f770a8b3d74d5)), closes [#166](https://github.com/stylusnexus/agent-armor/issues/166)
+* **detectors:** widen the agent-command addressee again ([#216](https://github.com/stylusnexus/agent-armor/issues/216)) ([45bd0e9](https://github.com/stylusnexus/agent-armor/commit/45bd0e91801fde3b9bfdc3ad5d13086093d48864)), closes [#213](https://github.com/stylusnexus/agent-armor/issues/213)
+* **patterns:** scan in linear time ([#209](https://github.com/stylusnexus/agent-armor/issues/209)) ([85d8ca8](https://github.com/stylusnexus/agent-armor/commit/85d8ca84e8a8e2a8938991e0f74cc8134620f4a1))
+* **sanitize:** merge edits across detectors ([#211](https://github.com/stylusnexus/agent-armor/issues/211)) ([e86f2c3](https://github.com/stylusnexus/agent-armor/commit/e86f2c3ea140d642e3d3491757d86f274b2d2a21))
+
+
+### Documentation
+
+* add AGENTS.md and shared agent skills ([#210](https://github.com/stylusnexus/agent-armor/issues/210)) ([e861ae1](https://github.com/stylusnexus/agent-armor/commit/e861ae1d840ec384fb4f9afa3fa49fbc8d56ccf3))
+* add the refresh-attack-feeds skill ([#217](https://github.com/stylusnexus/agent-armor/issues/217)) ([84910ea](https://github.com/stylusnexus/agent-armor/commit/84910eaf972141cf45c1b8df630ec5dd0cb9c6ee))
+
 ## [0.2.20](https://github.com/stylusnexus/agent-armor/compare/v0.2.19...v0.2.20) (2026-10-04)
 
 
