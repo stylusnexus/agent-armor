@@ -60,6 +60,15 @@ npm run test:run
 
 Run both before submitting a PR.
 
+### Checking the reference-image scan against a real renderer
+
+The reference-image scan (`![alt][r]` plus a definition whose URL carries a data keyword) has two fuzz tests that render generated documents with `markdown-it` (HTML off and on) and fail if an image the renderer draws is not flagged:
+
+- `src/__tests__/markdown-reference-oracle.test.ts` mixes random fragments of block and inline syntax. Extend the lists near the top (`STARTS`, `ATOMS`, `IMAGES`, `DEFINITIONS`).
+- `src/__tests__/markdown-reference-family-fuzz.test.ts` builds each document from one named construct family and wraps it in nested quotes and list items. Add a family to `families()`.
+
+Both take `ORACLE_CASES` / `FUZZ_CASES` for a bigger batch (for example `FUZZ_CASES=100000`), and the family fuzz takes `FUZZ_SEED`. A new generator is only worth trusting once it finds misses in an older version of the scan, so check that before relying on a clean run. If one finds a miss, open an issue with the smallest failing document.
+
 ## API Reference Docs
 
 If your change adds, removes, or edits a public export in `src/index.ts` or `packages/ml/src/index.ts`, regenerate the API reference and commit the result:
