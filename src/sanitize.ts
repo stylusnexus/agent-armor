@@ -113,3 +113,54 @@ export function alignedEdits(original: string, sanitized: string, threats: Threa
   }
   return edits;
 }
+
+/**
+ * Replace each range of `content` in one pass, from the last offset to the first.
+ *
+ * This is what rebuilding the string once per edit gives, without the quadratic
+ * cost (one slice of the whole text per finding, #160, #170). Each range's
+ * offset is measured on the original text. `replacement` is the text for every
+ * range, or a function of the original text a range covers. An empty
+ * replacement removes the range.
+ *
+ * State: the result is `content.slice(0, boundary)` plus the chunks, which are
+ * kept in reverse so the front is the last element. An edit that reaches past
+ * `boundary` eats into the front of the chunks, as slicing the already-edited
+ * string did. Output matches editing the string once per range whenever every
+ * range fits the text and none overlap; an offset past the end now appends
+ * instead of landing inside inserted text.
+ */
+export function replaceRanges(
+  content: string,
+  ranges: ReadonlyArray<{ offset: number; length: number }>,
+  replacement: string | ((original: string) => string),
+): string {
+  const sorted = [...ranges].sort((a, b) => b.offset - a.offset);
+  const chunks: string[] = [];
+  let boundary = content.length;
+
+  for (const { offset, length } of sorted) {
+    const end = offset + length;
+
+    if (end <= boundary) {
+      if (end < boundary) chunks.push(content.slice(end, boundary));
+    } else {
+      let drop = end - boundary;
+      while (drop > 0 && chunks.length > 0) {
+        const front = chunks[chunks.length - 1];
+        if (front.length <= drop) {
+          drop -= front.length;
+          chunks.pop();
+        } else {
+          chunks[chunks.length - 1] = front.slice(drop);
+          drop = 0;
+        }
+      }
+    }
+    const text = typeof replacement === 'string' ? replacement : replacement(content.slice(offset, end));
+    if (text) chunks.push(text);
+    boundary = offset;
+  }
+
+  return content.slice(0, boundary) + chunks.reverse().join('');
+}

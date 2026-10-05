@@ -1,5 +1,6 @@
 import { BaseDetector, type PatternMatch } from '../base';
 import type { Threat, TrapCategory, TrapType } from '../../types';
+import { replaceRanges } from '../../sanitize';
 
 /**
  * Detects instructions hidden via CSS/HTML that are invisible to humans
@@ -119,17 +120,10 @@ export class HiddenHTMLDetector extends BaseDetector {
   }
 
   sanitize(content: string, threats: Threat[]): string {
-    let result = content;
-    const sorted = [...threats]
-      .filter((t) => t.location)
-      .sort((a, b) => (b.location?.offset ?? 0) - (a.location?.offset ?? 0));
-
-    for (const threat of sorted) {
-      if (!threat.location) continue;
-      const { offset, length } = threat.location;
-      result = result.slice(0, offset) + result.slice(offset + length);
-    }
-
-    return result;
+    return replaceRanges(
+      content,
+      threats.flatMap((t) => (t.location ? [t.location] : [])),
+      '',
+    );
   }
 }
