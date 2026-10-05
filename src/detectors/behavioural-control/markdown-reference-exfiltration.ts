@@ -123,17 +123,34 @@ function isPlainLabel(label: string): boolean {
   return true;
 }
 
-/** `labelKeys` for one scan: a plain label is lowercased directly, any other is read once per distinct text. */
-function labelKeyReader(): (label: string) => string[] {
+/**
+ * Label keys for one scan. `keys` is every reading of a label (a definition's label, or an image's where a block
+ * pass has confirmed the quote context); `plain` is the reading with no quote markers dropped (an image's label in
+ * the raw reading, which has no block structure to say whether a `>` on a continuation line starts a quote).
+ * A plain label is lowercased directly, any other is read once per distinct text.
+ */
+function labelKeyReader(): { keys: (label: string) => string[]; plain: (label: string) => string } {
   const seen = new Map<string, string[]>();
-  return (label) => {
-    if (isPlainLabel(label)) return [label.toLowerCase()];
-    let keys = seen.get(label);
-    if (keys === undefined) {
-      keys = labelKeys(label);
-      seen.set(label, keys);
-    }
-    return keys;
+  const seenPlain = new Map<string, string>();
+  return {
+    keys(label) {
+      if (isPlainLabel(label)) return [label.toLowerCase()];
+      let keys = seen.get(label);
+      if (keys === undefined) {
+        keys = labelKeys(label);
+        seen.set(label, keys);
+      }
+      return keys;
+    },
+    plain(label) {
+      if (isPlainLabel(label)) return label.toLowerCase();
+      let key = seenPlain.get(label);
+      if (key === undefined) {
+        key = normalizeLabel(label, 0);
+        seenPlain.set(label, key);
+      }
+      return key;
+    },
   };
 }
 
@@ -487,7 +504,7 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
   protected readonly trapType: TrapType = 'data-exfiltration';
 
   findPatterns(content: string): PatternMatch[] {
-    const keysOf = labelKeyReader();
+    const { keys: keysOf, plain: plainKeyOf } = labelKeyReader();
     // label -> the first definition of it that sends data out, as an index into `defs`
     const flagged = new Map<string, number>();
     const defs: Array<{ index: number; length: number }> = [];
@@ -523,30 +540,39 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
     const NONE = -1;
     // The text between a `[` and a `]` read as a label: BLANK, NONE (no flagged definition) or the definition's
     // index. Kept by the `[` and the `]`, so a label many image openers share is read once per reading.
-    const readClose = new Int32Array(content.length).fill(-1);
-    const readResult = new Int32Array(content.length);
-    const readLabel = (open: number, close: number): number => {
-      if (readClose[open] === close) return readResult[open];
-      const text = content.slice(open + 1, close);
-      let result = NONE;
-      if (text.trim() === '') {
-        result = BLANK;
-      } else {
-        for (const key of keysOf(text)) {
-          const found = key === '' ? undefined : flagged.get(key);
-          if (found !== undefined) {
-            result = found;
-            break;
+    // Two caches: the raw reading matches a label by its plain key only, the others by every key.
+    const makeReadLabel = (quoteAware: boolean): ((open: number, close: number) => number) => {
+      let readClose: Int32Array | undefined;
+      let readResult: Int32Array | undefined;
+      return (open, close) => {
+        if (readClose === undefined || readResult === undefined) {
+          readClose = new Int32Array(content.length).fill(-1);
+          readResult = new Int32Array(content.length);
+        }
+        if (readClose[open] === close) return readResult[open];
+        const text = content.slice(open + 1, close);
+        let result = NONE;
+        if (text.trim() === '') {
+          result = BLANK;
+        } else {
+          for (const key of quoteAware ? keysOf(text) : [plainKeyOf(text)]) {
+            const found = key === '' ? undefined : flagged.get(key);
+            if (found !== undefined) {
+              result = found;
+              break;
+            }
           }
         }
-      }
-      readClose[open] = close;
-      readResult[open] = result;
-      return result;
+        readClose[open] = close;
+        readResult[open] = result;
+        return result;
+      };
     };
+    const readLabelRaw = makeReadLabel(false);
+    const readLabelRendered = makeReadLabel(true);
 
     /** Image `k`, its alt text ending at `altEnd`, read as a full, collapsed or shortcut reference. */
-    const readImage = ({ close, hasInner }: BracketInfo, k: number, altEnd: number): void => {
+    const readImage = ({ close, hasInner }: BracketInfo, k: number, altEnd: number, readLabel: (open: number, close: number) => number): void => {
       const altOpen = images[k] + 1;
       const afterAlt = altEnd + 1;
       const next = content.charCodeAt(afterAlt);
@@ -574,15 +600,15 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
         // Read the alt text as brackets pair in the text, as a renderer pairs them (code spans and autolinks hidden,
         // below), and as ending at the first `]`: one stray bracket must not hide the image.
         const paired = raw.close[altOpen];
-        if (paired >= 0) readImage(raw, k, paired);
+        if (paired >= 0) readImage(raw, k, paired, readLabelRaw);
         const first = raw.firstClose.get(altOpen);
-        if (first !== undefined && first !== paired) readImage(raw, k, first);
+        if (first !== undefined && first !== paired) readImage(raw, k, first, readLabelRaw);
       }
       // An unpaired `]` before `[label]` after an earlier `]` ends the alt text, whatever it held.
       for (const { bang, labelOpen } of raw.labelAfterImage) {
         const labelEnd = raw.close[labelOpen];
         if (labelEnd < 0 || raw.hasInner[labelOpen]) continue;
-        const found = readLabel(labelOpen, labelEnd);
+        const found = readLabelRaw(labelOpen, labelEnd);
         if (found >= 0) lateHits.push({ index: bang, end: labelEnd + 1, related: defs[found] });
       }
     }
@@ -591,7 +617,7 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
       const info = analyzeBrackets(content, buffers, { blocks, html, linkDestinations, runs });
       for (let k = 0; k < images.length; k++) {
         const renderedEnd = info.close[images[k] + 1];
-        if (renderedEnd >= 0) readImage(info, k, renderedEnd);
+        if (renderedEnd >= 0) readImage(info, k, renderedEnd, readLabelRendered);
       }
     };
 
@@ -664,7 +690,7 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
 
   sanitizeEdits(content: string, threats: Threat[]): TextEdit[] {
     const edits: TextEdit[] = [];
-    const keysOf = labelKeyReader();
+    const { keys: keysOf } = labelKeyReader();
     const labels = new Set<string>(); // labels of the definitions the images used
     for (const t of threats) {
       if (!t.location) continue;

