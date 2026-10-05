@@ -111,6 +111,13 @@ export interface Threat {
   evidence: string;
   /** Byte offset or line number in the original content, if applicable */
   location?: { offset: number; length: number };
+  /**
+   * A second span the finding depends on, for example the definition a
+   * markdown image reference points to. Cross-turn scanning counts it when it
+   * decides whether a finding straddles a turn boundary; sanitization uses
+   * `location` only.
+   */
+  relatedLocation?: { offset: number; length: number };
   /** Which detector found this */
   detectorId: string;
   /** Where this threat was detected: pattern (regex), ml (classifier), or custom */
@@ -212,13 +219,37 @@ export interface Detector {
   category: TrapCategory;
   /** Scan content and return any threats found */
   scan(content: string, options?: DetectorOptions): DetectorResult;
-  /** Return sanitized content with threats neutralized */
+  /**
+   * Return sanitized content with threats neutralized. `content` is the
+   * original scanned text, never text another detector has already edited, so
+   * the threats' offsets are valid in it. Each detector's change is merged
+   * with the others' and applied once.
+   */
   sanitize(content: string, threats: Threat[]): string;
+  /**
+   * Optional: the edits `sanitize` would make, as spans of the original text.
+   * Each edit's replacement should cover only its own span. Without this, the
+   * pipeline compares `sanitize`'s output with the original to find one edit
+   * per finding.
+   */
+  sanitizeEdits?(content: string, threats: Threat[]): TextEdit[];
   /** Async scan method (used by ML detectors where inference is async) */
   scanAsync?(
     content: string,
     options?: DetectorOptions,
   ): Promise<DetectorResult>;
+}
+
+/** One edit to the scanned text: replace `length` characters at `offset` with `replacement`. */
+export interface TextEdit {
+  /** Where the edit starts, in the original text. */
+  offset: number;
+  /** How many characters of the original it covers. */
+  length: number;
+  /** What replaces them (empty to remove). */
+  replacement: string;
+  /** How dangerous the finding behind it is; the higher one wins when edits overlap. */
+  severity: Severity;
 }
 
 /** Per-scan options passed to a detector. */
@@ -504,6 +535,14 @@ export interface AgentArmorConfig {
    * Default: true.
    */
   normalizeUnicode?: boolean;
+  /**
+   * Largest input, in characters, that a scan will take on. Longer input is
+   * not scanned: the result is not clean, carries one `congestion-trap`
+   * threat from detector `input-limit`, and has an empty `sanitized`, so an
+   * oversized payload can neither stall the scan nor pass as safe. Set to
+   * `Infinity` to turn the limit off. Default: 1,000,000.
+   */
+  maxInputLength?: number;
   /** Per-detector toggles within the Content Injection category. All default true. */
   contentInjection?: {
     hiddenHTML?: boolean;

@@ -12,7 +12,7 @@ import type { PatternDatabase } from './pattern-db';
  *           variation-selector runs (#69 item 1)
  */
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.1',
+  version: '0.9.5',
   updatedAt: '2026-10-04',
   detectors: {
     'hidden-html': [
@@ -352,7 +352,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
     'jailbreak-patterns': [
       {
         id: 'jb-instruction-override',
-        regex: '(?:ignore|disregard|forget)\\s+(?:all\\s+)?(?:previous|prior|above|earlier|your)\\s+(?:instructions?|rules?|guidelines?|constraints?|directives?)',
+        regex: '(?:ignore|disregard|forget)\\s+(?:all\\s+)?(?:previous|prior|above|earlier|your)\\s+(?:instructions?|rules?|guidelines?|constraints?|directives?|(?:prompt|system|conversation|chat|user)\\s+(?:messages?|prompts?))',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'embedded-jailbreak',
@@ -463,15 +463,18 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         label: 'Fictional world restriction bypass (loose)',
       },
       {
-        // An address to the agent ("assistant:", "note to agent", "as the AI
-        // reading this", "when you read this") followed by an instruction to run
-        // a shell command, pipe a remote script, or run something destructive.
+        // An address to the agent ("assistant:", "Agents:", "Claude:", "note to
+        // agent", "as the AI reading this", "when you read this"), including
+        // quoted, bold, bulleted, greeted ("Hey, Claude,") and product-name
+        // ("Claude Code:") forms, followed by an instruction
+        // to run a shell command, pipe a remote script, or run something
+        // destructive.
         // The addressee is what separates this from ordinary docs ("run npm
         // install"): nobody writes install steps to "the assistant". No
         // requireInstructions: that gate tests only the matched text, which
         // here stops at the command and misses "don't tell the user".
         id: 'jb-agent-directed-command',
-        regex: '(?:(?:note|message|instructions?)\\s+(?:to|for)\\s+(?:the\\s+)?(?:ai|agent|assistant|model|llm)\\b|(?:^|[.:!>\\n]\\s*|[\\s=](?=["\x27\\u201C\\u2018`]))["\x27\\u201C\\u2018`]?(?:ai\\s+)?(?:assistant|agent)\\s*[,:]|as\\s+(?:the|an?)\\s+(?:ai|agent|assistant|llm)\\b[^.\\n]{0,40},|when\\s+you\\s+(?:read|see|process|parse)\\s+(?:this|the\\s+(?:above|following)))[\\s\\S]{0,80}?\\b(?:run|execute|exec|invoke|launch)\\b[\\s\\S]{0,60}?(?:\\b(?:curl|wget|bash|sudo|powershell|eval|nc|netcat)\\b|\\bsh\\b|\\brm\\s+-|chmod\\s+\\+x|(?:installer|script|payload|binary)\\s+(?:at|from)\\s+https?:\\/\\/)',
+        regex: '(?:(?:note|message|instructions?)\\s+(?:to|for)\\s+(?:the\\s+)?(?:ai|agent|assistant|model|llm)\\b|(?:^|[.:!?>\\n\\-*+\\u2022]\\s*|[\\s=](?=[\\"\x27\\u201C\\u2018`\\u00AB\\u2039\\u201E\\u201A*_]))[*_\\"\x27\\u201C\\u2018`\\u00AB\\u2039\\u201E\\u201A]{0,3}(?:(?:dear|hey|hi|hello|thanks)(?:\\s+there)?[\\s,]+)?(?:ai[\\s\\-\\u2010-\\u2015]+)?(?:assistants?|agents?|claude(?:\\s+code)?|chatgpt|gemini(?:\\s+cli)?|(?:github\\s+)?copilot)[*_\\"\x27\\u201D\\u2019\\u00BB\\u203A`]{0,3}\\s*[,:]|as\\s+(?:the|an?)\\s+(?:ai|agent|assistant|llm)\\b[^.\\n]{0,40},|when\\s+you\\s+(?:read|see|process|parse)\\s+(?:this|the\\s+(?:above|following)))[\\s\\S]{0,200}?\\b(?:run|execute|exec|invoke|launch|pipe)\\b[\\s\\S]{0,60}?(?:\\b(?:curl|wget|bash|sudo|powershell|eval|nc|netcat)\\b|\\bsh\\b|\\brm\\s+-|chmod\\s+\\+x|(?:installer|script|payload|binary)\\s+(?:at|from)\\s+https?:\\/\\/)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'embedded-jailbreak',
@@ -479,6 +482,36 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         confidence: 0.85,
         label: 'Instruction to the agent to run a shell command or remote script',
         boostOnInstructions: true,
+      },
+      {
+        id: 'jb-stop-following-user',
+        regex: '\\bstop\\s+(?:following|obeying)\\s+(?:the\\s+)?users?[\x27’]?s?\\s+(?:instructions?|requests?|commands?|orders?|directions?)\\b|\\bstop\\s+obeying\\s+(?:the\\s+)?users?\\b',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'embedded-jailbreak',
+        severity: 'critical',
+        confidence: 0.9,
+        label: 'Instruction to stop following the user',
+      },
+      {
+        id: 'jb-important-message-template',
+        regex: '\\bimportant\\s+message\\s+from\\s+me\\b[\\s\\S]{0,100}?\\bbefore\\s+you\\s+can\\s+(?:solve|complete|finish|do)\\s+(?:the|your|my)\\s+task\\b',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'embedded-jailbreak',
+        severity: 'critical',
+        confidence: 0.9,
+        label: 'Injected "important message ... before you can solve the task" template',
+      },
+      {
+        id: 'jb-base64-exec',
+        regex: '\\b(?:(?:eval|exec)\\s+["\x27]?(?:\\$\\(|`)|(?:sh|bash|zsh)\\s+(?:-c\\s+["\x27]?\\$\\(|<\\())\\s*(?:echo(?:\\s+-n)?|printf(?:\\s+["\x27]?%s["\x27]?)?)\\s+["\x27]?[A-Za-z0-9+/]{16,}={0,2}["\x27]?\\s*\\|\\s*base64\\s+(?:-di?|-D|--decode)\\b|\\b(?:echo(?:\\s+-n)?|printf(?:\\s+["\x27]?%s["\x27]?)?)\\s+["\x27]?[A-Za-z0-9+/]{16,}={0,2}["\x27]?\\s*\\|\\s*base64\\s+(?:-di?|-D|--decode)\\b[^\\n|]{0,20}\\|\\s*(?:/bin/)?(?:sh|bash|zsh)\\b',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'embedded-jailbreak',
+        severity: 'high',
+        confidence: 0.85,
+        label: 'Base64-decoded payload executed by a shell',
       },
     ],
 

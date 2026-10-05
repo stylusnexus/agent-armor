@@ -1,7 +1,8 @@
 import { BaseDetector, type PatternMatch } from './base';
 import type { PatternEntry } from '../patterns/pattern-db';
 import { compilePattern } from '../patterns/pattern-db';
-import type { Threat, TrapCategory, TrapType } from '../types';
+import { findMatcher, type MatcherHit, type PatternMatcher } from '../patterns/matchers';
+import type { TextEdit, Threat, TrapCategory, TrapType } from '../types';
 
 const INSTRUCTION_SIGNALS =
   /(?:ignore|disregard|forget|override|system|assistant|you (?:are|must|should|will)|IMPORTANT|instruction|do not|instead|pretend|act as|role|new task|send to|transmit|summarise|summarize|say that|respond with|output|generate|write|tell the user|without\s+(?:restrictions?|scrutiny|review)|approve\s+(?:all|everything|any)|all\s+files|arbitrary|bypass|credentials?|privileged|unrestricted)/i;
@@ -25,6 +26,15 @@ export function redactSecret(match: string): string {
   return `${prefix}[REDACTED ${trimmed.length} chars]`;
 }
 
+/** Matches of `regex` the way a `g`-flag `exec` loop reports them. */
+function* execAll(regex: RegExp, content: string, group: number): Generator<MatcherHit> {
+  regex.lastIndex = 0; // reset stateful /g cursor before reuse
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(content)) !== null) {
+    yield { index: match.index, text: match[0], extracted: match[group] };
+  }
+}
+
 /**
  * Generic detector driven by the pattern database.
  * Replaces all hardcoded detector classes for pattern-based detection.
@@ -35,7 +45,7 @@ export class PatternDetector extends BaseDetector {
   readonly category: TrapCategory;
   protected readonly trapType: TrapType;
   /** Patterns with their regexes compiled once at construction, not per scan. */
-  private readonly compiled: Array<{ entry: PatternEntry; regex: RegExp }>;
+  private readonly compiled: Array<{ entry: PatternEntry; regex: RegExp; matcher?: PatternMatcher }>;
   private readonly sanitizeMode: 'remove' | 'replace' | 'none';
   private readonly replaceText?: string;
   private readonly maskEvidence: boolean;
@@ -60,6 +70,7 @@ export class PatternDetector extends BaseDetector {
     this.compiled = opts.patterns.map((entry) => ({
       entry,
       regex: compilePattern(entry),
+      matcher: findMatcher(entry.regex, entry.flags, entry.extractGroup ?? 0),
     }));
     this.sanitizeMode = opts.sanitizeMode ?? 'remove';
     this.replaceText = opts.replaceText;
@@ -73,12 +84,9 @@ export class PatternDetector extends BaseDetector {
   findPatterns(content: string): PatternMatch[] {
     const matches: PatternMatch[] = [];
 
-    for (const { entry, regex } of this.compiled) {
-      regex.lastIndex = 0; // reset stateful /g cursor before reuse
-      let match: RegExpExecArray | null;
-
-      while ((match = regex.exec(content)) !== null) {
-        const extracted = match[entry.extractGroup ?? 0] ?? match[0];
+    for (const { entry, regex, matcher } of this.compiled) {
+      for (const hit of matcher ? matcher.match(content) : execAll(regex, content, entry.extractGroup ?? 0)) {
+        const extracted = hit.extracted ?? hit.text;
         const trimmed = extracted.trim();
 
         if (entry.minLength && trimmed.length < entry.minLength) continue;
@@ -105,9 +113,9 @@ export class PatternDetector extends BaseDetector {
 
         matches.push({
           pattern: entry.label,
-          match: match[0],
-          index: match.index,
-          length: match[0].length,
+          match: hit.text,
+          index: hit.index,
+          length: hit.text.length,
           confidence,
           severity,
           description: hasInstruction
@@ -118,6 +126,20 @@ export class PatternDetector extends BaseDetector {
     }
 
     return matches;
+  }
+
+  sanitizeEdits(_content: string, threats: Threat[]): TextEdit[] {
+    if (this.sanitizeMode === 'none') return [];
+    const replacement =
+      this.sanitizeMode === 'replace' && this.replaceText ? this.replaceText : '';
+    return threats
+      .filter((t) => t.location)
+      .map((t) => ({
+        offset: t.location!.offset,
+        length: t.location!.length,
+        replacement,
+        severity: t.severity,
+      }));
   }
 
   sanitize(content: string, threats: Threat[]): string {

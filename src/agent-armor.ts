@@ -13,15 +13,18 @@ import type {
   SessionScanResult,
   Severity,
   Strictness,
+  TextEdit,
   Threat,
   TrapCategory,
   TrapType,
 } from './types';
 import { createHash, randomUUID } from 'node:crypto';
 import { evaluateAction } from './action-gate';
+import { alignedEdits, applyEdits, mergeEdits } from './sanitize';
 import type { PatternDatabase } from './patterns/pattern-db';
 import { DEFAULT_PATTERNS } from './patterns/default-patterns';
 import { PatternDetector, redactSecret } from './detectors/pattern-detector';
+import { MarkdownReferenceExfiltrationDetector } from './detectors/behavioural-control/markdown-reference-exfiltration';
 import {
   normalizeForScan,
   mapRangeToOriginal,
@@ -32,6 +35,7 @@ const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
   strictness: 'balanced',
   allowedActions: [],
   normalizeUnicode: true,
+  maxInputLength: 1_000_000,
   contentInjection: {
     hiddenHTML: true,
     metadataInjection: true,
@@ -128,6 +132,8 @@ const DETECTOR_REGISTRY: Array<{
   /** Redact matched text before it becomes `Threat.evidence` — for detectors
    *  whose matches are themselves secrets. */
   maskEvidence?: boolean;
+  /** Code detectors that run alongside this entry's pattern detector, under the same config flag. */
+  extraDetectors?: () => Detector[];
 }> = [
   // Content Injection
   {
@@ -206,6 +212,7 @@ const DETECTOR_REGISTRY: Array<{
     sanitizeMode: 'replace',
     replaceText:
       '[BLOCKED: exfiltration instruction removed by AgentArmor]',
+    extraDetectors: () => [new MarkdownReferenceExfiltrationDetector()],
   },
   {
     configGroup: 'behaviouralControl',
@@ -639,6 +646,9 @@ export class AgentArmor {
         })
       );
 
+      const extras = reg.extraDetectors?.() ?? [];
+      this.detectors.push(...extras);
+
       // Structural detectors (content-injection) must see the raw bytes — they
       // exist to catch the invisible/obfuscation characters normalization
       // strips. Everything else scans the normalized skeleton.
@@ -664,6 +674,9 @@ export class AgentArmor {
         t.location.offset,
         t.location.length
       );
+      const relatedLocation = t.relatedLocation
+        ? mapRangeToOriginal(norm, t.relatedLocation.offset, t.relatedLocation.length)
+        : undefined;
       const slice = original.slice(
         location.offset,
         location.offset + location.length
@@ -676,11 +689,72 @@ export class AgentArmor {
         : slice.length > 200
           ? slice.slice(0, 197) + '...'
           : slice;
-      return { ...t, location, evidence };
+      return { ...t, location, ...(relatedLocation ? { relatedLocation } : {}), evidence };
     });
   }
 
+  /**
+   * Result for input over `maxInputLength`. Nothing is scanned, so the result
+   * fails closed: one high-severity threat, and no sanitized text to forward.
+   */
+  private oversizedResult(content: string): ScanResult {
+    const threat: Threat = {
+      category: 'systemic',
+      type: 'congestion-trap',
+      severity: 'high',
+      confidence: 1,
+      description: `Input is ${content.length} characters, over the ${this.config.maxInputLength}-character limit (maxInputLength); it was not scanned`,
+      evidence: '',
+      detectorId: 'input-limit',
+      source: 'pattern',
+    };
+    return {
+      clean: false,
+      threats: [threat],
+      sanitized: '',
+      durationMs: 0,
+      riskLevel: computeRiskLevel(threat.severity, threat.confidence),
+      stats: { detectorsRun: 0, threatsFound: 1, highestSeverity: threat.severity },
+    };
+  }
+
+  /**
+   * Clean `content` once. Every detector's edits are measured on the original
+   * text, so they are collected first, overlaps are merged, and the result is
+   * applied in a single pass; chaining detectors would hand each one offsets
+   * that an earlier detector's edit has already shifted (#169). A detector that
+   * returns only cleaned text is split into one edit per finding; one that
+   * also changes text outside its findings runs afterwards on the result.
+   */
+  private sanitizeContent(content: string, allThreats: Threat[]): string {
+    const edits: TextEdit[] = [];
+    // Detectors that edit outside their own findings can't be merged by span.
+    const outside: Array<{ detector: Detector; threats: Threat[] }> = [];
+    for (const detector of this.detectors) {
+      const relevant = allThreats.filter((t) => t.detectorId === detector.id);
+      if (relevant.length === 0) continue;
+      if (detector.sanitizeEdits) {
+        appendAll(edits, detector.sanitizeEdits(content, relevant));
+        continue;
+      }
+      const cleaned = detector.sanitize(content, relevant);
+      if (typeof cleaned !== 'string' || cleaned === content) continue;
+      const aligned = alignedEdits(content, cleaned, relevant);
+      if (aligned) appendAll(edits, aligned);
+      else outside.push({ detector, threats: relevant });
+    }
+    let result = applyEdits(content, mergeEdits(edits, content.length));
+    // These run last, on the cleaned text, so what they change elsewhere
+    // cannot put back text another detector removed.
+    for (const { detector, threats } of outside) {
+      const cleaned = detector.sanitize(result, threats);
+      if (typeof cleaned === 'string') result = cleaned;
+    }
+    return result;
+  }
+
   private runScanPipeline(content: string): ScanResult {
+    if (content.length > this.config.maxInputLength) return this.oversizedResult(content);
     const start = performance.now();
     const allThreats: Threat[] = [];
     const norm = this.config.normalizeUnicode
@@ -718,15 +792,7 @@ export class AgentArmor {
       return b.confidence - a.confidence;
     });
 
-    let sanitized = content;
-    for (const detector of this.detectors) {
-      const relevantThreats = allThreats.filter(
-        (t) => t.detectorId === detector.id
-      );
-      if (relevantThreats.length > 0) {
-        sanitized = detector.sanitize(sanitized, relevantThreats);
-      }
-    }
+    const sanitized = this.sanitizeContent(content, allThreats);
 
     const durationMs = performance.now() - start;
 
@@ -748,6 +814,7 @@ export class AgentArmor {
   }
 
   private async runScanPipelineAsync(content: string): Promise<ScanResult> {
+    if (content.length > this.config.maxInputLength) return this.oversizedResult(content);
     const start = performance.now();
     const allThreats: Threat[] = [];
     const norm = this.config.normalizeUnicode
@@ -797,15 +864,7 @@ export class AgentArmor {
       return b.confidence - a.confidence;
     });
 
-    let sanitized = content;
-    for (const detector of this.detectors) {
-      const relevantThreats = allThreats.filter(
-        (t) => t.detectorId === detector.id
-      );
-      if (relevantThreats.length > 0) {
-        sanitized = detector.sanitize(sanitized, relevantThreats);
-      }
-    }
+    const sanitized = this.sanitizeContent(content, allThreats);
 
     const durationMs = performance.now() - start;
 
@@ -1052,8 +1111,11 @@ export class AgentArmor {
 
       for (const threat of this.runScanPipeline(joined).threats) {
         if (!threat.location) continue; // no offset → cannot prove a span
-        const spanStart = threat.location.offset;
-        const spanEnd = spanStart + threat.location.length;
+        const rel = threat.relatedLocation;
+        const spanStart = rel ? Math.min(threat.location.offset, rel.offset) : threat.location.offset;
+        const spanEnd = rel
+          ? Math.max(threat.location.offset + threat.location.length, rel.offset + rel.length)
+          : threat.location.offset + threat.location.length;
         const touchesEarlier = spanStart < aEnd;
         const touchesLater = spanEnd > bStart;
         if (!touchesEarlier || !touchesLater) continue; // not straddling
@@ -1063,7 +1125,7 @@ export class AgentArmor {
         if (seen.has(key)) continue;
         seen.add(key);
 
-        const { location: _drop, ...rest } = threat;
+        const { location: _drop, relatedLocation: _dropRelated, ...rest } = threat;
         crossTurnThreats.push({
           ...rest,
           contributingTurns,

@@ -5,10 +5,18 @@ dist/
 .env.local
 coverage/
 .vitest/
-CLAUDE.md
+CLAUDE.local.md
 MEMORY.md
 agent-armor.code-workspace
-.claude/
+# Claude Code: keep local state and settings out; share the review agent
+.claude/*
+!.claude/agents/
+.claude/agents/*
+!.claude/agents/pattern-red-team.md
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/write-matcher
+!.claude/skills/refresh-attack-feeds
 docs/superpowers/
 docs/internal/
 ml/data/output/
