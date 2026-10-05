@@ -22,7 +22,11 @@ interface Step {
 let input = '';
 process.stdin.on('data', (d) => (input += d));
 process.stdin.on('end', () => {
-  const { entry, units, steps } = JSON.parse(input) as { entry: Entry; units: string[]; steps: Step[] };
+  const { entry, units, steps } = JSON.parse(input) as {
+    entry: Entry;
+    units: string[];
+    steps: Step[];
+  };
   const matcher = findMatcher(entry.regex, entry.flags, entry.extractGroup ?? 0);
   const re = new RegExp(entry.regex, entry.flags);
   const run = (text: string): void => {
@@ -44,7 +48,9 @@ process.stdin.on('end', () => {
       run(text);
       const ms = performance.now() - start;
       if (ms > budgetMs) {
-        slow.push(`${entry.id}: ${Math.round(ms)}ms > ${budgetMs}ms on ${text.length} chars of ${JSON.stringify(unit.slice(0, 40))}`);
+        slow.push(
+          `${entry.id}: ${Math.round(ms)}ms > ${budgetMs}ms on ${text.length} chars of ${JSON.stringify(unit.slice(0, 40))}`,
+        );
         break;
       }
     }

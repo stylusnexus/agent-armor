@@ -124,15 +124,12 @@ describe('verifyChecksum', () => {
     const { MODEL_CHECKSUM } = await import('../src/constants');
     const filePath = join(tempDir, 'test-model.onnx');
     await writeFile(filePath, 'some-content');
-    const digestOfContent = createHash('sha256')
-      .update('some-content')
-      .digest('hex');
+    const digestOfContent = createHash('sha256').update('some-content').digest('hex');
     // Default path uses MODEL_CHECKSUM; result tracks whether the content
     // happens to match it (it does not), independent of placeholder state.
     const result = await verifyChecksum(filePath);
     expect(result).toBe(
-      MODEL_CHECKSUM.startsWith('PLACEHOLDER') ||
-        digestOfContent === MODEL_CHECKSUM,
+      MODEL_CHECKSUM.startsWith('PLACEHOLDER') || digestOfContent === MODEL_CHECKSUM,
     );
   });
 });

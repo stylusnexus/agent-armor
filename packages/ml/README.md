@@ -29,7 +29,7 @@ const armor = await AgentArmor.create({
 const result = await armor.scan(content);
 
 // ML-detected threats have source: 'ml'
-result.threats.filter(t => t.source === 'ml');
+result.threats.filter((t) => t.source === 'ml');
 ```
 
 ## How It Works
@@ -57,7 +57,7 @@ const armor = await AgentArmor.create({
       timeoutMs: 120_000,
       retries: 2,
       onProgress: (received, total) => {
-        console.log(`${Math.round(received / total * 100)}%`);
+        console.log(`${Math.round((received / total) * 100)}%`);
       },
     },
   },

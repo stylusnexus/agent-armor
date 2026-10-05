@@ -62,7 +62,7 @@ for (const [path, content] of Object.entries(configFiles)) {
   for (const threat of result.threats) {
     console.log(
       `    [${threat.severity.toUpperCase()}] ${threat.type} ` +
-        `(${(threat.confidence * 100).toFixed(0)}%) - "${threat.evidence.slice(0, 70)}"`
+        `(${(threat.confidence * 100).toFixed(0)}%) - "${threat.evidence.slice(0, 70)}"`,
     );
   }
   console.log();
@@ -75,8 +75,6 @@ console.log(`Blocked: ${blocked}`);
 // Gate: only feed config the agent should trust. In a real integration this is
 // where you would load the file's guidance into the agent's system context.
 if (blocked > 0) {
-  console.log(
-    '\nRefusing to load poisoned config. Review the blocked files before trusting them.'
-  );
+  console.log('\nRefusing to load poisoned config. Review the blocked files before trusting them.');
   process.exitCode = 1;
 }

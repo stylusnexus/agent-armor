@@ -71,10 +71,23 @@ export function applyEdits(content: string, edits: TextEdit[]): string {
  * Returns null when the output does not fit that shape (the detector edited
  * outside its own findings); the caller then runs that detector on the merged result.
  */
-export function alignedEdits(original: string, sanitized: string, threats: Threat[]): TextEdit[] | null {
+export function alignedEdits(
+  original: string,
+  sanitized: string,
+  threats: Threat[],
+): TextEdit[] | null {
   const spans = threats
-    .filter((t) => t.location && t.location.offset >= 0 && t.location.offset + t.location.length <= original.length)
-    .map((t) => ({ start: t.location!.offset, end: t.location!.offset + t.location!.length, severity: t.severity }))
+    .filter(
+      (t) =>
+        t.location &&
+        t.location.offset >= 0 &&
+        t.location.offset + t.location.length <= original.length,
+    )
+    .map((t) => ({
+      start: t.location!.offset,
+      end: t.location!.offset + t.location!.length,
+      severity: t.severity,
+    }))
     .sort((a, b) => a.start - b.start || b.end - a.end);
   const groups: Array<{ start: number; end: number; severity: Severity }> = [];
   for (const span of spans) {
@@ -94,7 +107,10 @@ export function alignedEdits(original: string, sanitized: string, threats: Threa
   let at = head.length;
   for (let k = 0; k < groups.length; k++) {
     const group = groups[k];
-    const keep = original.slice(group.end, k + 1 < groups.length ? groups[k + 1].start : original.length);
+    const keep = original.slice(
+      group.end,
+      k + 1 < groups.length ? groups[k + 1].start : original.length,
+    );
     let next: number;
     if (k + 1 < groups.length) {
       next = sanitized.indexOf(keep, at);
@@ -157,7 +173,8 @@ export function replaceRanges(
         }
       }
     }
-    const text = typeof replacement === 'string' ? replacement : replacement(content.slice(offset, end));
+    const text =
+      typeof replacement === 'string' ? replacement : replacement(content.slice(offset, end));
     if (text) chunks.push(text);
     boundary = offset;
   }

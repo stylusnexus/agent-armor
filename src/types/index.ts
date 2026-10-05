@@ -9,57 +9,48 @@
 // ---------------------------------------------------------------------------
 
 export type TrapCategory =
-  | "content-injection"
-  | "semantic-manipulation"
-  | "cognitive-state"
-  | "behavioural-control"
-  | "systemic"
-  | "human-in-the-loop"
-  | "transport-integrity";
+  | 'content-injection'
+  | 'semantic-manipulation'
+  | 'cognitive-state'
+  | 'behavioural-control'
+  | 'systemic'
+  | 'human-in-the-loop'
+  | 'transport-integrity';
 
 /** Content Injection trap subtypes (perception-layer attacks). */
 export type ContentInjectionType =
-  | "hidden-html"
-  | "metadata-injection"
-  | "dynamic-cloaking"
-  | "steganographic-payload"
-  | "syntactic-masking";
+  | 'hidden-html'
+  | 'metadata-injection'
+  | 'dynamic-cloaking'
+  | 'steganographic-payload'
+  | 'syntactic-masking';
 
 /** Semantic Manipulation trap subtypes (reasoning-layer attacks). */
 export type SemanticManipulationType =
-  | "biased-framing"
-  | "oversight-evasion"
-  | "persona-hyperstition";
+  'biased-framing' | 'oversight-evasion' | 'persona-hyperstition';
 
 /** Cognitive State trap subtypes (memory-layer attacks). */
 export type CognitiveStateType =
-  | "rag-knowledge-poisoning"
-  | "latent-memory-poisoning"
-  | "contextual-learning-trap";
+  'rag-knowledge-poisoning' | 'latent-memory-poisoning' | 'contextual-learning-trap';
 
 /** Behavioural Control trap subtypes (action-layer attacks). */
 export type BehaviouralControlType =
-  | "embedded-jailbreak"
-  | "data-exfiltration"
-  | "sub-agent-spawning";
+  'embedded-jailbreak' | 'data-exfiltration' | 'sub-agent-spawning';
 
 /** Systemic trap subtypes (multi-agent-layer attacks). */
 export type SystemicType =
-  | "congestion-trap"
-  | "interdependence-cascade"
-  | "tacit-collusion"
-  | "compositional-fragment"
-  | "sybil-attack";
+  | 'congestion-trap'
+  | 'interdependence-cascade'
+  | 'tacit-collusion'
+  | 'compositional-fragment'
+  | 'sybil-attack';
 
 /** Human-in-the-Loop trap subtypes (overseer-layer attacks). */
-export type HumanInTheLoopType = "approval-fatigue" | "social-engineering";
+export type HumanInTheLoopType = 'approval-fatigue' | 'social-engineering';
 
 /** Transport Integrity trap subtypes (malicious-intermediary attacks, Liu et al. 2026). */
 export type TransportIntegrityType =
-  | "tool-call-tampering"
-  | "credential-exposure"
-  | "dependency-substitution"
-  | "response-anomaly";
+  'tool-call-tampering' | 'credential-exposure' | 'dependency-substitution' | 'response-anomaly';
 
 /** Union of every specific trap subtype across all seven categories. */
 export type TrapType =
@@ -76,20 +67,20 @@ export type TrapType =
 // ---------------------------------------------------------------------------
 
 /** How dangerous a threat is if exploited, independent of detector confidence. */
-export type Severity = "low" | "medium" | "high" | "critical";
+export type Severity = 'low' | 'medium' | 'high' | 'critical';
 
 /**
  * Single roll-up risk assessment for a scan, computed from the dominant threat
  * (highest severity + its confidence). Gives integrators a one-line allow/deny
  * decision without iterating threats. `none` means no threats were found.
  */
-export type RiskLevel = "none" | "low" | "medium" | "high" | "critical";
+export type RiskLevel = 'none' | 'low' | 'medium' | 'high' | 'critical';
 
 /** 0-1 confidence score from a detector */
 export type Confidence = number;
 
 /** Where a threat was detected: pattern (regex), ml (classifier), or custom. */
-export type ThreatSource = "pattern" | "ml" | "custom";
+export type ThreatSource = 'pattern' | 'ml' | 'custom';
 
 // ---------------------------------------------------------------------------
 // Threat descriptor
@@ -159,7 +150,7 @@ export interface ScanResult {
 /** A single message in a multi-turn conversation passed to scanSession. */
 export interface ConversationTurn {
   /** Who/what produced this turn. */
-  role: "user" | "assistant" | "tool" | "document" | "system";
+  role: 'user' | 'assistant' | 'tool' | 'document' | 'system';
   /** The turn's text content. */
   content: string;
 }
@@ -170,7 +161,7 @@ export interface ConversationTurn {
  * It has no single-string offset, so `location` is omitted and `evidence`
  * carries one snippet; `contributingTurns` records which turns fed it.
  */
-export interface CrossTurnThreat extends Omit<Threat, "location"> {
+export interface CrossTurnThreat extends Omit<Threat, 'location'> {
   /** Indices (into the scanned turn array) that contributed to this threat. */
   contributingTurns: number[];
   /** Running confidence total that crossed the reporting threshold. */
@@ -234,10 +225,7 @@ export interface Detector {
    */
   sanitizeEdits?(content: string, threats: Threat[]): TextEdit[];
   /** Async scan method (used by ML detectors where inference is async) */
-  scanAsync?(
-    content: string,
-    options?: DetectorOptions,
-  ): Promise<DetectorResult>;
+  scanAsync?(content: string, options?: DetectorOptions): Promise<DetectorResult>;
 }
 
 /** One edit to the scanned text: replace `length` characters at `offset` with `replacement`. */
@@ -270,12 +258,12 @@ export interface DetectorResult {
 
 /** Error codes {@link AgentArmorModelError} can carry when ML model resolution fails. */
 export type ModelErrorCode =
-  | "MODEL_NOT_FOUND"
-  | "CHECKSUM_MISMATCH"
-  | "DOWNLOAD_FAILED"
-  | "DOWNLOAD_TIMEOUT"
-  | "DISK_FULL"
-  | "LOCK_TIMEOUT";
+  | 'MODEL_NOT_FOUND'
+  | 'CHECKSUM_MISMATCH'
+  | 'DOWNLOAD_FAILED'
+  | 'DOWNLOAD_TIMEOUT'
+  | 'DISK_FULL'
+  | 'LOCK_TIMEOUT';
 
 /** Options controlling how the ML model is downloaded on first use. */
 export interface MLDownloadConfig {
@@ -296,7 +284,7 @@ export interface MLConfig {
   /** Inject a custom Detector (skips model download, useful for testing) */
   detector?: Detector;
   /** Behavior when ML model is unavailable */
-  onUnavailable?: "throw" | "warn-and-skip" | "silent-skip";
+  onUnavailable?: 'throw' | 'warn-and-skip' | 'silent-skip';
   /** API key for Pro tier pattern/model updates (future) */
   apiKey?: string;
   /** Custom model download URL (future) */
@@ -310,7 +298,7 @@ export interface MLConfig {
 // ---------------------------------------------------------------------------
 
 /** Confidence-threshold preset controlling how aggressively detectors report. */
-export type Strictness = "permissive" | "balanced" | "strict";
+export type Strictness = 'permissive' | 'balanced' | 'strict';
 
 // ---------------------------------------------------------------------------
 // Pre-execution action gate (#57)
@@ -351,7 +339,7 @@ export interface ActionRule {
    * GET/HEAD/OPTIONS. This is a known-signal check, not content inspection — it
    * does not parse SQL/command bodies. `'read-write'` imposes no mode constraint.
    */
-  mode?: "read-only" | "read-write";
+  mode?: 'read-only' | 'read-write';
 }
 
 /** A proposed agent action evaluated by {@link AgentArmor.checkAction}. */
@@ -402,7 +390,7 @@ export interface DetectorSkippedEvent {
   /** The detector's registry id (matches {@link Threat.detectorId} when it does run). */
   detectorId: string;
   /** Why it was skipped: an explicit config toggle, or no patterns for it in the loaded database. */
-  reason: "config-disabled" | "no-patterns";
+  reason: 'config-disabled' | 'no-patterns';
 }
 
 /** One threat as recorded on an {@link AuditRecord} — never the raw snippet unless `includeEvidence` was set. */
@@ -429,7 +417,7 @@ export interface AuditThreatSummary {
  */
 export interface AuditRecord {
   /** Record format version, for forward compatibility. */
-  schemaVersion: "audit-record.v1";
+  schemaVersion: 'audit-record.v1';
   /** ISO 8601 timestamp of when this scan decision completed. */
   timestamp: string;
   /** Unique id for this specific decision (one per chunk/turn, not per API call). */
@@ -437,11 +425,11 @@ export interface AuditRecord {
   /** Shared across every record from the same top-level call (e.g. all chunks in one scanRAGChunks call). Undefined for single-content calls. */
   batchId?: string;
   /** Which SDK entry point produced this record. */
-  source: "scanSync" | "scan" | "scanRAGChunks" | "scanOutput" | "scanSession";
+  source: 'scanSync' | 'scan' | 'scanRAGChunks' | 'scanOutput' | 'scanSession';
   /** Chunk index (scanRAGChunks) or turn index (scanSession). Undefined for single-content calls. */
   index?: number;
   /** Agent Armor's classification of this scan — see the interface doc comment above. */
-  decision: "allow" | "sanitize" | "block" | "exception";
+  decision: 'allow' | 'sanitize' | 'block' | 'exception';
   /** Confidence-threshold preset active for this scan. */
   strictness: Strictness;
   /** Pattern database version that produced this decision. */
@@ -485,11 +473,11 @@ export interface ScanOptions {
  * package / control claim).
  */
 export interface EvidencePackage {
-  schemaVersion: "audit-evidence-package.v1";
+  schemaVersion: 'audit-evidence-package.v1';
   periodStart: string;
   periodEnd: string;
   recordCount: number;
-  decisionCounts: Record<AuditRecord["decision"], number>;
+  decisionCounts: Record<AuditRecord['decision'], number>;
   /** e.g. `["patterns@0.6.0", "ml@v1"]` — every distinct version combination seen. */
   detectorVersions: string[];
   /** scanIds of every exception-decision record, for quick review. */

@@ -74,7 +74,9 @@ export abstract class BaseDetector implements Detector {
         description: m.description,
         evidence: truncate(this.redactEvidence(m.match), 200),
         location: { offset: m.index, length: m.length },
-        ...(m.related ? { relatedLocation: { offset: m.related.index, length: m.related.length } } : {}),
+        ...(m.related
+          ? { relatedLocation: { offset: m.related.index, length: m.related.length } }
+          : {}),
         detectorId: this.id,
         source: 'pattern' as const,
       }));

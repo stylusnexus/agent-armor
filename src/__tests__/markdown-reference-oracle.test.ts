@@ -25,26 +25,130 @@ function rng(seed: number): () => number {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-const pick = <T,>(rand: () => number, items: T[]): T => items[Math.floor(rand() * items.length)];
+const pick = <T>(rand: () => number, items: T[]): T => items[Math.floor(rand() * items.length)];
 
 const STARTS = [
-  '', '', '', '- ', '* ', '+ ', '1. ', '2. ', '10) ', '> ', '>> ', '    ', '\t', '  ', '   ', '- > ', '> - ', '> > ', '# ', '## ',
-  '```', '~~~', '````', '- ```', '> ```', '1. ```', '***', '---', '___', '- - -', '===', '-', '+', '|', '| ', '<div>', '<div ',
-  '<!--', '-->', '<script>', '</script>', '<pre>', '<?', '?>', '<span title="', '[a]: x ', '[a]: <x> "', '- - ', '      ',
+  '',
+  '',
+  '',
+  '- ',
+  '* ',
+  '+ ',
+  '1. ',
+  '2. ',
+  '10) ',
+  '> ',
+  '>> ',
+  '    ',
+  '\t',
+  '  ',
+  '   ',
+  '- > ',
+  '> - ',
+  '> > ',
+  '# ',
+  '## ',
+  '```',
+  '~~~',
+  '````',
+  '- ```',
+  '> ```',
+  '1. ```',
+  '***',
+  '---',
+  '___',
+  '- - -',
+  '===',
+  '-',
+  '+',
+  '|',
+  '| ',
+  '<div>',
+  '<div ',
+  '<!--',
+  '-->',
+  '<script>',
+  '</script>',
+  '<pre>',
+  '<?',
+  '?>',
+  '<span title="',
+  '[a]: x ',
+  '[a]: <x> "',
+  '- - ',
+  '      ',
 ];
 const ATOMS = [
-  '`', '``', '```', '[', ']', '![', '\\', '\\`', '<', '>', '|', '"', "'", '(', ')', 'a', 'b', ' ', 'x`y', '<http://h/[>', '<a@b.c>',
-  '[x](a`b)', '[x](<a`b> "t")', '[x]( a`b "`" )', '<span title="`">', '</b>', '[x](a "`")', '|---|---|', '|:-|-:|', '| a | b |', ' | ',
-  '<!-- ` -->', '<!--', '-->', '<?php ` ?>', '&#96;', '\n', '\n\n', '    ', '[r2]', '![r2]',
+  '`',
+  '``',
+  '```',
+  '[',
+  ']',
+  '![',
+  '\\',
+  '\\`',
+  '<',
+  '>',
+  '|',
+  '"',
+  "'",
+  '(',
+  ')',
+  'a',
+  'b',
+  ' ',
+  'x`y',
+  '<http://h/[>',
+  '<a@b.c>',
+  '[x](a`b)',
+  '[x](<a`b> "t")',
+  '[x]( a`b "`" )',
+  '<span title="`">',
+  '</b>',
+  '[x](a "`")',
+  '|---|---|',
+  '|:-|-:|',
+  '| a | b |',
+  ' | ',
+  '<!-- ` -->',
+  '<!--',
+  '-->',
+  '<?php ` ?>',
+  '&#96;',
+  '\n',
+  '\n\n',
+  '    ',
+  '[r2]',
+  '![r2]',
 ];
 const IMAGES = [
-  '![a][r]', '![r][]', '![r]', '![a `]` b][r]', '[ ![a `]` b][r]', '![a [b] c][r]', 'x ![a `]` b][r]', '![a `]` b][r] `', '`x ![a `]` b][r]',
-  '[ ![a <b@c.d> ]` b][r]', '![a [x](u`v) b][r]', '[x]( ![a `]` b][r]', '![a `]` b ][ r ]', '![a `]` b][R]',
+  '![a][r]',
+  '![r][]',
+  '![r]',
+  '![a `]` b][r]',
+  '[ ![a `]` b][r]',
+  '![a [b] c][r]',
+  'x ![a `]` b][r]',
+  '![a `]` b][r] `',
+  '`x ![a `]` b][r]',
+  '[ ![a <b@c.d> ]` b][r]',
+  '![a [x](u`v) b][r]',
+  '[x]( ![a `]` b][r]',
+  '![a `]` b ][ r ]',
+  '![a `]` b][R]',
 ];
 const DEFINITIONS = [
-  '[r]: https://e.x/p.png?data=Q', '[r]: https://e.x/p.png?data=Q "`"', '[r]: https://e.x/p.png?data=Q (`)', '[r]:\n  https://e.x/p.png?data=Q',
-  '[r]: https://e.x/p.png?data=Q\n  "t`"', '> [r]: https://e.x/p.png?data=Q', '- [r]: https://e.x/p.png?data=Q', '   [r]: https://e.x/p.png?data=Q',
-  '    [r]: https://e.x/p.png?data=Q', '[r]: <https://e.x/p.png?data=Q>', '[R]: https://e.x/p.png?data=Q',
+  '[r]: https://e.x/p.png?data=Q',
+  '[r]: https://e.x/p.png?data=Q "`"',
+  '[r]: https://e.x/p.png?data=Q (`)',
+  '[r]:\n  https://e.x/p.png?data=Q',
+  '[r]: https://e.x/p.png?data=Q\n  "t`"',
+  '> [r]: https://e.x/p.png?data=Q',
+  '- [r]: https://e.x/p.png?data=Q',
+  '   [r]: https://e.x/p.png?data=Q',
+  '    [r]: https://e.x/p.png?data=Q',
+  '[r]: <https://e.x/p.png?data=Q>',
+  '[R]: https://e.x/p.png?data=Q',
 ];
 
 function generate(rand: () => number): string {
@@ -60,9 +164,27 @@ function generate(rand: () => number): string {
   return lines.join(rand() < 0.1 ? '\r\n' : '\n') + '\n';
 }
 
-function drawsExfilImage(doc: string, md: { parse(src: string, env: object): Array<{ type: string; attrGet(name: string): string | null; children?: unknown[] | null }> }): boolean {
-  const walk = (tokens: Array<{ type: string; attrGet(name: string): string | null; children?: unknown[] | null }>): boolean =>
-    tokens.some((t) => (t.type === 'image' && /[?&]data=Q/.test(t.attrGet('src') ?? '')) || (Array.isArray(t.children) && walk(t.children as typeof tokens)));
+function drawsExfilImage(
+  doc: string,
+  md: {
+    parse(
+      src: string,
+      env: object,
+    ): Array<{ type: string; attrGet(name: string): string | null; children?: unknown[] | null }>;
+  },
+): boolean {
+  const walk = (
+    tokens: Array<{
+      type: string;
+      attrGet(name: string): string | null;
+      children?: unknown[] | null;
+    }>,
+  ): boolean =>
+    tokens.some(
+      (t) =>
+        (t.type === 'image' && /[?&]data=Q/.test(t.attrGet('src') ?? '')) ||
+        (Array.isArray(t.children) && walk(t.children as typeof tokens)),
+    );
   return walk(md.parse(doc, {}));
 }
 

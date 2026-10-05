@@ -22,6 +22,7 @@ next_up:
   - 37
 blockers: []
 ---
+
 # Detection Hardening
 
 Near-term core detection + SDK improvements: risk roll-up, multi-turn scanning, long-context dilution, pre-execution action gate
@@ -30,15 +31,14 @@ Reprioritized 2026-07-07 (down from P0, alongside a value pass across all tracks
 
 ## Issues
 
-| # | Title | Assignee | Status |
-|---|---|---|---|
-| #34 | Add computed riskLevel roll-up to ScanResult | — | ✅ Shipped |
-| #35 | ML-based semantic accumulation detection across turns (mt-mem/mt-ctx blind spots) — structural half shipped via #50/#53, ML-windowing half shipped via #62 (2026-07-09) | — | ✅ Shipped |
-| #37 | Long-context attention-dilution detection | — | 🔲 Open |
-| #57 | feat: allowlist-based pre-execution action gate (`checkAction`) | — | ✅ Shipped |
-| #68 | feat(action-gate): policy ergonomics and hardening | — | 🔲 Open |
-| #69 | test(eval): cover zero/thin-coverage trap types; extract multi-turn gate thresholds | — | 🟡 Item 1 shipped (steganographic-payload); items 2-3 open |
-
+| #   | Title                                                                                                                                                                   | Assignee | Status                                                     |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------- |
+| #34 | Add computed riskLevel roll-up to ScanResult                                                                                                                            | —        | ✅ Shipped                                                 |
+| #35 | ML-based semantic accumulation detection across turns (mt-mem/mt-ctx blind spots) — structural half shipped via #50/#53, ML-windowing half shipped via #62 (2026-07-09) | —        | ✅ Shipped                                                 |
+| #37 | Long-context attention-dilution detection                                                                                                                               | —        | 🔲 Open                                                    |
+| #57 | feat: allowlist-based pre-execution action gate (`checkAction`)                                                                                                         | —        | ✅ Shipped                                                 |
+| #68 | feat(action-gate): policy ergonomics and hardening                                                                                                                      | —        | 🔲 Open                                                    |
+| #69 | test(eval): cover zero/thin-coverage trap types; extract multi-turn gate thresholds                                                                                     | —        | 🟡 Item 1 shipped (steganographic-payload); items 2-3 open |
 
 ## Session log
 

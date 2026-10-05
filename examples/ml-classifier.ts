@@ -38,7 +38,9 @@ async function main() {
   if (!result.clean) {
     console.log('\n  Threats:');
     for (const threat of result.threats) {
-      console.log(`    [${threat.source}] ${threat.type} — ${threat.severity} (${(threat.confidence * 100).toFixed(1)}%)`);
+      console.log(
+        `    [${threat.source}] ${threat.type} — ${threat.severity} (${(threat.confidence * 100).toFixed(1)}%)`,
+      );
     }
   }
 
@@ -49,7 +51,7 @@ async function main() {
   ];
 
   const chunkResults = await armor.scanRAGChunks(chunks);
-  const safe = chunkResults.filter(r => r.clean).length;
+  const safe = chunkResults.filter((r) => r.clean).length;
   console.log(`\nRAG chunks: ${safe}/${chunks.length} safe`);
 }
 

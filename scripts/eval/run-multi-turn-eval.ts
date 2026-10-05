@@ -22,11 +22,7 @@
  */
 
 import { AgentArmor } from '../../src/agent-armor';
-import {
-  MULTI_TURN_SAMPLES,
-  type ExpectedToday,
-  type MultiTurnSample,
-} from './multi-turn-samples';
+import { MULTI_TURN_SAMPLES, type ExpectedToday, type MultiTurnSample } from './multi-turn-samples';
 import type { Strictness } from '../../src/types';
 
 type AdversarialClass = 'per-turn' | 'cumulative' | 'blind-spot';
@@ -60,14 +56,9 @@ const SEVERITY: Record<ExpectedToday, number> = {
 
 /** Detection counts as a "hit" for an adversarial sample only on an expected
  * trap type; for a benign sample, ANY threat is a (false) hit. */
-function threatsHit(
-  threats: { type: string }[],
-  sample: MultiTurnSample
-): boolean {
+function threatsHit(threats: { type: string }[], sample: MultiTurnSample): boolean {
   if (sample.category === 'benign') return threats.length > 0;
-  return threats.some((t) =>
-    (sample.expected as string[]).includes(t.type)
-  );
+  return threats.some((t) => (sample.expected as string[]).includes(t.type));
 }
 
 function classify(strictness: Strictness): SampleOutcome[] {
@@ -76,9 +67,7 @@ function classify(strictness: Strictness): SampleOutcome[] {
     // Both views come from the real product: scanSession's per-turn results
     // (fast view) and its cross-turn window threats (stateful view, Phase 1).
     const session = armor.scanSession(sample.turns);
-    const perTurnHit = session.turns.some((turn) =>
-      threatsHit(turn.threats, sample)
-    );
+    const perTurnHit = session.turns.some((turn) => threatsHit(turn.threats, sample));
     const cumulativeHit = threatsHit(session.crossTurnThreats, sample);
 
     if (sample.category === 'benign') {
@@ -114,7 +103,10 @@ function classify(strictness: Strictness): SampleOutcome[] {
   });
 }
 
-function printReport(strictness: Strictness, outcomes: SampleOutcome[]): {
+function printReport(
+  strictness: Strictness,
+  outcomes: SampleOutcome[],
+): {
   regressions: SampleOutcome[];
   improvements: SampleOutcome[];
 } {
@@ -138,17 +130,13 @@ function printReport(strictness: Strictness, outcomes: SampleOutcome[]): {
     if (o.regressed) drift = `  REGRESSED (predicted ${o.sample.expectedToday})`;
     else if (o.improved) drift = `  improved (predicted ${o.sample.expectedToday})`;
     console.log(
-      `  ${o.sample.id.padEnd(14)} ${o.actual.padEnd(11)} ${o.sample.description}${drift}`
+      `  ${o.sample.id.padEnd(14)} ${o.actual.padEnd(11)} ${o.sample.description}${drift}`,
     );
   }
 
   console.log('\n  ── Benign conversations ──');
   for (const o of benign) {
-    const view = o.perTurnHit
-      ? 'per-turn FP'
-      : o.cumulativeHit
-        ? 'cumulative FP'
-        : 'clean';
+    const view = o.perTurnHit ? 'per-turn FP' : o.cumulativeHit ? 'cumulative FP' : 'clean';
     console.log(`  ${o.sample.id.padEnd(14)} ${view.padEnd(13)} ${o.sample.description}`);
   }
 
@@ -162,7 +150,7 @@ function printReport(strictness: Strictness, outcomes: SampleOutcome[]): {
   console.log(`  Blind-spot (#35 target):              ${counts['blind-spot']}/${total}`);
   console.log(
     `  Fast-test blind spot (cumulative+blind): ${fastBlindSpot}/${total} ` +
-      `— invisible to per-turn scanning`
+      `— invisible to per-turn scanning`,
   );
 
   return { regressions, improvements };
@@ -190,7 +178,7 @@ if (allImprovements.length > 0) {
   console.log('  NOTE: detection improved beyond the committed prediction for:');
   for (const o of allImprovements) {
     console.log(
-      `    ${o.sample.id}: now ${o.actual} (predicted ${o.sample.expectedToday}) — update expectedToday to lock it in`
+      `    ${o.sample.id}: now ${o.actual} (predicted ${o.sample.expectedToday}) — update expectedToday to lock it in`,
     );
   }
   console.log('');

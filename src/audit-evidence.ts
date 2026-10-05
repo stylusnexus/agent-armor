@@ -34,7 +34,7 @@ function collectDetectorVersions(records: AuditRecord[]): string[] {
  */
 export function buildEvidencePackage(
   records: AuditRecord[],
-  period: { periodStart: string; periodEnd: string }
+  period: { periodStart: string; periodEnd: string },
 ): EvidencePackage {
   return {
     schemaVersion: 'audit-evidence-package.v1',

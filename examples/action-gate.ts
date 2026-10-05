@@ -70,5 +70,5 @@ for (const req of attempts) {
 // Empty allowlist denies everything (fail closed), not allow-everything.
 const locked = AgentArmor.regexOnly({ allowedActions: [] });
 console.log(
-  `\nEmpty allowlist, http.get admissible? ${locked.checkAction({ tool: 'http.get', args: { url: 'https://api.internal.example.com' } }).admissible}`
+  `\nEmpty allowlist, http.get admissible? ${locked.checkAction({ tool: 'http.get', args: { url: 'https://api.internal.example.com' } }).admissible}`,
 );

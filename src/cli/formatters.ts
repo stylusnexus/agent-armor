@@ -17,11 +17,13 @@ export function formatText(results: FileScanResult[]): string {
       continue;
     }
     blocked++;
-    lines.push(`[BLOCKED] ${file} - ${result.threats.length} threat(s), risk: ${result.riskLevel}:`);
+    lines.push(
+      `[BLOCKED] ${file} - ${result.threats.length} threat(s), risk: ${result.riskLevel}:`,
+    );
     for (const threat of result.threats) {
       lines.push(
         `    [${threat.severity.toUpperCase()}] ${threat.type} (${threat.detectorId}) ` +
-          `${(threat.confidence * 100).toFixed(0)}% - "${threat.evidence.slice(0, 70)}"`
+          `${(threat.confidence * 100).toFixed(0)}% - "${threat.evidence.slice(0, 70)}"`,
       );
     }
   }
@@ -85,7 +87,8 @@ export function formatSarif(results: FileScanResult[]): string {
   }));
 
   const sarif = {
-    $schema: 'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json',
+    $schema:
+      'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json',
     version: '2.1.0',
     runs: [
       {

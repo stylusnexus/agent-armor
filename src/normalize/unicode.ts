@@ -27,60 +27,60 @@
  */
 const CONFUSABLES: Record<string, string> = {
   // ── Cyrillic (lowercase) ──
-  'а': 'a', // а
-  'е': 'e', // е
-  'о': 'o', // о
-  'р': 'p', // р
-  'с': 'c', // с
-  'у': 'y', // у
-  'х': 'x', // х
-  'і': 'i', // і
-  'ј': 'j', // ј
-  'ѕ': 's', // ѕ
-  'һ': 'h', // һ
-  'ԁ': 'd', // ԁ
-  'ԛ': 'q', // ԛ
-  'ɡ': 'g', // ɡ (Latin small script g)
+  а: 'a', // а
+  е: 'e', // е
+  о: 'o', // о
+  р: 'p', // р
+  с: 'c', // с
+  у: 'y', // у
+  х: 'x', // х
+  і: 'i', // і
+  ј: 'j', // ј
+  ѕ: 's', // ѕ
+  һ: 'h', // һ
+  ԁ: 'd', // ԁ
+  ԛ: 'q', // ԛ
+  ɡ: 'g', // ɡ (Latin small script g)
   // ── Cyrillic (uppercase) ──
-  'А': 'A', // А
-  'В': 'B', // В
-  'Е': 'E', // Е
-  'К': 'K', // К
-  'М': 'M', // М
-  'Н': 'H', // Н
-  'О': 'O', // О
-  'Р': 'P', // Р
-  'С': 'C', // С
-  'Т': 'T', // Т
-  'У': 'Y', // У
-  'Х': 'X', // Х
-  'І': 'I', // І
-  'Ѕ': 'S', // Ѕ
-  'Ј': 'J', // Ј
+  А: 'A', // А
+  В: 'B', // В
+  Е: 'E', // Е
+  К: 'K', // К
+  М: 'M', // М
+  Н: 'H', // Н
+  О: 'O', // О
+  Р: 'P', // Р
+  С: 'C', // С
+  Т: 'T', // Т
+  У: 'Y', // У
+  Х: 'X', // Х
+  І: 'I', // І
+  Ѕ: 'S', // Ѕ
+  Ј: 'J', // Ј
   // ── Greek (lowercase) ──
-  'α': 'a', // α
-  'ο': 'o', // ο
-  'ε': 'e', // ε
-  'ρ': 'p', // ρ
-  'ν': 'v', // ν
-  'ι': 'i', // ι
-  'κ': 'k', // κ
-  'χ': 'x', // χ
+  α: 'a', // α
+  ο: 'o', // ο
+  ε: 'e', // ε
+  ρ: 'p', // ρ
+  ν: 'v', // ν
+  ι: 'i', // ι
+  κ: 'k', // κ
+  χ: 'x', // χ
   // ── Greek (uppercase) ──
-  'Α': 'A', // Α
-  'Β': 'B', // Β
-  'Ε': 'E', // Ε
-  'Ζ': 'Z', // Ζ
-  'Η': 'H', // Η
-  'Ι': 'I', // Ι
-  'Κ': 'K', // Κ
-  'Μ': 'M', // Μ
-  'Ν': 'N', // Ν
-  'Ο': 'O', // Ο
-  'Ρ': 'P', // Ρ
-  'Τ': 'T', // Τ
-  'Υ': 'Y', // Υ
-  'Χ': 'X', // Χ
+  Α: 'A', // Α
+  Β: 'B', // Β
+  Ε: 'E', // Ε
+  Ζ: 'Z', // Ζ
+  Η: 'H', // Η
+  Ι: 'I', // Ι
+  Κ: 'K', // Κ
+  Μ: 'M', // Μ
+  Ν: 'N', // Ν
+  Ο: 'O', // Ο
+  Ρ: 'P', // Ρ
+  Τ: 'T', // Τ
+  Υ: 'Y', // Υ
+  Χ: 'X', // Χ
 };
 
 /** Codepoints stripped entirely: zero-width, bidi controls, joiners, VS, soft hyphen. */
@@ -201,7 +201,7 @@ export function normalizeForScan(content: string): NormalizedText {
 export function mapRangeToOriginal(
   norm: NormalizedText,
   offset: number,
-  length: number
+  length: number,
 ): { offset: number; length: number } {
   if (norm.map.length === 0) {
     return { offset: 0, length: 0 };

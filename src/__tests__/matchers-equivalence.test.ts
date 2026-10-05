@@ -26,11 +26,47 @@ function rng(seed: number): () => number {
 }
 
 const COMMON_ATOMS = [
-  ' ', '  ', '\t', '\n', '\r', ' ', ' ', '"', "'", '`', '<', '>', '/', '</', '=', ':', ';',
-  '(', ')', '[', ']', '{', '}', '#', '!', '.', ',', '-', '_', '0', '1', 'a', 'x', 'A', 'é',
+  ' ',
+  '  ',
+  '\t',
+  '\n',
+  '\r',
+  ' ',
+  ' ',
+  '"',
+  "'",
+  '`',
+  '<',
+  '>',
+  '/',
+  '</',
+  '=',
+  ':',
+  ';',
+  '(',
+  ')',
+  '[',
+  ']',
+  '{',
+  '}',
+  '#',
+  '!',
+  '.',
+  ',',
+  '-',
+  '_',
+  '0',
+  '1',
+  'a',
+  'x',
+  'A',
+  'é',
 ];
 
-const EDGE_LENGTHS = [0, 1, 2, 9, 10, 11, 19, 20, 21, 39, 40, 41, 49, 50, 51, 59, 60, 61, 79, 80, 81, 100, 499, 500, 501, 502, 1000, 1001];
+const EDGE_LENGTHS = [
+  0, 1, 2, 9, 10, 11, 19, 20, 21, 39, 40, 41, 49, 50, 51, 59, 60, 61, 79, 80, 81, 100, 499, 500,
+  501, 502, 1000, 1001,
+];
 const FILLERS = ['a', 'x', ' ', '\n', 'A', '-', '_', '0', '/', '='];
 
 const SAMPLE_WINDOWS = ALL_SAMPLES.flatMap((s) => {
@@ -58,14 +94,20 @@ describe('matchers are equivalent to the regexes they replace (#175)', () => {
         .map((e) => `${e.flags}\u0000${e.extractGroup ?? 0}\u0000${e.regex}`),
     );
     for (const m of MATCHERS) {
-      expect(shipped.has(`${m.flags}\u0000${m.extractGroup}\u0000${m.regex}`), `no shipped pattern has this regex: ${m.regex}`).toBe(true);
+      expect(
+        shipped.has(`${m.flags}\u0000${m.extractGroup}\u0000${m.regex}`),
+        `no shipped pattern has this regex: ${m.regex}`,
+      ).toBe(true);
     }
   });
 
   for (const m of MATCHERS) {
     const entry = Object.values(DEFAULT_PATTERNS.detectors)
       .flat()
-      .find((e) => e.regex === m.regex && e.flags === m.flags && (e.extractGroup ?? 0) === m.extractGroup);
+      .find(
+        (e) =>
+          e.regex === m.regex && e.flags === m.flags && (e.extractGroup ?? 0) === m.extractGroup,
+      );
     const label = entry?.id ?? m.regex.slice(0, 40);
     const group = m.extractGroup;
 
@@ -89,7 +131,8 @@ describe('matchers are equivalent to the regexes they replace (#175)', () => {
           for (let k = 0; k < parts; k++) {
             input += m.fuzzAtoms[Math.floor(rand() * m.fuzzAtoms.length)];
             if (rand() < 0.6) {
-              const len = EDGE_LENGTHS[Math.floor(rand() * EDGE_LENGTHS.length)] + Math.floor(rand() * 3) - 1;
+              const len =
+                EDGE_LENGTHS[Math.floor(rand() * EDGE_LENGTHS.length)] + Math.floor(rand() * 3) - 1;
               input += FILLERS[Math.floor(rand() * FILLERS.length)].repeat(Math.max(0, len));
             }
           }
@@ -101,8 +144,15 @@ describe('matchers are equivalent to the regexes they replace (#175)', () => {
           }
         }
         const expected = reference(m.regex, m.flags, group, input);
-        const actual = m.match(input).map((h) => ({ index: h.index, text: h.text, extracted: group ? h.extracted : undefined }));
-        const expectedNorm = expected.map((h) => ({ ...h, extracted: group ? h.extracted : undefined }));
+        const actual = m.match(input).map((h) => ({
+          index: h.index,
+          text: h.text,
+          extracted: group ? h.extracted : undefined,
+        }));
+        const expectedNorm = expected.map((h) => ({
+          ...h,
+          extracted: group ? h.extracted : undefined,
+        }));
         if (JSON.stringify(actual) !== JSON.stringify(expectedNorm)) {
           expect.fail(
             `seed ${SEED} case ${i}\ninput: ${JSON.stringify(input)}\nexpected: ${JSON.stringify(expectedNorm)}\nactual:   ${JSON.stringify(actual)}`,

@@ -20,6 +20,7 @@ next_up:
   - 8
 blockers: []
 ---
+
 # Systemic Traps (P2)
 
 DeepMind P2 systemic taxonomy detectors: congestion, cascade, collusion, compositional fragments, sybil
@@ -28,14 +29,13 @@ Confirmed P2 on 2026-07-07's value pass: this cluster is correctly deferred unti
 
 ## Issues
 
-| # | Title | Assignee | Status |
-|---|---|---|---|
-| #7 | P2: Congestion Trap Detection | — | 🔲 Open |
-| #8 | P2: Interdependence Cascade Detection | — | 🔲 Open |
-| #9 | Collusion-signal detection — coordination beacons in scanned content (rescoped 2026-07-07 from runtime pricing/bidding analysis, which was out of architectural scope) | — | 🔲 Open |
-| #10 | P2: Compositional Fragment Trap Detection | — | 🔲 Open |
-| #11 | P2: Sybil Attack Detection | — | 🔲 Open |
-
+| #   | Title                                                                                                                                                                  | Assignee | Status  |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- |
+| #7  | P2: Congestion Trap Detection                                                                                                                                          | —        | 🔲 Open |
+| #8  | P2: Interdependence Cascade Detection                                                                                                                                  | —        | 🔲 Open |
+| #9  | Collusion-signal detection — coordination beacons in scanned content (rescoped 2026-07-07 from runtime pricing/bidding analysis, which was out of architectural scope) | —        | 🔲 Open |
+| #10 | P2: Compositional Fragment Trap Detection                                                                                                                              | —        | 🔲 Open |
+| #11 | P2: Sybil Attack Detection                                                                                                                                             | —        | 🔲 Open |
 
 ## Session log
 

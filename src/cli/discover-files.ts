@@ -9,7 +9,7 @@ const DEFAULT_EXCLUDE_DIRS = new Set(['node_modules', '.git', 'dist', 'coverage'
 
 function matchesInclude(fileName: string, includeExtensions: string[]): boolean {
   return includeExtensions.some(
-    (ext) => fileName === ext || fileName.toLowerCase().endsWith(ext.toLowerCase())
+    (ext) => fileName === ext || fileName.toLowerCase().endsWith(ext.toLowerCase()),
   );
 }
 

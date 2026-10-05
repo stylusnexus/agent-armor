@@ -28,9 +28,7 @@ describe('discoverFiles', () => {
     mkdirSync(path.join(dir, 'sub'));
     writeFileSync(path.join(dir, 'sub', 'c.txt'), 'x');
     const result = discoverFiles([dir]).sort();
-    expect(result).toEqual(
-      [path.resolve(dir, 'a.md'), path.resolve(dir, 'sub', 'c.txt')].sort()
-    );
+    expect(result).toEqual([path.resolve(dir, 'a.md'), path.resolve(dir, 'sub', 'c.txt')].sort());
   });
 
   it('skips node_modules, .git, dist, coverage when recursing', () => {

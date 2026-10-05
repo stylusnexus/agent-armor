@@ -61,7 +61,9 @@ async function main(): Promise<void> {
   const deep = process.argv.includes('--deep');
 
   console.log(`Checking ${HF_REPO_ID} against packages/ml constants`);
-  console.log(`Mode: ${deep ? 'deep (downloads and hashes real bytes)' : 'fast (LFS oid metadata)'}\n`);
+  console.log(
+    `Mode: ${deep ? 'deep (downloads and hashes real bytes)' : 'fast (LFS oid metadata)'}\n`,
+  );
 
   const tree = await fetchJson<HfTreeEntry[]>(TREE_API, 'tree API');
   const byPath = new Map(tree.map((entry) => [entry.path, entry]));
@@ -74,12 +76,14 @@ async function main(): Promise<void> {
   try {
     const labelMap = await fetchJson<Record<string, string>>(
       `${RESOLVE_BASE}/label_map.json`,
-      'label_map.json'
+      'label_map.json',
     );
     labelReport = checkLabelMap(labelMap);
   } catch (err) {
     labelReport = {
-      failures: [`could not read label_map.json: ${err instanceof Error ? err.message : String(err)}`],
+      failures: [
+        `could not read label_map.json: ${err instanceof Error ? err.message : String(err)}`,
+      ],
       notes: [],
     };
   }
@@ -88,7 +92,7 @@ async function main(): Promise<void> {
     checkRequiredFiles(byPath),
     checkModelChecksum(byPath, MODEL_CHECKSUM, actualDigest, { deep }),
     labelReport,
-    checkTokenizer(byPath)
+    checkTokenizer(byPath),
   );
 
   for (const note of notes) console.log(`  ok   ${note}`);
@@ -99,7 +103,7 @@ async function main(): Promise<void> {
     console.error(
       `\nIf a retrain intentionally changed the hosted model, update MODEL_CHECKSUM ` +
         `(and MODEL_VERSION, if the label space or tokenizer changed) in ` +
-        `packages/ml/src/constants.ts, then re-run.`
+        `packages/ml/src/constants.ts, then re-run.`,
     );
     process.exit(1);
   }
@@ -111,7 +115,7 @@ main().catch((err) => {
   // A network or API failure is not an integrity failure, but it must not pass
   // silently either — unverifiable is still a state we should not publish on.
   console.error(
-    `\nERROR — integrity check could not complete: ${err instanceof Error ? err.message : String(err)}`
+    `\nERROR — integrity check could not complete: ${err instanceof Error ? err.message : String(err)}`,
   );
   process.exit(1);
 });

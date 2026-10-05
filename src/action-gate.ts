@@ -7,8 +7,8 @@
  * closed: an empty (or absent) allowlist denies everything.
  */
 
-import type { ActionRequest, ActionRule, ActionVerdict } from "./types";
-import { matchAnyGlob } from "./glob";
+import type { ActionRequest, ActionRule, ActionVerdict } from './types';
+import { matchAnyGlob } from './glob';
 
 /**
  * Thrown by integrators when a request is inadmissible. Provided for ergonomics
@@ -16,20 +16,20 @@ import { matchAnyGlob } from "./glob";
  */
 export class ActionBlockedError extends Error {
   constructor(reason?: string) {
-    super(reason ?? "Action blocked by Agent Armor action gate");
-    this.name = "ActionBlockedError";
+    super(reason ?? 'Action blocked by Agent Armor action gate');
+    this.name = 'ActionBlockedError';
   }
 }
 
 /** Normalize a host for comparison: lowercase, drop a single trailing dot
  * (FQDN form `api.example.com.` and `api.example.com` are the same target). */
 function normalizeHost(host: string): string {
-  return host.toLowerCase().replace(/\.$/, "");
+  return host.toLowerCase().replace(/\.$/, '');
 }
 
 /** Host implied by `args.url` (the field the tool actually fetches), or null. */
 function hostFromUrl(args: Record<string, unknown>): string | null {
-  if (typeof args.url !== "string") return null;
+  if (typeof args.url !== 'string') return null;
   try {
     return normalizeHost(new URL(args.url).hostname);
   } catch {
@@ -39,7 +39,7 @@ function hostFromUrl(args: Record<string, unknown>): string | null {
 
 /** Host explicitly declared in `args.host`, or null. */
 function hostFromArg(args: Record<string, unknown>): string | null {
-  if (typeof args.host === "string" && args.host.length > 0) {
+  if (typeof args.host === 'string' && args.host.length > 0) {
     return normalizeHost(args.host);
   }
   return null;
@@ -50,9 +50,9 @@ function hostFromArg(args: Record<string, unknown>): string | null {
 function hostAllowed(host: string, allowed: string[]): boolean {
   return allowed.some((entry) => {
     const e = normalizeHost(entry);
-    if (e.startsWith("*.")) {
+    if (e.startsWith('*.')) {
       const apex = e.slice(2); // 'example.com'
-      return host === apex || host.endsWith("." + apex);
+      return host === apex || host.endsWith('.' + apex);
     }
     return host === e;
   });
@@ -76,20 +76,20 @@ function isAbsolutePath(path: string): boolean {
  * Callers are expected to pass already-decoded, normalized paths.
  */
 function pathPolicyViolation(path: string): string | null {
-  if (path.includes("%")) {
-    return "contains percent-encoding; pass an already-decoded path";
+  if (path.includes('%')) {
+    return 'contains percent-encoding; pass an already-decoded path';
   }
   if (/[^\x20-\x7e]/.test(path)) {
-    return "contains non-ASCII characters";
+    return 'contains non-ASCII characters';
   }
-  if (path.startsWith("~")) {
+  if (path.startsWith('~')) {
     return "starts with '~'; home-directory expansion cannot be confined";
   }
   if (/^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(path)) {
-    return "contains a URL/stream scheme; the gate confines filesystem paths, not wrappers";
+    return 'contains a URL/stream scheme; the gate confines filesystem paths, not wrappers';
   }
   if (isAbsolutePath(path)) {
-    return "is absolute; the gate has no trusted base to confine it against";
+    return 'is absolute; the gate has no trusted base to confine it against';
   }
   if (path.split(/[\\/]/).some((seg) => /^\.{2,}$/.test(seg))) {
     return "contains a parent-directory ('..') segment; traversal is not permitted";
@@ -100,16 +100,16 @@ function pathPolicyViolation(path: string): string | null {
 /** True if the request args signal a write/mutating operation. Known-signal
  * check (not exhaustive): `mode`, `write`, `readOnly`, and HTTP `method`. */
 function signalsWrite(args: Record<string, unknown>): boolean {
-  const mode = typeof args.mode === "string" ? args.mode.toLowerCase() : "";
-  if (mode === "write" || mode === "read-write" || mode === "readwrite") {
+  const mode = typeof args.mode === 'string' ? args.mode.toLowerCase() : '';
+  if (mode === 'write' || mode === 'read-write' || mode === 'readwrite') {
     return true;
   }
   if (args.write === true) return true;
   if (args.readOnly === false || args.readonly === false) return true;
   // Any non-safe HTTP method present implies a write.
-  if (typeof args.method === "string") {
+  if (typeof args.method === 'string') {
     const m = args.method.toUpperCase();
-    if (m !== "GET" && m !== "HEAD" && m !== "OPTIONS") return true;
+    if (m !== 'GET' && m !== 'HEAD' && m !== 'OPTIONS') return true;
   }
   return false;
 }
@@ -120,7 +120,7 @@ function signalsWrite(args: Record<string, unknown>): boolean {
  */
 function ruleAdmits(
   rule: ActionRule,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
 ): { ok: true } | { ok: false; reason: string } {
   if (rule.hosts) {
     const urlHost = hostFromUrl(args);
@@ -144,13 +144,13 @@ function ruleAdmits(
     if (!hostAllowed(host, rule.hosts)) {
       return {
         ok: false,
-        reason: `Host "${host}" is not in the allowlist for "${rule.tool}" (allowed: ${rule.hosts.join(", ")}).`,
+        reason: `Host "${host}" is not in the allowlist for "${rule.tool}" (allowed: ${rule.hosts.join(', ')}).`,
       };
     }
   }
 
   if (rule.paths) {
-    const path = typeof args.path === "string" ? args.path : null;
+    const path = typeof args.path === 'string' ? args.path : null;
     if (path === null) {
       return {
         ok: false,
@@ -170,12 +170,12 @@ function ruleAdmits(
     if (!matchAnyGlob(rule.paths, path)) {
       return {
         ok: false,
-        reason: `Path "${path}" is outside the allowed paths for "${rule.tool}" (allowed: ${rule.paths.join(", ")}).`,
+        reason: `Path "${path}" is outside the allowed paths for "${rule.tool}" (allowed: ${rule.paths.join(', ')}).`,
       };
     }
   }
 
-  if (rule.mode === "read-only" && signalsWrite(args)) {
+  if (rule.mode === 'read-only' && signalsWrite(args)) {
     return {
       ok: false,
       reason: `Tool "${rule.tool}" is restricted to read-only; the request signals a write.`,
@@ -193,14 +193,11 @@ function ruleAdmits(
  * shares a tool name, the request is admissible if ANY of them admits it; the
  * reported reason is from the last rule tried.
  */
-export function evaluateAction(
-  req: ActionRequest,
-  rules: ActionRule[]
-): ActionVerdict {
+export function evaluateAction(req: ActionRequest, rules: ActionRule[]): ActionVerdict {
   if (!rules || rules.length === 0) {
     return {
       admissible: false,
-      reason: "No actions are allowlisted; the action gate denies all (fail closed).",
+      reason: 'No actions are allowlisted; the action gate denies all (fail closed).',
     };
   }
 

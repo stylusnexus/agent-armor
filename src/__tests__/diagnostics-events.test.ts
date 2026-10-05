@@ -32,7 +32,9 @@ describe('diagnostics events — backward compatibility (no `on` config)', () =>
     };
     const armor = new AgentArmor({ customDetectors: [throwingDetector] });
     armor.scanSync('anything');
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Detector "throws-always" threw during scan: boom'));
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Detector "throws-always" threw during scan: boom'),
+    );
   });
 });
 
@@ -48,7 +50,7 @@ describe('diagnostics events — on.warn', () => {
       expect.objectContaining({
         message: expect.stringContaining('ML classifier unavailable'),
         context: { detectorId: 'ml-classifier' },
-      })
+      }),
     );
     expect(warnSpy).not.toHaveBeenCalled();
   });
@@ -59,7 +61,7 @@ describe('diagnostics events — on.warn', () => {
     const armor = new AgentArmor({ session: { accumulation: true }, on: { warn: onWarn } });
     armor.scanSession([{ role: 'user', content: 'hello' }]);
     expect(onWarn).toHaveBeenCalledWith(
-      expect.objectContaining({ message: expect.stringContaining('enable the ML classifier') })
+      expect.objectContaining({ message: expect.stringContaining('enable the ML classifier') }),
     );
     expect(warnSpy).not.toHaveBeenCalled();
   });
@@ -85,7 +87,7 @@ describe('diagnostics events — on.error', () => {
         message: expect.stringContaining('threw during scan: boom'),
         error: expect.any(Error),
         context: { detectorId: 'throws-always' },
-      })
+      }),
     );
     expect(warnSpy).not.toHaveBeenCalled();
   });
@@ -104,7 +106,7 @@ describe('diagnostics events — on.error', () => {
     const armor = new AgentArmor({ customDetectors: [throwingDetector], on: { error: onError } });
     await armor.scan('anything');
     expect(onError).toHaveBeenCalledWith(
-      expect.objectContaining({ message: expect.stringContaining('async boom') })
+      expect.objectContaining({ message: expect.stringContaining('async boom') }),
     );
   });
 });
@@ -116,7 +118,10 @@ describe('diagnostics events — on.detectorSkipped', () => {
       contentInjection: { hiddenHTML: false },
       on: { detectorSkipped: onDetectorSkipped },
     });
-    expect(onDetectorSkipped).toHaveBeenCalledWith({ detectorId: 'hidden-html', reason: 'config-disabled' });
+    expect(onDetectorSkipped).toHaveBeenCalledWith({
+      detectorId: 'hidden-html',
+      reason: 'config-disabled',
+    });
   });
 
   it('fires with reason "no-patterns" when the loaded pattern database lacks entries for a detector', () => {
@@ -125,7 +130,7 @@ describe('diagnostics events — on.detectorSkipped', () => {
     onDetectorSkipped.mockClear();
     armor.loadPatterns({ version: 'empty', updatedAt: new Date().toISOString(), detectors: {} });
     expect(onDetectorSkipped).toHaveBeenCalledWith(
-      expect.objectContaining({ reason: 'no-patterns' })
+      expect.objectContaining({ reason: 'no-patterns' }),
     );
   });
 });

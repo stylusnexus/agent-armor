@@ -17,7 +17,14 @@ describe('AgentArmorModelError', () => {
   });
 
   it('supports all error codes', () => {
-    const codes = ['MODEL_NOT_FOUND', 'CHECKSUM_MISMATCH', 'DOWNLOAD_FAILED', 'DOWNLOAD_TIMEOUT', 'DISK_FULL', 'LOCK_TIMEOUT'] as const;
+    const codes = [
+      'MODEL_NOT_FOUND',
+      'CHECKSUM_MISMATCH',
+      'DOWNLOAD_FAILED',
+      'DOWNLOAD_TIMEOUT',
+      'DISK_FULL',
+      'LOCK_TIMEOUT',
+    ] as const;
     for (const code of codes) {
       const err = new AgentArmorModelError(code, `Test ${code}`);
       expect(err.code).toBe(code);

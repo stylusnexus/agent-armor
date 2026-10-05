@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  normalizeForScan,
-  mapRangeToOriginal,
-} from '../normalize/unicode';
+import { normalizeForScan, mapRangeToOriginal } from '../normalize/unicode';
 
 describe('normalizeForScan', () => {
   it('leaves plain ASCII unchanged (fast path, no remap needed)', () => {
@@ -25,9 +22,7 @@ describe('normalizeForScan', () => {
   });
 
   it('folds fullwidth and math alphanumerics via NFKC', () => {
-    expect(normalizeForScan('Ｉｇｎｏｒｅ').normalized).toBe(
-      'Ignore'
-    );
+    expect(normalizeForScan('Ｉｇｎｏｒｅ').normalized).toBe('Ignore');
     // Mathematical bold small a (U+1D41A) -> a
     expect(normalizeForScan('\u{1D41A}').normalized).toBe('a');
   });

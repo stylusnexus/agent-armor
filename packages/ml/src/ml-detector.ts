@@ -63,7 +63,7 @@ const LABEL_TO_CATEGORY: Record<string, string> = {
   'biased-framing': 'semantic-manipulation',
   'oversight-evasion': 'semantic-manipulation',
   'persona-hyperstition': 'semantic-manipulation',
-  'benign': 'content-injection',
+  benign: 'content-injection',
 };
 
 /**
@@ -95,7 +95,7 @@ export class MLDetector implements Detector {
 
   /** Loads the ONNX session and tokenizer from resolved {@link ModelArtifacts}. */
   static async create(artifacts: ModelArtifacts): Promise<MLDetector> {
-    const ort = await import('onnxruntime-node') as unknown as OrtModule;
+    const ort = (await import('onnxruntime-node')) as unknown as OrtModule;
     const session = await ort.InferenceSession.create(artifacts.modelPath);
     const tokenizer = await Tokenizer.fromFile(artifacts.tokenizerPath);
     return new MLDetector(session, tokenizer, ort);
@@ -132,7 +132,8 @@ export class MLDetector implements Detector {
         threats.push({
           category: LABEL_TO_CATEGORY[label] ?? 'content-injection',
           type: label,
-          severity: prob >= 0.9 ? 'critical' : prob >= 0.7 ? 'high' : prob >= 0.5 ? 'medium' : 'low',
+          severity:
+            prob >= 0.9 ? 'critical' : prob >= 0.7 ? 'high' : prob >= 0.5 ? 'medium' : 'low',
           confidence: prob,
           description: `ML classifier detected ${label} (confidence: ${(prob * 100).toFixed(1)}%)`,
           evidence: content.slice(0, 200),

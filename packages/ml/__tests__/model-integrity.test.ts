@@ -13,7 +13,9 @@ import { LABELS, MODEL_CHECKSUM, MODEL_FILENAME } from '../src/constants';
 const GOOD_DIGEST = 'a'.repeat(64);
 
 /** A tree response with everything healthy, overridable per test. */
-function tree(overrides: Partial<Record<string, HfTreeEntry | null>> = {}): Map<string, HfTreeEntry> {
+function tree(
+  overrides: Partial<Record<string, HfTreeEntry | null>> = {},
+): Map<string, HfTreeEntry> {
   const base: Record<string, HfTreeEntry> = {
     [MODEL_FILENAME]: {
       path: MODEL_FILENAME,
@@ -48,7 +50,7 @@ describe('checkRequiredFiles', () => {
 
   it('fails on a zero-byte file rather than treating presence as sufficient', () => {
     const { failures } = checkRequiredFiles(
-      tree({ 'tokenizer.json': { path: 'tokenizer.json', size: 0 } })
+      tree({ 'tokenizer.json': { path: 'tokenizer.json', size: 0 } }),
     );
     expect(failures[0]).toContain('zero bytes');
   });
@@ -79,7 +81,7 @@ describe('checkModelChecksum', () => {
       tree({ [MODEL_FILENAME]: null }),
       MODEL_CHECKSUM,
       undefined,
-      { deep: false }
+      { deep: false },
     );
     expect(failures[0]).toContain('not found');
   });
@@ -101,7 +103,7 @@ describe('checkModelChecksum', () => {
       tree({ [MODEL_FILENAME]: { path: MODEL_FILENAME, size: 172_313_551 } }),
       MODEL_CHECKSUM,
       undefined,
-      { deep: false }
+      { deep: false },
     );
     expect(failures[0]).toContain('--deep');
   });
@@ -138,7 +140,7 @@ describe('checkLabelMap', () => {
 
   it('reports every mismatched index, not just the first', () => {
     const scrambled = Object.fromEntries(
-      LABELS.map((_, i) => [String(i), LABELS[(i + 1) % LABELS.length]])
+      LABELS.map((_, i) => [String(i), LABELS[(i + 1) % LABELS.length]]),
     );
     const { failures } = checkLabelMap(scrambled);
     expect(failures[0]).toContain(`at ${LABELS.length} index(es)`);
@@ -152,7 +154,7 @@ describe('checkTokenizer', () => {
 
   it('fails on a truncated upload that a presence-only check would allow', () => {
     const { failures } = checkTokenizer(
-      tree({ 'tokenizer.json': { path: 'tokenizer.json', size: MIN_TOKENIZER_BYTES - 1 } })
+      tree({ 'tokenizer.json': { path: 'tokenizer.json', size: MIN_TOKENIZER_BYTES - 1 } }),
     );
     expect(failures[0]).toContain('truncated');
   });
@@ -169,7 +171,7 @@ describe('mergeReports', () => {
     const merged = mergeReports(
       checkRequiredFiles(tree({ 'label_map.json': null })),
       checkModelChecksum(tree(), MODEL_CHECKSUM, GOOD_DIGEST, { deep: false }),
-      checkTokenizer(tree({ 'tokenizer.json': { path: 'tokenizer.json', size: 10 } }))
+      checkTokenizer(tree({ 'tokenizer.json': { path: 'tokenizer.json', size: 10 } })),
     );
     expect(merged.failures).toHaveLength(3);
   });
@@ -179,7 +181,7 @@ describe('mergeReports', () => {
       checkRequiredFiles(tree()),
       checkModelChecksum(tree(), MODEL_CHECKSUM, MODEL_CHECKSUM, { deep: false }),
       checkLabelMap(healthyLabelMap),
-      checkTokenizer(tree())
+      checkTokenizer(tree()),
     );
     expect(merged.failures).toEqual([]);
     expect(merged.notes).toHaveLength(3);

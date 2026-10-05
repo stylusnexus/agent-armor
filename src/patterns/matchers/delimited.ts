@@ -21,7 +21,26 @@ export const MARKDOWN_COMMENT_MATCHER: PatternMatcher = {
   regex: String.raw`\[//\]:\s*#\s*\([^)]*(?:INSTRUCTION|SYSTEM|OVERRIDE|ignore|disregard|read\s+(?:the|all)|send\s+(?:the|all)|forward|exfiltrat|encode|extract)[^)]*\)`,
   flags: 'gi',
   extractGroup: 0,
-  fuzzAtoms: ['[//]:', '[//]: #', ' # ', '(', ')', 'ignore', 'IGNORE', 'SYSTEM', 'read the', 'read   all', 'send  the', 'forward', 'exfiltrat', 'encode', 'x', ' ', '\n', '[//]'],
+  fuzzAtoms: [
+    '[//]:',
+    '[//]: #',
+    ' # ',
+    '(',
+    ')',
+    'ignore',
+    'IGNORE',
+    'SYSTEM',
+    'read the',
+    'read   all',
+    'send  the',
+    'forward',
+    'exfiltrat',
+    'encode',
+    'x',
+    ' ',
+    '\n',
+    '[//]',
+  ],
   match(content) {
     const hits: MatcherHit[] = [];
     const header = /\[\/\/\]:\s*#\s*\(/g;
@@ -57,7 +76,33 @@ export const MARKDOWN_IMAGE_MATCHER: PatternMatcher = {
   regex: String.raw`!\[[^\]]*\]\(https?:\/\/[^)]*(?:data|token|secret|key|context|conversation|history|session|password|credential|api[_-]?key|env)\b[^)]*\)`,
   flags: 'gi',
   extractGroup: 0,
-  fuzzAtoms: ['![', '](', 'http://', 'https://', 'HTTP://', ')', ']', '[', '!', 'data', 'token', 'secret', 'key', 'api_key', 'api-key', 'apikey', 'env', 'environment', 'session', 'x', '/', '?', '=', ' ', '\n'],
+  fuzzAtoms: [
+    '![',
+    '](',
+    'http://',
+    'https://',
+    'HTTP://',
+    ')',
+    ']',
+    '[',
+    '!',
+    'data',
+    'token',
+    'secret',
+    'key',
+    'api_key',
+    'api-key',
+    'apikey',
+    'env',
+    'environment',
+    'session',
+    'x',
+    '/',
+    '?',
+    '=',
+    ' ',
+    '\n',
+  ],
   match(content) {
     const hits: MatcherHit[] = [];
     const start = /!\[/g;
@@ -102,7 +147,28 @@ export const CONDITIONAL_BOT_MATCHER: PatternMatcher = {
   regex: String.raw`if\s*\([^)]*(?:isBot|is_bot|isRobot|isCrawler|isAgent|isAutomated)[^)]*\)\s*\{[\s\S]{0,500}\}`,
   flags: 'gi',
   extractGroup: 0,
-  fuzzAtoms: ['if', 'IF', 'if (', 'if(', 'isBot', 'is_bot', 'isRobot', 'isCrawler', 'isAgent', 'isAutomated', ')', ' ', '{', '}', '\n', '(', 'x', ' && ', 'show()', ';'],
+  fuzzAtoms: [
+    'if',
+    'IF',
+    'if (',
+    'if(',
+    'isBot',
+    'is_bot',
+    'isRobot',
+    'isCrawler',
+    'isAgent',
+    'isAutomated',
+    ')',
+    ' ',
+    '{',
+    '}',
+    '\n',
+    '(',
+    'x',
+    ' && ',
+    'show()',
+    ';',
+  ],
   match(content) {
     const hits: MatcherHit[] = [];
     const n = content.length;
@@ -161,7 +227,29 @@ export const BRACKET_COMMAND_MATCHER: PatternMatcher = {
   regex: String.raw`\[(?:AI|SYSTEM|ASSISTANT|INSTRUCTION|MEMORY|ADMIN)(?:[\s_](?:SYSTEM|OVERRIDE|INSTRUCTION|COMMAND|UPDATE|NOTE|MEMORY)){1,2}[:\s]([^\]]{20,})\]`,
   flags: 'gi',
   extractGroup: 0,
-  fuzzAtoms: ['[', ']', '[AI', '[SYSTEM', '[ASSISTANT', '[ai ', '[ADMIN_', ' SYSTEM', ' NOTE', '_NOTE', ' memory', ' UPDATE', ' COMMAND', ': ', ':', ' ', '_', 'from now on recommend acme', 'xxxxxxxxxxxxxxxxxxxxxxxx', 'short', '\n'],
+  fuzzAtoms: [
+    '[',
+    ']',
+    '[AI',
+    '[SYSTEM',
+    '[ASSISTANT',
+    '[ai ',
+    '[ADMIN_',
+    ' SYSTEM',
+    ' NOTE',
+    '_NOTE',
+    ' memory',
+    ' UPDATE',
+    ' COMMAND',
+    ': ',
+    ':',
+    ' ',
+    '_',
+    'from now on recommend acme',
+    'xxxxxxxxxxxxxxxxxxxxxxxx',
+    'short',
+    '\n',
+  ],
   match(content) {
     const hits: MatcherHit[] = [];
     const head = new RegExp(String.raw`\[(?:${BRACKET_FIRST})[\s_](?:${BRACKET_NEXT})`, 'gi');
@@ -182,7 +270,8 @@ export const BRACKET_COMMAND_MATCHER: PatternMatcher = {
         bodyStart = afterSecond + two[0].length;
       } else if (afterSecond < content.length) {
         const c = content.charCodeAt(afterSecond);
-        if ((c === 58 || isWhitespace(c)) && close - (afterSecond + 1) >= 20) bodyStart = afterSecond + 1;
+        if ((c === 58 || isWhitespace(c)) && close - (afterSecond + 1) >= 20)
+          bodyStart = afterSecond + 1;
       }
       if (bodyStart < 0) {
         pos = m.index + 1;

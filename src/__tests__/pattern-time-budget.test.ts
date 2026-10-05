@@ -23,12 +23,53 @@ const STEPS: Array<{ chars: number; budgetMs: number }> = [
 ];
 
 const FRAGMENTS = [
-  '\n', ' ', '\t', '<', '>', '‪', '‬', '​', '-', '.', 'a', '0', '"', "'", '(', ')',
-  '[', ']', '!', '=', '/', ':', '#', '*', '\\', '<a ', '![', '<!--', '\n\n ', '  \n',
-  '<a style="display:none">', '<p style="opacity:0" >', 'data-x="', '![a](http://x/?data=',
-  'if(isBot){', '[//]: # (ignore ', 'SYSTEM: ', 'DAN ', 'assistant, ', 'note to the ai ',
-  '‪ x ', 'aria-label="', 'alt="',
-  '![a][b] ', 'eval $(echo ', 'echo -n ', 'important message from me ',
+  '\n',
+  ' ',
+  '\t',
+  '<',
+  '>',
+  '‪',
+  '‬',
+  '​',
+  '-',
+  '.',
+  'a',
+  '0',
+  '"',
+  "'",
+  '(',
+  ')',
+  '[',
+  ']',
+  '!',
+  '=',
+  '/',
+  ':',
+  '#',
+  '*',
+  '\\',
+  '<a ',
+  '![',
+  '<!--',
+  '\n\n ',
+  '  \n',
+  '<a style="display:none">',
+  '<p style="opacity:0" >',
+  'data-x="',
+  '![a](http://x/?data=',
+  'if(isBot){',
+  '[//]: # (ignore ',
+  'SYSTEM: ',
+  'DAN ',
+  'assistant, ',
+  'note to the ai ',
+  '‪ x ',
+  'aria-label="',
+  'alt="',
+  '![a][b] ',
+  'eval $(echo ',
+  'echo -n ',
+  'important message from me ',
 ];
 
 const SAMPLE_PREFIXES = ADVERSARIAL_SAMPLES.map((s) =>
@@ -62,7 +103,9 @@ const DEADLINE_MS = 60_000;
 
 function checkPattern(entry: PatternEntry): Promise<string[]> {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, ['--import', 'tsx', TIME_PATTERN], { stdio: ['pipe', 'pipe', 'inherit'] });
+    const child = spawn(process.execPath, ['--import', 'tsx', TIME_PATTERN], {
+      stdio: ['pipe', 'pipe', 'inherit'],
+    });
     let out = '';
     const timer = setTimeout(() => {
       child.kill('SIGKILL');
@@ -83,7 +126,12 @@ function checkPattern(entry: PatternEntry): Promise<string[]> {
     });
     child.stdin.end(
       JSON.stringify({
-        entry: { id: entry.id, regex: entry.regex, flags: entry.flags, extractGroup: entry.extractGroup },
+        entry: {
+          id: entry.id,
+          regex: entry.regex,
+          flags: entry.flags,
+          extractGroup: entry.extractGroup,
+        },
         units: [...new Set([...UNITS, ...ownUnits(entry)])],
         steps: STEPS,
       }),
@@ -92,34 +140,46 @@ function checkPattern(entry: PatternEntry): Promise<string[]> {
 }
 
 describe('shipped patterns stay fast on adversarial input (#175)', () => {
-  it('no pattern exceeds its time budget on any repeated fragment', { timeout: 900_000 }, async () => {
-    const entries = Object.values(DEFAULT_PATTERNS.detectors).flat();
-    const results: string[][] = [];
-    for (let i = 0; i < entries.length; i += 4) {
-      results.push(...(await Promise.all(entries.slice(i, i + 4).map(checkPattern))));
-    }
-    expect(results.flat()).toEqual([]);
-  });
+  it(
+    'no pattern exceeds its time budget on any repeated fragment',
+    { timeout: 900_000 },
+    async () => {
+      const entries = Object.values(DEFAULT_PATTERNS.detectors).flat();
+      const results: string[][] = [];
+      for (let i = 0; i < entries.length; i += 4) {
+        results.push(...(await Promise.all(entries.slice(i, i + 4).map(checkPattern))));
+      }
+      expect(results.flat()).toEqual([]);
+    },
+  );
 
   it.each([
     ['newlines', '\n'],
     ['bidi override characters', '\u202A'],
     ['open angle brackets', '<'],
     ['spaces', ' '],
-  ])('a full scan of 200,000 %s finishes in under a second', async (_name, ch) => {
-    const helper = fileURLToPath(new URL('./fixtures/time-scan.ts', import.meta.url));
-    const ms = await new Promise<number>((resolve) => {
-      const child = spawn(process.execPath, ['--import', 'tsx', helper, JSON.stringify(ch), '200000'], {
-        stdio: ['ignore', 'pipe', 'inherit'],
+  ])(
+    'a full scan of 200,000 %s finishes in under a second',
+    async (_name, ch) => {
+      const helper = fileURLToPath(new URL('./fixtures/time-scan.ts', import.meta.url));
+      const ms = await new Promise<number>((resolve) => {
+        const child = spawn(
+          process.execPath,
+          ['--import', 'tsx', helper, JSON.stringify(ch), '200000'],
+          {
+            stdio: ['ignore', 'pipe', 'inherit'],
+          },
+        );
+        let out = '';
+        const timer = setTimeout(() => child.kill('SIGKILL'), DEADLINE_MS);
+        child.stdout.on('data', (d) => (out += d));
+        child.once('close', () => {
+          clearTimeout(timer);
+          resolve(out === '' ? Infinity : Number(out));
+        });
       });
-      let out = '';
-      const timer = setTimeout(() => child.kill('SIGKILL'), DEADLINE_MS);
-      child.stdout.on('data', (d) => (out += d));
-      child.once('close', () => {
-        clearTimeout(timer);
-        resolve(out === '' ? Infinity : Number(out));
-      });
-    });
-    expect(ms).toBeLessThan(1_000);
-  }, 60_000);
+      expect(ms).toBeLessThan(1_000);
+    },
+    60_000,
+  );
 });

@@ -76,7 +76,9 @@ describe('PatternDetector.sanitize matches the old rebuild-per-edit result when 
       const d = detector(mode, text);
       for (let round = 0; round < 400; round++) {
         const len = Math.floor(rand() * 60);
-        const content = Array.from({ length: len }, (_, i) => String.fromCharCode(97 + (i % 26))).join('');
+        const content = Array.from({ length: len }, (_, i) =>
+          String.fromCharCode(97 + (i % 26)),
+        ).join('');
         const n = Math.floor(rand() * 8);
         const threats: Threat[] = [];
         for (let k = 0; k < n; k++) {
