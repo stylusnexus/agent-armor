@@ -407,10 +407,12 @@ function reference(content: string): Array<[number, number]> {
       let depth = 0;
       let list = false;
       let thematic = false;
+      let allowThematic = true; // at the line start and after a quote marker, not after a list marker
       for (;;) {
         rest = rest.replace(/^[ \t]+/, '');
-        if (/^(?:-[ \t]*){3,}$|^(?:\*[ \t]*){3,}$|^(?:_[ \t]*){3,}$/.test(rest)) { thematic = true; break; }
-        if (rest[0] === '>') { depth++; rest = rest.slice(1); continue; }
+        if (allowThematic && /^(?:-[ \t]*){3,}$|^(?:\*[ \t]*){3,}$|^(?:_[ \t]*){3,}$/.test(rest)) { thematic = true; break; }
+        allowThematic = false;
+        if (rest[0] === '>') { depth++; rest = rest.slice(1); allowThematic = true; continue; }
         const m = /^(?:[-*+]|\d{1,9}[.)])[ \t]/.exec(rest);
         if (m) { list = true; rest = rest.slice(m[0].length); continue; }
         break;
@@ -711,6 +713,17 @@ describe('stays linear (#219)', () => {
     ['unmatched backticks', '`x ![a][r] [r]: https://x.example/?data=1\n'],
     ['backtick runs of many lengths', '`x ``y ```z ![a][r]\n\n[r]: https://x.example/?data=1\n'],
     ['autolink candidates', '<a:b ![a][r]\n\n[r]: https://x.example/?data=1\n'],
+    ['list markers on one line', '- '],
+    ['star markers on one line', '* '],
+    ['ordered markers on one line', '1. '],
+    ['quote and list markers on one line', '> - '],
+    ['quote markers on one line', '> '],
+    ['unclosed backtick fences', '```a\n'],
+    ['unclosed tilde fences', '~~~a\n'],
+    ['unclosed fences on list lines', '- ```a\n'],
+    ['unclosed fences on ordered lines', '1. ```a\n'],
+    ['unclosed fences in quotes', '> ~~~\n'],
+    ['thematic runs', '- - - - - - - - - - - - x\n'],
     ['list fences and quotes', '> - ```\n>   x\n>   ```\n- ```\n![a `]` b][r]\n[r]: https://x.example/?data=1\n'],
     ['thematic breaks and quote depth', '***\n> x\n>> y\n---\n![a][r]\n[r]: https://x.example/?data=1\n'],
     ['headings and fences', '# [\n```\n[\n```\n- [\n![a][r]\n[r]: https://x.example/?data=1\n'],
@@ -722,7 +735,8 @@ describe('stays linear (#219)', () => {
     ['blank lines between brackets', '![a\n\n][b\n\n]\n'],
   ];
   it.each(shapes)('1,000,000 characters of %s scan in well under a second', (_name, unit) => {
-    const text = unit.repeat(Math.ceil(1_000_000 / unit.length));
+    // A flagged definition makes the scan read brackets and blocks, so every shape reaches the slow paths.
+    const text = unit.repeat(Math.ceil(1_000_000 / unit.length)) + '\n[zz]: https://x.example/?data=1\n';
     const start = performance.now();
     detector.scan(text);
     expect(performance.now() - start).toBeLessThan(400);
