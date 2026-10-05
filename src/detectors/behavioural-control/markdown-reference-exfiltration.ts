@@ -662,15 +662,41 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
     return matches;
   }
 
-  sanitizeEdits(_content: string, threats: Threat[]): TextEdit[] {
-    return threats
-      .filter((t) => t.location)
-      .map((t) => ({
-        offset: t.location!.offset,
-        length: t.location!.length,
-        replacement: MARKER,
-        severity: t.severity,
-      }));
+  sanitizeEdits(content: string, threats: Threat[]): TextEdit[] {
+    const edits: TextEdit[] = [];
+    const keysOf = labelKeyReader();
+    const labels = new Set<string>(); // labels of the definitions the images used
+    for (const t of threats) {
+      if (!t.location) continue;
+      // The marker is `[BLOCKED: ...]`. Directly after a `!` it would read as an image of its own, which a
+      // definition labelled with the marker text would then draw, so drop the `!` run in front of it.
+      let offset = t.location.offset;
+      let length = t.location.length;
+      while (offset > 0 && content.charCodeAt(offset - 1) === 33) {
+        offset--;
+        length++;
+      }
+      edits.push({ offset, length, replacement: MARKER, severity: t.severity });
+      if (t.relatedLocation) {
+        DEFINITION.lastIndex = t.relatedLocation.offset;
+        const def = DEFINITION.exec(content);
+        if (def && def.index === t.relatedLocation.offset) for (const key of keysOf(def[1])) labels.add(key);
+      }
+    }
+    if (labels.size === 0) return edits;
+    // A definition labelled with the marker's own text is never legitimate: it exists to be drawn by a `!` that
+    // sanitizing leaves in front of the marker.
+    for (const key of keysOf(MARKER.slice(1, -1))) labels.add(key);
+    // Replacing only the image leaves the definition, and with it the address that leaks data, in the text.
+    // Replace every definition of those labels that sends data out, since a renderer may use any of them.
+    DEFINITION.lastIndex = 0;
+    let def: RegExpExecArray | null;
+    while ((def = DEFINITION.exec(content)) !== null) {
+      if (!keysOf(def[1]).some((key) => labels.has(key)) || !sendsDataOut(def[2])) continue;
+      const destAt = content.indexOf(def[2], def.index + def[0].length);
+      edits.push({ offset: def.index, length: destAt + def[2].length - def.index, replacement: MARKER, severity: 'critical' });
+    }
+    return edits;
   }
 
   sanitize(content: string, threats: Threat[]): string {
