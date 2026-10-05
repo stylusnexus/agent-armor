@@ -533,18 +533,13 @@ export function blockEvents(content: string, opts: BlockOptions): BlockEvents {
       }
       if (para && !startsBlock) continue;
       if (opts.mdit && !startsBlock && !blank && matched < containers.length && containers[matched] === 0 && !tableOpen) {
-        // markdown-it: a line without `>` after a quoted line stays in the quote, as a paragraph
+        // markdown-it: a line without `>` after a quoted line stays in the quote and is read as a block there
         containers.length = matched + 1;
-        if (!para) {
-          push(lineStart, lineStart, false);
-          para = true;
-          defChain = false;
-        }
-        continue;
+      } else {
+        containers.length = matched; // close the containers this line is not in
+        para = false;
+        defChain = false;
       }
-      containers.length = matched; // close the containers this line is not in
-      para = false;
-      defChain = false;
     } else if (blank) {
       para = false;
       defChain = false;
