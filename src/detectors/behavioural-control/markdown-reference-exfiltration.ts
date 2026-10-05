@@ -1,6 +1,7 @@
 import { BaseDetector, type PatternMatch } from '../base';
 import { applyEdits, mergeEdits } from '../../sanitize';
 import { normalizeForScan } from '../../normalize/unicode';
+import { blankLineStarts, blockEvents, blockTriggers, legacyBlockEvents, type BlockEvents } from './markdown-blocks';
 import type { TextEdit, Threat, TrapCategory, TrapType } from '../../types';
 
 const KEYWORDS =
@@ -77,26 +78,63 @@ const MERGE_GAP = 100;
 
 const MARKER = '[BLOCKED: exfiltration instruction removed by AgentArmor]';
 
+/** A line break followed by exactly 1 or 2 block quote markers. */
+const QUOTE_MARKERS: Record<number, RegExp> = { 1: /(?:\r\n|\r|\n)(?: {0,3}> ?){1}/g, 2: /(?:\r\n|\r|\n)(?: {0,3}> ?){2}/g };
+
 /**
  * Markdown matches reference labels after trimming, collapsing whitespace runs
  * (line breaks included) and Unicode case folding. Lowercase, uppercase,
  * lowercase approximates the fold: it turns `ß` and `SS` into the same `ss`.
  */
-function normalizeLabel(label: string, dropQuoteMarkers: boolean): string {
+function normalizeLabel(label: string, quoteMarkers: number): string {
   let text = label.replace(/\0/g, '\ufffd'); // a renderer reads NUL as U+FFFD
-  // Block quote markers on a continuation line are not part of the label, unless the line is an indented
-  // paragraph continuation, where the `>` is text: a label matches under either reading.
-  if (dropQuoteMarkers) text = text.replace(/(?:\r\n|\r|\n)[ \t>]*/g, ' ');
+  // Block quote markers on a continuation line are not part of the label. How many to drop depends on the
+  // quote depth and on whether the line is an indented paragraph continuation (where a `>` is text), which
+  // a label's text alone does not tell, so a label matches under each reading: none, all, or exactly 1 or 2.
+  if (quoteMarkers === -1) text = text.replace(/(?:\r\n|\r|\n)[ \t>]*/g, ' ');
+  else if (quoteMarkers > 0) text = text.replace(QUOTE_MARKERS[quoteMarkers], ' ');
   return text.trim().replace(/\s+/g, ' ').toLowerCase().toUpperCase().toLowerCase();
 }
 
-/** Both readings of a label's text, without duplicates. */
+/** Every reading of a label's text, without duplicates. */
 function labelKeys(label: string): string[] {
-  const plain = normalizeLabel(label, false);
+  const plain = normalizeLabel(label, 0);
   // Without a line break there are no quote markers to drop: one reading.
   if (!/[\r\n]/.test(label)) return [plain];
-  const quoted = normalizeLabel(label, true);
-  return plain === quoted ? [plain] : [plain, quoted];
+  const keys = [plain];
+  for (const markers of [-1, 1, 2]) {
+    const key = normalizeLabel(label, markers);
+    if (!keys.includes(key)) keys.push(key);
+  }
+  return keys;
+}
+
+/**
+ * True for printable ASCII with single spaces between words: `normalizeLabel` would only lowercase it, and
+ * with no line break `labelKeys` has one reading.
+ */
+function isPlainLabel(label: string): boolean {
+  const last = label.length - 1;
+  for (let i = 0; i <= last; i++) {
+    const c = label.charCodeAt(i);
+    if (c > 126 || c < 32) return false;
+    if (c === 32 && (i === 0 || i === last || label.charCodeAt(i - 1) === 32)) return false;
+  }
+  return true;
+}
+
+/** `labelKeys` for one scan: a plain label is lowercased directly, any other is read once per distinct text. */
+function labelKeyReader(): (label: string) => string[] {
+  const seen = new Map<string, string[]>();
+  return (label) => {
+    if (isPlainLabel(label)) return [label.toLowerCase()];
+    let keys = seen.get(label);
+    if (keys === undefined) {
+      keys = labelKeys(label);
+      seen.set(label, keys);
+    }
+    return keys;
+  };
 }
 
 interface BracketInfo {
@@ -104,9 +142,9 @@ interface BracketInfo {
   close: Int32Array;
   /** For each `[`: 1 if another unescaped `[` sits inside it. */
   hasInner: Uint8Array;
-  /** For each image's `[` (the one after `!`): the first unescaped `]` after it in the same paragraph. */
+  /** Raw reading only. For each image's `[` (the one after `!`): the first unescaped `]` after it in the same paragraph. */
   firstClose: Map<number, number>;
-  /** Each unpaired `]` followed by `[label]`, after an earlier `]`, in an image's paragraph: the opener's `!` and the label's `[`. */
+  /** Raw reading only. Each unpaired `]` followed by `[label]`, after an earlier `]`, in an image's paragraph: the opener's `!` and the label's `[`. */
   labelAfterImage: Array<{ bang: number; labelOpen: number }>;
 }
 
@@ -114,291 +152,235 @@ interface BracketInfo {
 const AUTOLINK =
   /<(?:[A-Za-z][A-Za-z0-9+.-]{1,31}:[^\s<>]*|[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*)>/y;
 
-/** Every run of backticks, by length, so the closing run of a code span is found without rescanning. */
-function backtickRuns(content: string): { closerOf(len: number, from: number, stop: number): number } {
+/** Every run of backticks, by length, so the closing run of a code span is found without rescanning. Built once per scan. */
+function backtickRuns(content: string): Map<number, number[]> {
   const byLen = new Map<number, number[]>();
-  const cursor = new Map<number, number>();
-  const n = content.length;
-  for (let i = 0; i < n; ) {
-    if (content.charCodeAt(i) !== 96) {
-      i++;
-      continue;
-    }
+  for (let i = content.indexOf('`'); i !== -1; ) {
     let k = 1;
     while (content.charCodeAt(i + k) === 96) k++;
     const list = byLen.get(k);
     if (list) list.push(i);
     else byLen.set(k, [i]);
-    i += k;
+    i = content.indexOf('`', i + k);
   }
-  return {
-    /** The first run of exactly `len` backticks that starts at or after `from` and before `stop`, or -1. */
-    closerOf(len, from, stop) {
-      const list = byLen.get(len);
-      if (!list) return -1;
-      let at = cursor.get(len) ?? 0;
-      while (at < list.length && list[at] < from) at++;
-      cursor.set(len, at);
-      return at < list.length && list[at] < stop ? list[at] : -1;
-    },
+  return byLen;
+}
+
+/** The closing run of a code span, for one pass over the text: `from` only grows, so each list is walked once. */
+function codeSpanCloser(byLen: Map<number, number[]>): (len: number, from: number, stop: number) => number {
+  const cursor = new Map<number, number>();
+  /** The first run of exactly `len` backticks that starts at or after `from` and before `stop`, or -1. */
+  return (len, from, stop) => {
+    const list = byLen.get(len);
+    if (!list) return -1;
+    let at = cursor.get(len) ?? 0;
+    while (at < list.length && list[at] < from) at++;
+    cursor.set(len, at);
+    return at < list.length && list[at] < stop ? list[at] : -1;
   };
 }
 
-interface BlockEvents {
-  /** Where each block boundary is: the start of a line. Nondecreasing. */
-  at: number[];
-  /** Where scanning resumes after it: the same offset, or past a fenced code block. */
-  to: number[];
-  /** True when every boundary is a blank line outside any quote or list: the raw bracket pass already ends paragraphs there. */
-  plain: boolean;
+function sameEvents(a: BlockEvents, b: BlockEvents): boolean {
+  if (a.at.length !== b.at.length) return false;
+  for (let i = 0; i < a.at.length; i++) if (a.at[i] !== b.at[i] || a.to[i] !== b.to[i]) return false;
+  return true;
 }
 
-/** Closing-fence candidates of one fence character, with a pointer to the next candidate whose run is longer. */
-interface CloserList {
-  line: number[];
-  run: number[];
-  longer: number[];
-  from: number;
-}
+/** An inline HTML open or closing tag, which a renderer with HTML on reads as markup, not text. */
+const HTML_TAG =
+  /<(?:[A-Za-z][A-Za-z0-9-]*(?:\s+[A-Za-z_:][A-Za-z0-9_.:-]*(?:\s*=\s*(?:[^\s"'=<>`]+|'[^']*'|"[^"]*"))?)*\s*\/?>|\/[A-Za-z][A-Za-z0-9-]*\s*>)/y;
 
-function buildCloserList(runOfLine: Int32Array, indentOfLine: Int32Array, strict: boolean): CloserList {
-  const line: number[] = [];
-  const run: number[] = [];
-  for (let k = 0; k < runOfLine.length; k++) {
-    if (runOfLine[k] > 0 && (!strict || indentOfLine[k] < 4)) {
-      line.push(k);
-      run.push(runOfLine[k]);
-    }
-  }
-  const longer = new Array<number>(line.length);
-  const stack: number[] = [];
-  for (let i = line.length - 1; i >= 0; i--) {
-    while (stack.length > 0 && run[stack[stack.length - 1]] <= run[i]) stack.pop();
-    longer[i] = stack.length > 0 ? stack[stack.length - 1] : line.length;
-    stack.push(i);
-  }
-  return { line, run, longer, from: 0 };
+/** Past the spaces, tabs and line breaks at `x`, up to `n`. */
+function skipLinkSpace(content: string, x: number, n: number): number {
+  while (x < n && (content.charCodeAt(x) === 32 || content.charCodeAt(x) === 9 || content.charCodeAt(x) === 10 || content.charCodeAt(x) === 13)) x++;
+  return x;
 }
 
 /**
- * The block boundaries a markdown parser finds before it reads any inline text,
- * so brackets and code spans never cross them: a blank or quote-only line, a
- * list item, a thematic break, a block quote that starts or deepens, a heading
- * (a boundary on both sides), and a fenced code block, which can sit on a
- * list item's line or inside a quote and hides everything up to its closing
- * fence. An unclosed fence hides nothing: the rest of the text stays readable.
- *
- * Linear: each line is parsed once into tables, and a fence's closing line is
- * found from them by jumping over lines that cannot close it, so a document of
- * thousands of unclosed fences costs no more than one of a single fence.
+ * The end of an inline link's `(destination "title")` starting at the `(` at
+ * `at`, or -1 if it is not one. A renderer reads the destination and title as
+ * part of the link, so a backtick or bracket in them is not code or a label.
+ * Parentheses in the destination nest at most 32 deep, as in the renderers.
  */
-function blockEvents(content: string): BlockEvents {
-  const n = content.length;
-  const out: BlockEvents = { at: [], to: [], plain: true };
-  const isSpace = (c: number): boolean => c === 32 || c === 9;
-  /** Any character `String.prototype.trim` removes, other than a line break. */
-  const isTrimmed = (c: number): boolean =>
-    c === 32 || c === 9 || c === 11 || c === 12 || c === 0xa0 || c === 0x1680 || (c >= 0x2000 && c <= 0x200a) || c === 0x2028 || c === 0x2029 || c === 0x202f || c === 0x205f || c === 0x3000 || c === 0xfeff;
-  const nextLineAfter = (from: number): number => {
-    let e = from;
-    while (e < n && content.charCodeAt(e) !== 10 && content.charCodeAt(e) !== 13) e++;
-    return e >= n ? n + 1 : e + (content.charCodeAt(e) === 13 && content.charCodeAt(e + 1) === 10 ? 2 : 1);
-  };
-  let m = 0;
-  for (let i = 0; i <= n; i = nextLineAfter(i)) m++;
-  const starts = new Int32Array(m + 1);
-  const depthOf = new Int32Array(m);
-  const indentOf = new Int32Array(m);
-  const restOf = new Int32Array(m); // where the line's text starts, after indent, quote and list markers
-  const flags = new Uint8Array(m); // 1 list item, 2 thematic break
-  const backtickRun = new Int32Array(m); // a line that is only a run of backticks: its length
-  const tildeRun = new Int32Array(m);
-  for (let k = 0, i = 0; k < m; k++, i = nextLineAfter(i)) {
-    starts[k] = i;
-    let q = i;
-    let indent = 0;
-    while (q < n && isSpace(content.charCodeAt(q))) {
-      indent = content.charCodeAt(q) === 9 ? indent + 4 - (indent % 4) : indent + 1;
-      q++;
+function inlineLinkEnd(content: string, at: number, stop: number, findQuote: (quote: number, from: number) => number): number {
+  const n = Math.min(content.length, stop);
+  let x = skipLinkSpace(content, at + 1, n);
+  if (x >= n) return -1;
+  if (content.charCodeAt(x) === 60) {
+    x++;
+    while (x < n && content.charCodeAt(x) !== 62) {
+      const c = content.charCodeAt(x);
+      if (c === 10 || c === 13 || c === 60) return -1;
+      x += c === 92 && isAsciiPunctuation(content.charCodeAt(x + 1)) ? 2 : 1;
     }
+    if (x >= n) return -1;
+    x++;
+  } else {
     let depth = 0;
-    let flag = 0;
-    let allowThematic = true; // checked at the line start and after each `>`, so a long run of markers is scanned once
-    for (;;) {
-      while (q < n && isSpace(content.charCodeAt(q))) q++;
-      const c = content.charCodeAt(q);
-      if (allowThematic && (c === 45 || c === 42 || c === 95)) {
-        // `---`, `***`, `___`, with spaces between: a thematic break, not a list item
-        let x = q;
-        let count = 0;
-        while (x < n && (content.charCodeAt(x) === c || isSpace(content.charCodeAt(x)))) {
-          if (content.charCodeAt(x) === c) count++;
-          x++;
-        }
-        const ch = content.charCodeAt(x);
-        if (count >= 3 && (x >= n || ch === 10 || ch === 13)) {
-          flag |= 2;
-          break;
-        }
-      }
-      allowThematic = false;
-      if (c === 62) {
-        depth++;
-        q++;
-        allowThematic = true;
+    while (x < n) {
+      const c = content.charCodeAt(x);
+      if (c === 92 && isAsciiPunctuation(content.charCodeAt(x + 1))) {
+        x += 2;
         continue;
       }
-      if (c === 45 || c === 42 || c === 43) {
-        if (isSpace(content.charCodeAt(q + 1))) {
-          flag |= 1;
-          q++;
-          continue;
-        }
-      } else if (c >= 48 && c <= 57) {
-        let d = q;
-        while (d < n && d - q < 9 && content.charCodeAt(d) >= 48 && content.charCodeAt(d) <= 57) d++;
-        const mark = content.charCodeAt(d);
-        if ((mark === 46 || mark === 41) && isSpace(content.charCodeAt(d + 1))) {
-          flag |= 1;
-          q = d + 1;
-          continue;
-        }
+      if (c === 40) {
+        depth++;
+        if (depth > 32) return -1;
+      } else if (c === 41) {
+        if (depth === 0) break;
+        depth--;
+      } else if (c <= 32) {
+        break;
       }
-      break;
-    }
-    depthOf[k] = depth;
-    indentOf[k] = indent;
-    restOf[k] = q;
-    flags[k] = flag;
-    // Could this line close a fence? Only a run of one fence character, then whitespace.
-    const f = content.charCodeAt(q);
-    if (f === 96 || f === 126) {
-      let h = q;
-      while (content.charCodeAt(h) === f) h++;
-      let e = h;
-      while (e < n && isTrimmed(content.charCodeAt(e))) e++;
-      const after = content.charCodeAt(e);
-      if (e >= n || after === 10 || after === 13) (f === 96 ? backtickRun : tildeRun)[k] = h - q;
+      x++;
     }
   }
-  starts[m] = n + 1;
-
-  // The next line after k whose quote depth is below k's, so a fence ending with its quote is found by jumping.
-  const nextShallower = new Int32Array(m);
-  {
-    const stack: number[] = [];
-    for (let k = m - 1; k >= 0; k--) {
-      while (stack.length > 0 && depthOf[stack[stack.length - 1]] >= depthOf[k]) stack.pop();
-      nextShallower[k] = stack.length > 0 ? stack[stack.length - 1] : m;
-      stack.push(k);
-    }
-  }
-  const closers = {
-    backtick: [buildCloserList(backtickRun, indentOf, true), buildCloserList(backtickRun, indentOf, false)],
-    tilde: [buildCloserList(tildeRun, indentOf, true), buildCloserList(tildeRun, indentOf, false)],
-  };
-  /** Where a fence opened on line `k` ends: the line to resume at, and whether that line is the closing fence (consumed). */
-  const fenceEnd = (k: number, tilde: boolean, len: number, depth: number, container: boolean): { resume: number; consumed: boolean } | undefined => {
-    let quoteEnds = k + 1;
-    while (quoteEnds < m && depthOf[quoteEnds] >= depth) quoteEnds = nextShallower[quoteEnds];
-    const list = (tilde ? closers.tilde : closers.backtick)[container ? 1 : 0];
-    while (list.from < list.line.length && list.line[list.from] <= k) list.from++;
-    let at = list.from;
-    while (at < list.line.length && list.run[at] < len) at = list.longer[at];
-    const closing = at < list.line.length ? list.line[at] : m;
-    if (quoteEnds < m && quoteEnds <= closing) return { resume: quoteEnds, consumed: false };
-    if (closing < m) return { resume: closing + 1, consumed: true };
-    return undefined;
-  };
-
-  const push = (at: number, to: number, plain = false): void => {
-    out.at.push(at);
-    out.to.push(to);
-    if (!plain) out.plain = false;
-  };
-  let prevDepth = 0;
-  for (let k = 0; k < m; ) {
-    const line = starts[k];
-    const q = restOf[k];
-    const c = content.charCodeAt(q);
-    const depth = depthOf[k];
-    const container = depth > 0 || (flags[k] & 1) !== 0;
-    const blank = q >= n || c === 10 || c === 13;
-    const indentedText = !blank && indentOf[k] >= 4 && !container; // indented code cannot interrupt a paragraph
-    if (depth > prevDepth && !indentedText) push(line, line); // a block quote starts or deepens
-    prevDepth = depth;
-    let nextK = k + 1;
-    if (!indentedText) {
-      if (flags[k] & 2) {
-        push(line, line);
-      } else {
-        if (flags[k] & 1) push(line, line); // a list item starts a new block
-        if (blank) {
-          push(line, line, depth === 0 && (flags[k] & 1) === 0); // a blank or quote-only line
-        } else if (c === 35) {
-          let h = q;
-          while (content.charCodeAt(h) === 35) h++;
-          const after = content.charCodeAt(h);
-          if (h - q <= 6 && (h >= n || after === 32 || after === 9 || after === 10 || after === 13)) {
-            push(line, line);
-            if (k + 1 < m) push(starts[k + 1], starts[k + 1]);
-          }
-        } else if (c === 96 || c === 126) {
-          let f = q;
-          while (content.charCodeAt(f) === c) f++;
-          const fence = f - q;
-          let infoHasBacktick = false;
-          if (c === 96) {
-            for (let x = f; x < n && content.charCodeAt(x) !== 10 && content.charCodeAt(x) !== 13; x++) {
-              if (content.charCodeAt(x) === 96) {
-                infoHasBacktick = true;
-                break;
-              }
-            }
-          }
-          if (fence >= 3 && !infoHasBacktick) {
-            const end = fenceEnd(k, c === 126, fence, depth, container);
-            if (end) {
-              push(line, end.resume < m ? starts[end.resume] : n);
-              nextK = end.resume;
-            } else {
-              push(line, line); // unclosed: the fence hides nothing
-            }
-          }
-        }
+  const afterDestination = x;
+  x = skipLinkSpace(content, x, n);
+  const open = content.charCodeAt(x);
+  if (x > afterDestination && (open === 34 || open === 39 || open === 40)) {
+    let close: number;
+    if (open === 40) {
+      close = x + 1;
+      while (close < n && content.charCodeAt(close) !== 41) {
+        if (content.charCodeAt(close) === 40) return -1;
+        close += content.charCodeAt(close) === 92 && isAsciiPunctuation(content.charCodeAt(close + 1)) ? 2 : 1;
       }
+      if (close >= n) return -1;
+    } else {
+      close = findQuote(open, x + 1);
+      if (close === -1 || close >= n) return -1;
     }
-    k = nextK;
+    x = skipLinkSpace(content, close + 1, n);
   }
-  return out;
+  return content.charCodeAt(x) === 41 && x < n ? x + 1 : -1;
+}
+
+/** The next unescaped `quote` at or after `from`, cached so many searches stay linear. */
+function makeQuoteFinder(content: string, quote: number): (from: number) => number {
+  const needle = String.fromCharCode(quote);
+  let searched = -1;
+  let found = -2;
+  return (from: number): number => {
+    if (found !== -2 && from >= searched && (found === -1 || from <= found)) return found;
+    let at = content.indexOf(needle, from);
+    while (at > 0) {
+      let b = at - 1;
+      while (b >= 0 && content.charCodeAt(b) === 92) b--;
+      if ((at - 1 - b) % 2 === 0) break;
+      at = content.indexOf(needle, at + 1);
+    }
+    searched = from;
+    found = at;
+    return at;
+  };
+}
+
+interface HtmlInlineFinders {
+  comment: (from: number) => number;
+  pi: (from: number) => number;
+  cdata: (from: number) => number;
+  decl: (from: number) => number;
+}
+
+/** Cached searches for the end of inline HTML comments, processing instructions, CDATA and declarations. */
+function htmlInlineFinders(content: string): HtmlInlineFinders {
+  const make = (needle: string): ((from: number) => number) => {
+    let searched = -1;
+    let found = -2;
+    return (from) => {
+      if (found !== -2 && from >= searched && (found === -1 || from <= found)) return found;
+      searched = from;
+      found = content.indexOf(needle, from);
+      return found;
+    };
+  };
+  return { comment: make('-->'), pi: make('?>'), cdata: make(']]>'), decl: make('>') };
+}
+
+/** The end of inline HTML (a tag, comment, instruction, declaration or CDATA) starting at `at`, or -1. */
+function htmlInlineEnd(content: string, at: number, finders: HtmlInlineFinders): number {
+  const next = content.charCodeAt(at + 1);
+  if (next === 33) {
+    if (content.startsWith('<!--', at)) {
+      const end = finders.comment(at + 4);
+      return end === -1 ? -1 : end + 3;
+    }
+    if (content.startsWith('<![CDATA[', at)) {
+      const end = finders.cdata(at + 9);
+      return end === -1 ? -1 : end + 3;
+    }
+    const c = content.charCodeAt(at + 2);
+    if ((c >= 65 && c <= 90) || (c >= 97 && c <= 122)) {
+      const end = finders.decl(at + 3);
+      return end === -1 ? -1 : end + 1;
+    }
+    return -1;
+  }
+  if (next === 63) {
+    const end = finders.pi(at + 2);
+    return end === -1 ? -1 : end + 2;
+  }
+  HTML_TAG.lastIndex = at;
+  return HTML_TAG.test(content) ? HTML_TAG.lastIndex : -1;
+}
+
+/** The characters `analyzeBrackets` acts on: line breaks, `\`, brackets, and (when reading as a renderer) `<` and backticks. */
+const SPECIAL = new Uint8Array(128);
+for (const c of [10, 13, 60, 91, 92, 93, 96]) SPECIAL[c] = 1;
+
+/** How a renderer reading sees the text: its block events, whether HTML is on, and whether link destinations are skipped. */
+interface RendererReading {
+  blocks: BlockEvents;
+  html: boolean;
+  linkDestinations: boolean;
+  /** `backtickRuns` of the text. */
+  runs: Map<number, number[]>;
 }
 
 /**
  * One pass over the text, the way a markdown parser reads brackets:
  * backslash escapes skip a character, brackets nest, and a blank line ends the
- * paragraph, so brackets still open at that point never match. It also records
- * the first `]` after each `![` and every `][label]` that follows one, so the
- * image can be read more than one way: a stray `[` inside the alt text (in a
- * code span, an autolink, or just unpaired) must not hide it.
+ * paragraph, so brackets still open at that point never match. Read raw (no
+ * `renderer`), it also records the first `]` after each `![` and every
+ * `][label]` that follows one, so the image can be read more than one way: a
+ * stray `[` inside the alt text (in a code span, an autolink, or just unpaired)
+ * must not hide it.
+ *
+ * The result is written into `buffers`, which are `content.length` long and
+ * reused from one reading to the next, so the scan holds one reading at a time.
  */
-function analyzeBrackets(content: string, renderer: boolean, blocks?: BlockEvents): BracketInfo {
+function analyzeBrackets(content: string, buffers: { close: Int32Array; hasInner: Uint8Array }, renderer?: RendererReading): BracketInfo {
   const n = content.length;
-  const close = new Int32Array(n).fill(-1);
-  const hasInner = new Uint8Array(n);
+  const close = buffers.close.fill(-1);
+  const hasInner = buffers.hasInner.fill(0);
   const firstClose = new Map<number, number>();
   const labelAfterImage: Array<{ bang: number; labelOpen: number }> = [];
+  const raw = renderer === undefined;
   const open: number[] = [];
-  let waiting: number[] = []; // image `[`s still waiting for their first `]`
+  const waiting: number[] = []; // image `[`s still waiting for their first `]`
   let lastBang = -1;
   let closesSinceBang = 0;
   // Renderer mode: code spans, autolinks and block boundaries (headings, fences, list items, quote-only
   // lines) hide or end brackets the way a markdown parser does.
-  const runs = renderer ? backtickRuns(content) : undefined;
-  const events: BlockEvents = renderer ? (blocks ?? blockEvents(content)) : { at: [], to: [], plain: true };
+  const closerOf = renderer ? codeSpanCloser(renderer.runs) : undefined;
+  const events: BlockEvents = renderer ? renderer.blocks : { at: [], to: [], plain: true };
+  const html = renderer?.html ?? false;
+  const linkDestinations = renderer?.linkDestinations ?? true;
+  const quoteFinders = new Map<number, (from: number) => number>();
+  const findQuote = (quote: number, from: number): number => {
+    let find = quoteFinders.get(quote);
+    if (!find) {
+      find = makeQuoteFinder(content, quote);
+      quoteFinders.set(quote, find);
+    }
+    return find(from);
+  };
+  const htmlEnds = renderer && html ? htmlInlineFinders(content) : undefined;
   let ev = 0;
   const reset = (): void => {
-    open.length = 0;
-    waiting = [];
+    if (open.length > 0) open.length = 0;
+    if (waiting.length > 0) waiting.length = 0;
     lastBang = -1;
   };
   let i = 0;
@@ -414,18 +396,24 @@ function analyzeBrackets(content: string, renderer: boolean, blocks?: BlockEvent
       let k = 1;
       while (content.charCodeAt(i + k) === 96) k++;
       const stop = ev < events.at.length ? events.at[ev] : n;
-      const closer = runs!.closerOf(k, i + k, stop);
+      const closer = closerOf!(k, i + k, stop);
       i = closer >= 0 ? closer + k : i + k;
     } else if (renderer && c === 60) {
       AUTOLINK.lastIndex = i;
-      const m = AUTOLINK.exec(content);
-      i = m ? i + m[0].length : i + 1;
+      if (AUTOLINK.test(content)) {
+        i = AUTOLINK.lastIndex;
+      } else if (htmlEnds) {
+        const end = htmlInlineEnd(content, i, htmlEnds);
+        i = end > i ? end : i + 1;
+      } else {
+        i++;
+      }
     } else if (c === 92) {
       i += isAsciiPunctuation(content.charCodeAt(i + 1)) ? 2 : 1; // a backslash escapes only ASCII punctuation, never a line break
     } else if (c === 91) {
       if (open.length > 0) hasInner[open[open.length - 1]] = 1;
       open.push(i);
-      if (i > 0 && content.charCodeAt(i - 1) === 33) {
+      if (raw && i > 0 && content.charCodeAt(i - 1) === 33) {
         lastBang = i - 1;
         closesSinceBang = 0;
         waiting.push(i);
@@ -434,17 +422,25 @@ function analyzeBrackets(content: string, renderer: boolean, blocks?: BlockEvent
     } else if (c === 93) {
       const o = open.pop();
       if (o !== undefined) close[o] = i;
-      for (const w of waiting) firstClose.set(w, i);
-      waiting = [];
-      if (lastBang >= 0) {
-        // A `]` with nothing to close, after an earlier `]`, followed by `[label]`: the alt text ended
-        // here, and the earlier `]` (in a code span, say) was not its end.
-        if (!renderer && o === undefined && closesSinceBang > 0 && content.charCodeAt(i + 1) === 91) {
-          labelAfterImage.push({ bang: lastBang, labelOpen: i + 1 });
+      if (raw) {
+        for (const w of waiting) firstClose.set(w, i);
+        waiting.length = 0;
+        if (lastBang >= 0) {
+          // A `]` with nothing to close, after an earlier `]`, followed by `[label]`: the alt text ended
+          // here, and the earlier `]` (in a code span, say) was not its end.
+          if (o === undefined && closesSinceBang > 0 && content.charCodeAt(i + 1) === 91) {
+            labelAfterImage.push({ bang: lastBang, labelOpen: i + 1 });
+          }
+          closesSinceBang++;
         }
-        closesSinceBang++;
       }
       i++;
+      if (renderer && linkDestinations && o !== undefined && content.charCodeAt(i) === 40) {
+        // `[text](destination "title")`: the destination and title are not inline text
+        const stop = ev < events.at.length ? events.at[ev] : n;
+        const end = inlineLinkEnd(content, i, stop, findQuote);
+        if (end !== -1) i = end;
+      }
     } else if (c === 10 || c === 13) {
       i += c === 13 && content.charCodeAt(i + 1) === 10 ? 2 : 1;
       let k = i;
@@ -453,7 +449,14 @@ function analyzeBrackets(content: string, renderer: boolean, blocks?: BlockEvent
         reset(); // a blank line ends the paragraph
       }
     } else {
+      // Ordinary text: skip to the next character that matters, or to the next block event.
+      const limit = ev < events.at.length && events.at[ev] < n ? events.at[ev] : n;
       i++;
+      while (i < limit) {
+        const d = content.charCodeAt(i);
+        if (d < 128 && SPECIAL[d] === 1) break;
+        i++;
+      }
     }
   }
   return { close, hasInner, firstClose, labelAfterImage };
@@ -484,102 +487,148 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
   protected readonly trapType: TrapType = 'data-exfiltration';
 
   findPatterns(content: string): PatternMatch[] {
-    // label -> the first definition of it that sends data out
-    const flagged = new Map<string, { index: number; length: number }>();
+    const keysOf = labelKeyReader();
+    // label -> the first definition of it that sends data out, as an index into `defs`
+    const flagged = new Map<string, number>();
+    const defs: Array<{ index: number; length: number }> = [];
+    const checked = new Map<string, boolean>(); // destination -> sends data out, for destinations seen more than once
     DEFINITION.lastIndex = 0;
     let def: RegExpExecArray | null;
     while ((def = DEFINITION.exec(content)) !== null) {
-      const keys = labelKeys(def[1]);
+      const keys = keysOf(def[1]);
       if (keys.every((key) => flagged.has(key))) continue;
-      if (sendsDataOut(def[2])) {
+      let out = checked.get(def[2]);
+      if (out === undefined) {
+        out = sendsDataOut(def[2]);
+        checked.set(def[2], out);
+      }
+      if (out) {
         // Only whitespace separates `[label]:` from its destination, so the first hit is the destination.
         const destAt = content.indexOf(def[2], def.index + def[0].length);
-        for (const key of keys) if (!flagged.has(key)) flagged.set(key, { index: def.index, length: destAt + def[2].length - def.index });
+        defs.push({ index: def.index, length: destAt + def[2].length - def.index });
+        for (const key of keys) if (!flagged.has(key)) flagged.set(key, defs.length - 1);
       }
     }
     if (flagged.size === 0) return [];
 
-    const raw = analyzeBrackets(content, false);
-    // The renderer reading only differs from the raw one when the text has code spans, autolinks or block
-    // boundaries beyond plain blank lines; otherwise it would repeat the raw reading, so skip it.
-    const blocks = blockEvents(content);
-    const needsRendered = !blocks.plain || content.includes('`') || content.includes('<');
-    const rendered = needsRendered ? analyzeBrackets(content, true, blocks) : undefined;
-    const hits: Array<{ index: number; end: number; related: { index: number; length: number } }> = [];
+    // Images, in text order. Each is read under every reading below; of its readings that flag it, only the
+    // longest (the first of equal ones) can change the result, since the others lie inside it and merge away.
+    const images: number[] = [];
+    for (let at = content.indexOf('!['); at >= 0; at = content.indexOf('![', at + 1)) images.push(at);
+    if (images.length === 0) return []; // every finding starts at an image's `!`
+    const bestEnd = new Int32Array(images.length).fill(-1);
+    const bestDef = new Int32Array(images.length);
 
-    const lookup = (keys: string[]): { index: number; length: number } | undefined => {
-      for (const key of keys) {
-        if (key === '') continue;
-        const found = flagged.get(key);
-        if (found) return found;
-      }
-      return undefined;
-    };
-
-    // A bracket reading: each `[label]` is read once, however many image openers wait on it.
-    const reader = ({ close, hasInner }: BracketInfo) => {
-      const labelCache = new Map<number, { end: number; text: string; blank: boolean; keys: string[] } | null>();
-      const labelAt = (open: number): { end: number; text: string; blank: boolean; keys: string[] } | null => {
-        const cached = labelCache.get(open);
-        if (cached !== undefined) return cached;
-        const labelEnd = close[open];
-        let info: { end: number; text: string; blank: boolean; keys: string[] } | null = null;
-        if (labelEnd >= 0 && !hasInner[open]) {
-          const text = content.slice(open + 1, labelEnd);
-          info = { end: labelEnd + 1, text, blank: text.trim() === '', keys: labelKeys(text) };
-        }
-        labelCache.set(open, info);
-        return info;
-      };
-
-      /** The image whose alt text ends at `altEnd`, read as a full, collapsed or shortcut reference. */
-      const readImage = (at: number, altEnd: number): void => {
-        const altOpen = at + 1;
-        const afterAlt = altEnd + 1;
-        let end = afterAlt;
-        let keys: string[] | undefined;
-        if (content[afterAlt] === '[') {
-          const info = labelAt(afterAlt);
-          if (info) {
-            end = info.end;
-            if (!info.blank) keys = info.keys;
-            else if (!hasInner[altOpen]) keys = labelKeys(content.slice(altOpen + 1, altEnd));
+    const BLANK = -2;
+    const NONE = -1;
+    // The text between a `[` and a `]` read as a label: BLANK, NONE (no flagged definition) or the definition's
+    // index. Kept by the `[` and the `]`, so a label many image openers share is read once per reading.
+    const readClose = new Int32Array(content.length).fill(-1);
+    const readResult = new Int32Array(content.length);
+    const readLabel = (open: number, close: number): number => {
+      if (readClose[open] === close) return readResult[open];
+      const text = content.slice(open + 1, close);
+      let result = NONE;
+      if (text.trim() === '') {
+        result = BLANK;
+      } else {
+        for (const key of keysOf(text)) {
+          const found = key === '' ? undefined : flagged.get(key);
+          if (found !== undefined) {
+            result = found;
+            break;
           }
-        } else if (content[afterAlt] === '(') {
-          return; // an inline image, not a reference
         }
-        // A shortcut reference (and a collapsed one) uses the alt text as its label, which cannot hold brackets.
-        if (keys === undefined && end === afterAlt && !hasInner[altOpen]) keys = labelKeys(content.slice(altOpen + 1, altEnd));
-        const related = keys === undefined ? undefined : lookup(keys);
-        if (related) hits.push({ index: at, end, related });
-      };
-      return { labelAt, readImage };
-    };
-    const rawReader = reader(raw);
-    const renderedReader = rendered ? reader(rendered) : undefined;
-
-    let at = content.indexOf('![');
-    while (at >= 0) {
-      const altOpen = at + 1;
-      // Read the alt text as brackets pair in the text, as a renderer pairs them (code spans and autolinks hidden),
-      // and as ending at the first `]`: one stray bracket must not hide the image.
-      const paired = raw.close[altOpen];
-      if (paired >= 0) rawReader.readImage(at, paired);
-      const first = raw.firstClose.get(altOpen);
-      if (first !== undefined && first !== paired) rawReader.readImage(at, first);
-      if (rendered && renderedReader) {
-        const renderedEnd = rendered.close[altOpen];
-        if (renderedEnd >= 0) renderedReader.readImage(at, renderedEnd);
       }
-      at = content.indexOf('![', at + 1);
+      readClose[open] = close;
+      readResult[open] = result;
+      return result;
+    };
+
+    /** Image `k`, its alt text ending at `altEnd`, read as a full, collapsed or shortcut reference. */
+    const readImage = ({ close, hasInner }: BracketInfo, k: number, altEnd: number): void => {
+      const altOpen = images[k] + 1;
+      const afterAlt = altEnd + 1;
+      const next = content.charCodeAt(afterAlt);
+      if (next === 40) return; // an inline image, not a reference
+      let labelEnd = next === 91 ? close[afterAlt] : -1;
+      if (labelEnd >= 0 && hasInner[afterAlt]) labelEnd = -1;
+      const end = labelEnd >= 0 ? labelEnd + 1 : afterAlt;
+      if (end <= bestEnd[k]) return; // an earlier reading already flags this image at least as far
+      // A blank label (collapsed) and a missing one (shortcut) use the alt text as the label, which cannot hold brackets.
+      let found = labelEnd >= 0 ? readLabel(afterAlt, labelEnd) : BLANK;
+      if (found === BLANK) found = hasInner[altOpen] ? NONE : readLabel(altOpen, altEnd);
+      if (found >= 0) {
+        bestEnd[k] = end;
+        bestDef[k] = found;
+      }
+    };
+
+    // One reading is held at a time, in these buffers.
+    const buffers = { close: new Int32Array(content.length), hasInner: new Uint8Array(content.length) };
+    const lateHits: Array<{ index: number; end: number; related: { index: number; length: number } }> = [];
+    {
+      const raw = analyzeBrackets(content, buffers);
+      for (let k = 0; k < images.length; k++) {
+        const altOpen = images[k] + 1;
+        // Read the alt text as brackets pair in the text, as a renderer pairs them (code spans and autolinks hidden,
+        // below), and as ending at the first `]`: one stray bracket must not hide the image.
+        const paired = raw.close[altOpen];
+        if (paired >= 0) readImage(raw, k, paired);
+        const first = raw.firstClose.get(altOpen);
+        if (first !== undefined && first !== paired) readImage(raw, k, first);
+      }
+      // An unpaired `]` before `[label]` after an earlier `]` ends the alt text, whatever it held.
+      for (const { bang, labelOpen } of raw.labelAfterImage) {
+        const labelEnd = raw.close[labelOpen];
+        if (labelEnd < 0 || raw.hasInner[labelOpen]) continue;
+        const found = readLabel(labelOpen, labelEnd);
+        if (found >= 0) lateHits.push({ index: bang, end: labelEnd + 1, related: defs[found] });
+      }
     }
-    // An unpaired `]` before `[label]` after an earlier `]` ends the alt text, whatever it held.
-    for (const { bang, labelOpen } of raw.labelAfterImage) {
-      const info = rawReader.labelAt(labelOpen);
-      if (!info || info.blank) continue;
-      const related = lookup(info.keys);
-      if (related) hits.push({ index: bang, end: info.end, related });
+    const runs = backtickRuns(content);
+    const readRendered = (blocks: BlockEvents, html: boolean, linkDestinations: boolean): void => {
+      const info = analyzeBrackets(content, buffers, { blocks, html, linkDestinations, runs });
+      for (let k = 0; k < images.length; k++) {
+        const renderedEnd = info.close[images[k] + 1];
+        if (renderedEnd >= 0) readImage(info, k, renderedEnd);
+      }
+    };
+
+    // Renderers differ: HTML may be on or off, and GFM tables may be on or off. Read the text under each
+    // combination the text can tell apart, and flag an image any of them draws. A reading that would only
+    // repeat the raw one (no code spans, `<`, link destinations or block structure) is skipped.
+    const hasBacktick = runs.size > 0;
+    const hasLink = content.includes('](');
+    // A reading is only worth running when the text holds something that tells it apart from the others.
+    const hasHtmlLike = /<[A-Za-z/!?]/.test(content); // inline HTML, and HTML blocks, for renderers with HTML on
+    const { table: hasTable, mdit: needsMdit, htmlBlock } = blockTriggers(content, hasHtmlLike);
+    const seen: Array<{ html: boolean; blocks: BlockEvents }> = [];
+    const htmlOff: BlockEvents[] = []; // the events with HTML off, by tables and mdit
+    let blanks: number[] | undefined;
+    const blankLines = (): number[] => (blanks ??= blankLineStarts(content));
+    for (const html of hasHtmlLike ? [false, true] : [false]) {
+      for (const tables of hasTable ? [false, true] : [false]) {
+        for (const mdit of needsMdit ? [false, true] : [false]) {
+          // Without a line that starts with `<`, HTML on reads the blocks as HTML off does: reuse them.
+          const slot = (tables ? 2 : 0) + (mdit ? 1 : 0);
+          const blocks = html && !htmlBlock ? htmlOff[slot] : blockEvents(content, { html, tables, mdit }, blankLines);
+          if (!html) htmlOff[slot] = blocks;
+          if (seen.some((v) => v.html === html && sameEvents(v.blocks, blocks))) continue;
+          seen.push({ html, blocks });
+          if (!blocks.plain || hasBacktick || hasHtmlLike || hasLink) readRendered(blocks, html, true);
+        }
+      }
     }
+    // The simpler block model #224 shipped, kept as one more reading so nothing it flagged is lost.
+    const legacy = legacyBlockEvents(content);
+    if (!legacy.plain || hasBacktick || content.includes('<')) {
+      if (hasLink || !seen.some((v) => !v.html && sameEvents(v.blocks, legacy))) readRendered(legacy, false, false);
+    }
+
+    const hits: Array<{ index: number; end: number; related: { index: number; length: number } }> = [];
+    for (let k = 0; k < images.length; k++) if (bestEnd[k] >= 0) hits.push({ index: images[k], end: bestEnd[k], related: defs[bestDef[k]] });
+    for (const hit of lateHits) hits.push(hit);
     if (hits.length === 0) return [];
 
     // Overlapping readings of one image are one finding; flagged images that sit next to each other
