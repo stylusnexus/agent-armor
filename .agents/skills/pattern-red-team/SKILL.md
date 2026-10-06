@@ -19,3 +19,5 @@ The branch or diff, the issue it closes, and the files touched (usually `src/pat
 
 ## Output (under 600 words)
 Bypass table (payload | strictness | result), false-positive table, timings, verdict (ship / do not ship), and the top three fixes ranked. Say what you verified by running code versus what is opinion. If you could not verify something, say so.
+
+Any claim that an input "fails on the old code" (a hang, a slow scan, a bypass) needs the exact input (or the script that builds it) and the commit it fails on. Run it against that commit yourself. If it does not reproduce, report the claim as unverified.
