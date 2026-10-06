@@ -7,6 +7,23 @@ This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor 
 <!-- New entries are generated automatically by release-please from Conventional
 Commit messages on merge to main. Do not edit unreleased entries by hand. -->
 
+## [0.2.22](https://github.com/stylusnexus/agent-armor/compare/v0.2.21...v0.2.22) (2026-10-06)
+
+
+### Fixed
+
+* **normalize:** strip accents and compose marks ([2b572ff](https://github.com/stylusnexus/agent-armor/commit/2b572ff5c0b5836973917422a2db33b1e9166233)), closes [#243](https://github.com/stylusnexus/agent-armor/issues/243)
+
+
+### Performance
+
+* **detectors:** sanitize legacy classes in one pass ([#239](https://github.com/stylusnexus/agent-armor/issues/239)) ([51d9b99](https://github.com/stylusnexus/agent-armor/commit/51d9b99ef197b36dafa8a3d80418801ac297e992))
+
+
+### Documentation
+
+* **readme:** state patterns are English-only ([#240](https://github.com/stylusnexus/agent-armor/issues/240)) ([e462dc5](https://github.com/stylusnexus/agent-armor/commit/e462dc5ae8a24c96d7f9b88d3a0bc97888a1f0d2)), closes [#180](https://github.com/stylusnexus/agent-armor/issues/180)
+
 ## [0.2.21](https://github.com/stylusnexus/agent-armor/compare/v0.2.20...v0.2.21) (2026-10-05)
 
 
