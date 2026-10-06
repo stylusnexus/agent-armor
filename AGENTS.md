@@ -37,6 +37,7 @@ The ML companion package is in `packages/ml/` with its own `npm run build|test|t
 - **Scans fail closed.** Input over `maxInputLength` (default 1,000,000 characters) is not scanned and returns a not-clean result.
 - **Pattern changes need review.** This is security code: have a human review every pattern or matcher change, and an independent adversarial check where you can.
 - **Add benign and adversarial eval samples** for any new detection, in `scripts/eval/samples.ts`.
+- **Every detector gets its own test file** when it is written: `src/__tests__/<detector-id>.test.ts`. Run it alone with `soloDetector(id)` from `src/__tests__/helpers/solo-detector.ts` (add the detector to `SOLO_FLAGS`), so a pass proves that detector fired. Cover its payloads, benign near-misses, sanitize output and `withoutDetector(id)`. `hidden-html.test.ts` shows the shape.
 
 ## Git and releases
 
