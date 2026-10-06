@@ -126,6 +126,12 @@ const isDropped = (cp: number, ch: string): boolean =>
  */
 export const NORMALIZER_VERSION = 2;
 
+/** NFKC composes only inside a group of this many marks or fewer (Unicode's stream-safe limit is 30). */
+const MAX_CLUSTER_MARKS = 30;
+
+/** Whether a mark can follow the code unit `u`: below U+0300 nothing attaches, except the soft hyphen, which is dropped. */
+const canTakeFastPath = (u: number): boolean => u < 0x300 && u !== 0xad;
+
 const COMBINING_MARK = /^\p{M}$/u;
 /** A letter in a script whose accents carry no meaning for matching a phrase (unlike Indic vowel signs or kana marks). */
 const ACCENTED_SCRIPT = /^[\p{Script=Latin}\p{Script=Greek}\p{Script=Cyrillic}]/u;
@@ -135,6 +141,8 @@ const ACCENTED_SCRIPT = /^[\p{Script=Latin}\p{Script=Greek}\p{Script=Cyrillic}]/
  * a Hangul vowel or final jamo that composes with the one before it. NFKC only composes within such a cluster.
  */
 function continuesCluster(base: number, cp: number): boolean {
+  // CJK ideographs and Hangul syllables are never marks; most text in those scripts exits here.
+  if ((cp >= 0x3400 && cp <= 0x9fff) || (cp >= 0xac00 && cp <= 0xd7a3)) return false;
   if (cp >= 0x300) {
     if (cp >= 0xff9e && cp <= 0xff9f) return base >= 0xff66 && base <= 0xff9d;
     if (cp >= 0x1160 && cp <= 0x11a7)
@@ -221,7 +229,7 @@ export function normalizeForScan(content: string): NormalizedText {
     const unitLen = cp > 0xffff ? 2 : 1;
 
     // ASCII passes straight through unless a combining mark follows it (NFKC is identity for ASCII alone).
-    if (cp < 0x80 && (i + 1 >= n || content.charCodeAt(i + 1) < 0x300)) {
+    if (cp < 0x80 && (i + 1 >= n || canTakeFastPath(content.charCodeAt(i + 1)))) {
       map.push(i);
       out.push(content[i]);
       i += 1;
@@ -239,23 +247,35 @@ export function normalizeForScan(content: string): NormalizedText {
     // nothing after them that can attach, and those take the cached path.
     let j = i + unitLen;
     let folded: string;
-    if (j >= n || content.charCodeAt(j) < 0x300) {
+    if (j >= n || canTakeFastPath(content.charCodeAt(j))) {
       folded = foldOne(ch);
     } else {
+      // Marks after ASCII, Latin, Greek and Cyrillic are dropped as they are read, so a long run of them costs
+      // one pass. Other groups are cut at MAX_CLUSTER_MARKS (Unicode's stable-text limit), which keeps
+      // normalization, whose sort is quadratic in a group, linear in the whole text.
+      let accentBase: boolean | undefined;
       let cluster = ch;
+      let marks = 0;
       while (j < n) {
         const next = content.codePointAt(j) ?? 0;
         const nextCh = String.fromCodePoint(next);
+        const nextLen = next > 0xffff ? 2 : 1;
         if (isDropped(next, nextCh)) {
-          j += next > 0xffff ? 2 : 1;
+          j += nextLen;
           continue;
         }
         if (!continuesCluster(cp, next)) break;
-        cluster += nextCh;
-        j += next > 0xffff ? 2 : 1;
+        accentBase ??= cp < 0x80 || ACCENTED_SCRIPT.test(ch.normalize('NFKC'));
+        if (!accentBase) {
+          if (marks >= MAX_CLUSTER_MARKS) break;
+          cluster += nextCh;
+          marks++;
+        }
+        j += nextLen;
       }
-      folded = cluster.length === ch.length ? foldOne(ch) : foldCluster(cluster);
+      folded = accentBase || marks === 0 ? foldOne(ch) : foldCluster(cluster);
     }
+
     for (const c of folded) {
       const skeleton = CONFUSABLES[c] ?? c;
       for (let k = 0; k < skeleton.length; k++) map.push(i);

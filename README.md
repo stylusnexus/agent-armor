@@ -134,13 +134,13 @@ Versions 0.2.1 to 0.2.17 can report a very large input as clean ([GHSA-vr4h-8mw3
 
 ### Eval Suite
 
-238 curated samples (150 adversarial, 88 benign) covering all 12 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
+241 curated samples (152 adversarial, 89 benign) covering all 12 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
 
 | Strictness   | Detection Rate (regex) | False Positive Rate |
 | ------------ | ---------------------- | ------------------- |
-| Permissive   | 90.0%                  | 0.0%                |
-| **Balanced** | **94.0%**              | **0.0%**            |
-| Strict       | 94.0%                  | 0.0%                |
+| Permissive   | 90.1%                  | 0.0%                |
+| **Balanced** | **94.1%**              | **0.0%**            |
+| Strict       | 94.1%                  | 0.0%                |
 
 The 0.0% false-positive figure covers every benign sample except 11 **known false positives** (`acceptedFlagAt` in `scripts/eval/samples.ts`): honest text that quotes an attack or tells an assistant to run a command, such as a security paper quoting an exfiltration instruction. They flag at every strictness, are reported separately by `npm run eval`, and are excluded from the rate. The gate still fails on any other benign sample that flags.
 
@@ -194,8 +194,8 @@ const armor = await AgentArmor.create({
     exfiltrationURLs: true, // Data exfiltration patterns
     privilegeEscalation: true, // Sub-agent spawning triggers
   },
-  // 'permissive' = only high-confidence threats (90.0% detection)
-  // 'balanced'   = recommended default (94.0% detection, 0% FP)
+  // 'permissive' = only high-confidence threats (90.1% detection)
+  // 'balanced'   = recommended default (94.1% detection, 0% FP)
   // 'strict'     = maximum coverage, catches subtle attacks
   strictness: 'balanced',
 
@@ -646,7 +646,7 @@ Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy, plus t
 
 ### In Progress
 
-- **Expanded eval dataset.** 238 samples is a start, not a finish. Integrating larger public datasets ([deepset/prompt-injections](https://huggingface.co/datasets/deepset/prompt-injections) at 662 samples, [Giskard-AI](https://huggingface.co/datasets/Giskard-AI/prompt-injections)) to stress-test detection and false positive rates at scale.
+- **Expanded eval dataset.** 241 samples is a start, not a finish. Integrating larger public datasets ([deepset/prompt-injections](https://huggingface.co/datasets/deepset/prompt-injections) at 662 samples, [Giskard-AI](https://huggingface.co/datasets/Giskard-AI/prompt-injections)) to stress-test detection and false positive rates at scale.
 - **Honeypot/canary system.** Behavioral baseline approach for detecting novel attacks that bypass pattern matching. Measures response distribution drift rather than relying on known signatures.
 - **Pattern update API.** Continuous pattern improvements delivered without requiring an npm upgrade.
 
