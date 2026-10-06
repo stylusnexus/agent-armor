@@ -138,7 +138,9 @@ describe('MLDetector.scanAsync — label mapping', () => {
   const nonBenignLabels = LABELS.filter((l) => l !== 'benign');
 
   it.each(nonBenignLabels)('maps the %s label to its trap type and category', async (label) => {
-    const { detector } = makeDetector(makeLogits({ [label]: logitFor(0.95) } as Record<string, number>));
+    const { detector } = makeDetector(
+      makeLogits({ [label]: logitFor(0.95) } as Record<string, number>),
+    );
     const { threats } = await detector.scanAsync('x', { strictness: 'balanced' });
     expect(threats).toHaveLength(1);
     expect(threats[0].type).toBe(label);

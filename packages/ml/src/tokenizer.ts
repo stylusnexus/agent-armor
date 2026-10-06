@@ -63,7 +63,7 @@ export class Tokenizer {
       throw new AgentArmorModelError(
         'MODEL_NOT_FOUND',
         `Tokenizer file at ${path} is not valid JSON. The model directory is corrupt or incomplete; re-download or point modelDir at a complete set of artifacts.`,
-        err instanceof Error ? err : undefined
+        err instanceof Error ? err : undefined,
       );
     }
 
@@ -75,7 +75,7 @@ export class Tokenizer {
     if (!json.model?.vocab) {
       throw new AgentArmorModelError(
         'MODEL_NOT_FOUND',
-        `Tokenizer file at ${path} is missing "model.vocab". The model directory is corrupt or incomplete; re-download or point modelDir at a complete set of artifacts.`
+        `Tokenizer file at ${path} is missing "model.vocab". The model directory is corrupt or incomplete; re-download or point modelDir at a complete set of artifacts.`,
       );
     }
 

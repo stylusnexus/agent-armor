@@ -4,7 +4,12 @@
  * Extend Agent Armor with domain-specific detection logic.
  * Your detector plugs into the same pipeline as the built-in ones.
  */
-import { AgentArmor, type Detector, type DetectorResult, type DetectorOptions } from '@stylusnexus/agentarmor';
+import {
+  AgentArmor,
+  type Detector,
+  type DetectorResult,
+  type DetectorOptions,
+} from '@stylusnexus/agentarmor';
 
 /**
  * Custom detector that flags content mentioning specific
@@ -42,14 +47,15 @@ const internalNameDetector: Detector = {
   sanitize(content: string, threats): string {
     let result = content;
     // Replace in reverse order to preserve offsets
-    const sorted = [...threats].sort((a, b) =>
-      (b.location?.offset ?? 0) - (a.location?.offset ?? 0)
+    const sorted = [...threats].sort(
+      (a, b) => (b.location?.offset ?? 0) - (a.location?.offset ?? 0),
     );
     for (const threat of sorted) {
       if (threat.location) {
-        result = result.slice(0, threat.location.offset)
-          + '[REDACTED]'
-          + result.slice(threat.location.offset + threat.location.length);
+        result =
+          result.slice(0, threat.location.offset) +
+          '[REDACTED]' +
+          result.slice(threat.location.offset + threat.location.length);
       }
     }
     return result;

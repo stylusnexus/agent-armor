@@ -21,7 +21,14 @@ describe('parseScanArgs', () => {
 
   it('parses --strictness, --format, --fail-on, --ml together', () => {
     const opts = parseScanArgs([
-      'file.md', '--strictness', 'strict', '--format', 'sarif', '--fail-on', 'high', '--ml',
+      'file.md',
+      '--strictness',
+      'strict',
+      '--format',
+      'sarif',
+      '--fail-on',
+      'high',
+      '--ml',
     ]);
     expect(opts.strictness).toBe('strict');
     expect(opts.format).toBe('sarif');

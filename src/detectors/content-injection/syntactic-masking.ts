@@ -88,8 +88,7 @@ export class SyntacticMaskingDetector extends BaseDetector {
         const trimmed = extracted.trim();
         if (trimmed.length < 5) continue;
 
-        const hasInstruction =
-          SyntacticMaskingDetector.INSTRUCTION_SIGNALS.test(trimmed);
+        const hasInstruction = SyntacticMaskingDetector.INSTRUCTION_SIGNALS.test(trimmed);
 
         const confidence = hasInstruction
           ? Math.min(pattern.baseConfidence + 0.35, 1.0)

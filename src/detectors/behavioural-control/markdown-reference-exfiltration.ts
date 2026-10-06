@@ -1,7 +1,13 @@
 import { BaseDetector, type PatternMatch } from '../base';
 import { applyEdits, mergeEdits } from '../../sanitize';
 import { normalizeForScan } from '../../normalize/unicode';
-import { blankLineStarts, blockEvents, blockTriggers, legacyBlockEvents, type BlockEvents } from './markdown-blocks';
+import {
+  blankLineStarts,
+  blockEvents,
+  blockTriggers,
+  legacyBlockEvents,
+  type BlockEvents,
+} from './markdown-blocks';
 import type { TextEdit, Threat, TrapCategory, TrapType } from '../../types';
 
 const KEYWORDS =
@@ -9,7 +15,9 @@ const KEYWORDS =
 
 /** ASCII punctuation, the only characters a backslash escapes. */
 function isAsciiPunctuation(c: number): boolean {
-  return (c >= 33 && c <= 47) || (c >= 58 && c <= 64) || (c >= 91 && c <= 96) || (c >= 123 && c <= 126);
+  return (
+    (c >= 33 && c <= 47) || (c >= 58 && c <= 64) || (c >= 91 && c <= 96) || (c >= 123 && c <= 126)
+  );
 }
 
 /** Whitespace a renderer trims around a destination: JavaScript's own trim set, minus line breaks. */
@@ -30,18 +38,48 @@ const GAP = '[ \\t\\u00a0\\u1680\\u2000-\\u200a\\u202f\\u205f\\u3000\\ufeff]';
  */
 const DEFINITION = new RegExp(
   '^(?:[ \\t>]|[-*+](?=[ \\t])|\\d{1,9}[.)](?=[ \\t]))*\\[((?:[^[\\]\\\\\\r\\n]|\\\\[!-/:-@[-`{-~]|\\\\(?![!-/:-@[-`{-~])|(?:\\r\\n|\\r|\\n)(?![ \\t]*(?:\\r\\n|\\r|\\n|(?![\\s\\S])))){1,})\\]:' +
-    '(?=' + GAP + '*(?:(?:\\r\\n|\\r|\\n)(?:' + GAP + '|>)*)?(<(?:[^>\\\\\\r\\n]|\\\\[^\\r\\n])+>|[^\\s<]\\S*))',
+    '(?=' +
+    GAP +
+    '*(?:(?:\\r\\n|\\r|\\n)(?:' +
+    GAP +
+    '|>)*)?(<(?:[^>\\\\\\r\\n]|\\\\[^\\r\\n])+>|[^\\s<]\\S*))',
   'gm',
 );
 
 /** A destination that sends data out: an http(s) or scheme-relative URL whose query holds a data keyword. */
-const EXFIL_DESTINATION = new RegExp('^<?(?:https?:)?\\/\\/[^\\s>?]*\\?[^\\s>]*?' + KEYWORDS + '\\b', 'i');
+const EXFIL_DESTINATION = new RegExp(
+  '^<?(?:https?:)?\\/\\/[^\\s>?]*\\?[^\\s>]*?' + KEYWORDS + '\\b',
+  'i',
+);
 /** The same inside `<...>`, where a destination may hold spaces (a renderer encodes them). */
-const EXFIL_ANGLE_DESTINATION = new RegExp('^<(?:https?:)?\\/\\/[^>?]*\\?[^>]*?' + KEYWORDS + '\\b', 'i');
+const EXFIL_ANGLE_DESTINATION = new RegExp(
+  '^<(?:https?:)?\\/\\/[^>?]*\\?[^>]*?' + KEYWORDS + '\\b',
+  'i',
+);
 
 const NAMED_ENTITIES: Record<string, string> = {
-  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", quest: '?', colon: ':', sol: '/', bsol: '\\', num: '#', equals: '=',
-  period: '.', comma: ',', semi: ';', excl: '!', lowbar: '_', lpar: '(', rpar: ')', commat: '@', percnt: '%', plus: '+', Tab: '\t',
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  quest: '?',
+  colon: ':',
+  sol: '/',
+  bsol: '\\',
+  num: '#',
+  equals: '=',
+  period: '.',
+  comma: ',',
+  semi: ';',
+  excl: '!',
+  lowbar: '_',
+  lpar: '(',
+  rpar: ')',
+  commat: '@',
+  percnt: '%',
+  plus: '+',
+  Tab: '\t',
 };
 
 /**
@@ -79,7 +117,10 @@ const MERGE_GAP = 100;
 const MARKER = '[BLOCKED: exfiltration instruction removed by AgentArmor]';
 
 /** A line break followed by exactly 1 or 2 block quote markers. */
-const QUOTE_MARKERS: Record<number, RegExp> = { 1: /(?:\r\n|\r|\n)(?: {0,3}> ?){1}/g, 2: /(?:\r\n|\r|\n)(?: {0,3}> ?){2}/g };
+const QUOTE_MARKERS: Record<number, RegExp> = {
+  1: /(?:\r\n|\r|\n)(?: {0,3}> ?){1}/g,
+  2: /(?:\r\n|\r|\n)(?: {0,3}> ?){2}/g,
+};
 
 /**
  * Markdown matches reference labels after trimming, collapsing whitespace runs
@@ -172,7 +213,7 @@ const AUTOLINK =
 /** Every run of backticks, by length, so the closing run of a code span is found without rescanning. Built once per scan. */
 function backtickRuns(content: string): Map<number, number[]> {
   const byLen = new Map<number, number[]>();
-  for (let i = content.indexOf('`'); i !== -1; ) {
+  for (let i = content.indexOf('`'); i !== -1;) {
     let k = 1;
     while (content.charCodeAt(i + k) === 96) k++;
     const list = byLen.get(k);
@@ -184,7 +225,9 @@ function backtickRuns(content: string): Map<number, number[]> {
 }
 
 /** The closing run of a code span, for one pass over the text: `from` only grows, so each list is walked once. */
-function codeSpanCloser(byLen: Map<number, number[]>): (len: number, from: number, stop: number) => number {
+function codeSpanCloser(
+  byLen: Map<number, number[]>,
+): (len: number, from: number, stop: number) => number {
   const cursor = new Map<number, number>();
   /** The first run of exactly `len` backticks that starts at or after `from` and before `stop`, or -1. */
   return (len, from, stop) => {
@@ -199,7 +242,8 @@ function codeSpanCloser(byLen: Map<number, number[]>): (len: number, from: numbe
 
 function sameEvents(a: BlockEvents, b: BlockEvents): boolean {
   if (a.at.length !== b.at.length) return false;
-  for (let i = 0; i < a.at.length; i++) if (a.at[i] !== b.at[i] || a.to[i] !== b.to[i]) return false;
+  for (let i = 0; i < a.at.length; i++)
+    if (a.at[i] !== b.at[i] || a.to[i] !== b.to[i]) return false;
   return true;
 }
 
@@ -209,7 +253,14 @@ const HTML_TAG =
 
 /** Past the spaces, tabs and line breaks at `x`, up to `n`. */
 function skipLinkSpace(content: string, x: number, n: number): number {
-  while (x < n && (content.charCodeAt(x) === 32 || content.charCodeAt(x) === 9 || content.charCodeAt(x) === 10 || content.charCodeAt(x) === 13)) x++;
+  while (
+    x < n &&
+    (content.charCodeAt(x) === 32 ||
+      content.charCodeAt(x) === 9 ||
+      content.charCodeAt(x) === 10 ||
+      content.charCodeAt(x) === 13)
+  )
+    x++;
   return x;
 }
 
@@ -219,7 +270,12 @@ function skipLinkSpace(content: string, x: number, n: number): number {
  * part of the link, so a backtick or bracket in them is not code or a label.
  * Parentheses in the destination nest at most 32 deep, as in the renderers.
  */
-function inlineLinkEnd(content: string, at: number, stop: number, findQuote: (quote: number, from: number) => number): number {
+function inlineLinkEnd(
+  content: string,
+  at: number,
+  stop: number,
+  findQuote: (quote: number, from: number) => number,
+): number {
   const n = Math.min(content.length, stop);
   let x = skipLinkSpace(content, at + 1, n);
   if (x >= n) return -1;
@@ -261,7 +317,10 @@ function inlineLinkEnd(content: string, at: number, stop: number, findQuote: (qu
       close = x + 1;
       while (close < n && content.charCodeAt(close) !== 41) {
         if (content.charCodeAt(close) === 40) return -1;
-        close += content.charCodeAt(close) === 92 && isAsciiPunctuation(content.charCodeAt(close + 1)) ? 2 : 1;
+        close +=
+          content.charCodeAt(close) === 92 && isAsciiPunctuation(content.charCodeAt(close + 1))
+            ? 2
+            : 1;
       }
       if (close >= n) return -1;
     } else {
@@ -367,7 +426,11 @@ interface RendererReading {
  * The result is written into `buffers`, which are `content.length` long and
  * reused from one reading to the next, so the scan holds one reading at a time.
  */
-function analyzeBrackets(content: string, buffers: { close: Int32Array; hasInner: Uint8Array }, renderer?: RendererReading): BracketInfo {
+function analyzeBrackets(
+  content: string,
+  buffers: { close: Int32Array; hasInner: Uint8Array },
+  renderer?: RendererReading,
+): BracketInfo {
   const n = content.length;
   const close = buffers.close.fill(-1);
   const hasInner = buffers.hasInner.fill(0);
@@ -531,7 +594,8 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
     // Images, in text order. Each is read under every reading below; of its readings that flag it, only the
     // longest (the first of equal ones) can change the result, since the others lie inside it and merge away.
     const images: number[] = [];
-    for (let at = content.indexOf('!['); at >= 0; at = content.indexOf('![', at + 1)) images.push(at);
+    for (let at = content.indexOf('!['); at >= 0; at = content.indexOf('![', at + 1))
+      images.push(at);
     if (images.length === 0) return []; // every finding starts at an image's `!`
     const bestEnd = new Int32Array(images.length).fill(-1);
     const bestDef = new Int32Array(images.length);
@@ -572,7 +636,12 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
     const readLabelRendered = makeReadLabel(true);
 
     /** Image `k`, its alt text ending at `altEnd`, read as a full, collapsed or shortcut reference. */
-    const readImage = ({ close, hasInner }: BracketInfo, k: number, altEnd: number, readLabel: (open: number, close: number) => number): void => {
+    const readImage = (
+      { close, hasInner }: BracketInfo,
+      k: number,
+      altEnd: number,
+      readLabel: (open: number, close: number) => number,
+    ): void => {
       const altOpen = images[k] + 1;
       const afterAlt = altEnd + 1;
       const next = content.charCodeAt(afterAlt);
@@ -591,8 +660,15 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
     };
 
     // One reading is held at a time, in these buffers.
-    const buffers = { close: new Int32Array(content.length), hasInner: new Uint8Array(content.length) };
-    const lateHits: Array<{ index: number; end: number; related: { index: number; length: number } }> = [];
+    const buffers = {
+      close: new Int32Array(content.length),
+      hasInner: new Uint8Array(content.length),
+    };
+    const lateHits: Array<{
+      index: number;
+      end: number;
+      related: { index: number; length: number };
+    }> = [];
     {
       const raw = analyzeBrackets(content, buffers);
       for (let k = 0; k < images.length; k++) {
@@ -638,22 +714,30 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
         for (const mdit of needsMdit ? [false, true] : [false]) {
           // Without a line that starts with `<`, HTML on reads the blocks as HTML off does: reuse them.
           const slot = (tables ? 2 : 0) + (mdit ? 1 : 0);
-          const blocks = html && !htmlBlock ? htmlOff[slot] : blockEvents(content, { html, tables, mdit }, blankLines);
+          const blocks =
+            html && !htmlBlock
+              ? htmlOff[slot]
+              : blockEvents(content, { html, tables, mdit }, blankLines);
           if (!html) htmlOff[slot] = blocks;
           if (seen.some((v) => v.html === html && sameEvents(v.blocks, blocks))) continue;
           seen.push({ html, blocks });
-          if (!blocks.plain || hasBacktick || hasHtmlLike || hasLink) readRendered(blocks, html, true);
+          if (!blocks.plain || hasBacktick || hasHtmlLike || hasLink)
+            readRendered(blocks, html, true);
         }
       }
     }
     // The simpler block model #224 shipped, kept as one more reading so nothing it flagged is lost.
     const legacy = legacyBlockEvents(content);
     if (!legacy.plain || hasBacktick || content.includes('<')) {
-      if (hasLink || !seen.some((v) => !v.html && sameEvents(v.blocks, legacy))) readRendered(legacy, false, false);
+      if (hasLink || !seen.some((v) => !v.html && sameEvents(v.blocks, legacy)))
+        readRendered(legacy, false, false);
     }
 
-    const hits: Array<{ index: number; end: number; related: { index: number; length: number } }> = [];
-    for (let k = 0; k < images.length; k++) if (bestEnd[k] >= 0) hits.push({ index: images[k], end: bestEnd[k], related: defs[bestDef[k]] });
+    const hits: Array<{ index: number; end: number; related: { index: number; length: number } }> =
+      [];
+    for (let k = 0; k < images.length; k++)
+      if (bestEnd[k] >= 0)
+        hits.push({ index: images[k], end: bestEnd[k], related: defs[bestDef[k]] });
     for (const hit of lateHits) hits.push(hit);
     if (hits.length === 0) return [];
 
@@ -706,7 +790,8 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
       if (t.relatedLocation) {
         DEFINITION.lastIndex = t.relatedLocation.offset;
         const def = DEFINITION.exec(content);
-        if (def && def.index === t.relatedLocation.offset) for (const key of keysOf(def[1])) labels.add(key);
+        if (def && def.index === t.relatedLocation.offset)
+          for (const key of keysOf(def[1])) labels.add(key);
       }
     }
     if (labels.size === 0) return edits;
@@ -720,7 +805,12 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
     while ((def = DEFINITION.exec(content)) !== null) {
       if (!keysOf(def[1]).some((key) => labels.has(key)) || !sendsDataOut(def[2])) continue;
       const destAt = content.indexOf(def[2], def.index + def[0].length);
-      edits.push({ offset: def.index, length: destAt + def[2].length - def.index, replacement: MARKER, severity: 'critical' });
+      edits.push({
+        offset: def.index,
+        length: destAt + def[2].length - def.index,
+        replacement: MARKER,
+        severity: 'critical',
+      });
     }
     return edits;
   }
@@ -729,4 +819,3 @@ export class MarkdownReferenceExfiltrationDetector extends BaseDetector {
     return applyEdits(content, mergeEdits(this.sanitizeEdits(content, threats), content.length));
   }
 }
-

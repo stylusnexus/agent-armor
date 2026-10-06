@@ -46,7 +46,11 @@ export class PatternDetector extends BaseDetector {
   readonly category: TrapCategory;
   protected readonly trapType: TrapType;
   /** Patterns with their regexes compiled once at construction, not per scan. */
-  private readonly compiled: Array<{ entry: PatternEntry; regex: RegExp; matcher?: PatternMatcher }>;
+  private readonly compiled: Array<{
+    entry: PatternEntry;
+    regex: RegExp;
+    matcher?: PatternMatcher;
+  }>;
   private readonly sanitizeMode: 'remove' | 'replace' | 'none';
   private readonly replaceText?: string;
   private readonly maskEvidence: boolean;
@@ -86,7 +90,9 @@ export class PatternDetector extends BaseDetector {
     const matches: PatternMatch[] = [];
 
     for (const { entry, regex, matcher } of this.compiled) {
-      for (const hit of matcher ? matcher.match(content) : execAll(regex, content, entry.extractGroup ?? 0)) {
+      for (const hit of matcher
+        ? matcher.match(content)
+        : execAll(regex, content, entry.extractGroup ?? 0)) {
         const extracted = hit.extracted ?? hit.text;
         const trimmed = extracted.trim();
 
@@ -131,8 +137,7 @@ export class PatternDetector extends BaseDetector {
 
   sanitizeEdits(_content: string, threats: Threat[]): TextEdit[] {
     if (this.sanitizeMode === 'none') return [];
-    const replacement =
-      this.sanitizeMode === 'replace' && this.replaceText ? this.replaceText : '';
+    const replacement = this.sanitizeMode === 'replace' && this.replaceText ? this.replaceText : '';
     return threats
       .filter((t) => t.location)
       .map((t) => ({
@@ -145,8 +150,7 @@ export class PatternDetector extends BaseDetector {
 
   sanitize(content: string, threats: Threat[]): string {
     if (this.sanitizeMode === 'none') return content;
-    const replacement =
-      this.sanitizeMode === 'replace' && this.replaceText ? this.replaceText : '';
+    const replacement = this.sanitizeMode === 'replace' && this.replaceText ? this.replaceText : '';
     return replaceRanges(
       content,
       threats.flatMap((t) => (t.location ? [t.location] : [])),

@@ -88,7 +88,7 @@ function main(): void {
   if (failed) {
     console.error(
       '\nDoc drift detected. Update the stale doc(s) to match source, or if source' +
-        ' itself changed intentionally, this check picks up the new numbers automatically.'
+        ' itself changed intentionally, this check picks up the new numbers automatically.',
     );
     process.exit(1);
   }
@@ -97,7 +97,7 @@ function main(): void {
   console.log(
     `Docs in sync: ${sampleTotal} samples (${ADVERSARIAL_SAMPLES.length} adversarial /` +
       ` ${BENIGN_SAMPLES.length} benign), pattern v${DEFAULT_PATTERNS.version}` +
-      ` (${patternEntryCount()} entries).`
+      ` (${patternEntryCount()} entries).`,
   );
   process.exit(0);
 }

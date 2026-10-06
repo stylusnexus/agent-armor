@@ -4,7 +4,7 @@ This folder contains **shared planning tracks** managed by [`work-plan`](https:/
 
 Each `.md` file is a planning track: a lightweight document with YAML frontmatter that
 points at GitHub issues and captures session notes. GitHub is canonical for issue state;
-these files are the *planning context* that travels with the code.
+these files are the _planning context_ that travels with the code.
 
 ## Shared vs. private tracks
 

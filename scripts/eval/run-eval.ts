@@ -10,12 +10,7 @@
 
 import { readFileSync } from 'node:fs';
 import { AgentArmor } from '../../src/agent-armor';
-import {
-  ALL_SAMPLES,
-  ADVERSARIAL_SAMPLES,
-  BENIGN_SAMPLES,
-  type EvalSample,
-} from './samples';
+import { ALL_SAMPLES, ADVERSARIAL_SAMPLES, BENIGN_SAMPLES, type EvalSample } from './samples';
 import type { Strictness, TrapType } from '../../src/types';
 
 interface DetectionResult {
@@ -31,37 +26,25 @@ interface DetectionResult {
   acceptedFlag?: 'flagged' | 'clean';
 }
 
-function evaluate(
-  strictness: Strictness
-): { results: DetectionResult[]; summary: Summary } {
+function evaluate(strictness: Strictness): { results: DetectionResult[]; summary: Summary } {
   const armor = new AgentArmor({ strictness });
   const results: DetectionResult[] = [];
 
   for (const sample of ALL_SAMPLES) {
     const scanResult = armor.scanSync(sample.content);
-    const flagged = [
-      ...new Set(scanResult.threats.map((t) => t.type)),
-    ] as TrapType[];
+    const flagged = [...new Set(scanResult.threats.map((t) => t.type))] as TrapType[];
     // A benign sample may list the levels where a flag is a KNOWN, accepted
     // false positive (#161). It is reported separately and not counted in the
     // false-positive rate. Everything else benign must scan clean.
     const accepted =
-      sample.category === 'benign' &&
-      sample.acceptedFlagAt?.includes(strictness) === true;
+      sample.category === 'benign' && sample.acceptedFlagAt?.includes(strictness) === true;
     const detected = accepted ? [] : flagged;
 
-    const truePositives = sample.expected.filter((e) =>
-      detected.includes(e)
-    );
-    const falseNegatives = sample.expected.filter(
-      (e) => !detected.includes(e)
-    );
-    const falsePositives = detected.filter(
-      (d) => !sample.expected.includes(d)
-    );
+    const truePositives = sample.expected.filter((e) => detected.includes(e));
+    const falseNegatives = sample.expected.filter((e) => !detected.includes(e));
+    const falsePositives = detected.filter((d) => !sample.expected.includes(d));
 
-    const correct =
-      falseNegatives.length === 0 && falsePositives.length === 0;
+    const correct = falseNegatives.length === 0 && falsePositives.length === 0;
 
     results.push({
       sample,
@@ -72,11 +55,7 @@ function evaluate(
       correct,
       highestConfidence: scanResult.threats[0]?.confidence ?? 0,
       highestSeverity: scanResult.stats.highestSeverity,
-      acceptedFlag: accepted
-        ? flagged.length > 0
-          ? 'flagged'
-          : 'clean'
-        : undefined,
+      acceptedFlag: accepted ? (flagged.length > 0 ? 'flagged' : 'clean') : undefined,
     });
   }
 
@@ -118,9 +97,7 @@ interface Summary {
 }
 
 function computeSummary(results: DetectionResult[]): Summary {
-  const adversarial = results.filter(
-    (r) => r.sample.category === 'adversarial'
-  );
+  const adversarial = results.filter((r) => r.sample.category === 'adversarial');
   const benign = results.filter((r) => r.sample.category === 'benign');
 
   // Detection rate: what fraction of adversarial samples had at least 1 TP.
@@ -134,24 +111,15 @@ function computeSummary(results: DetectionResult[]): Summary {
   const overallDetectionRate = detected.length / adversarial.length;
 
   // False positive rate: what fraction of benign samples had any detection
-  const falsePositiveBenign = benign.filter(
-    (r) => r.detected.length > 0
-  );
-  const overallFalsePositiveRate =
-    falsePositiveBenign.length / benign.length;
+  const falsePositiveBenign = benign.filter((r) => r.detected.length > 0);
+  const overallFalsePositiveRate = falsePositiveBenign.length / benign.length;
 
   // By trap type category
   const byCategory: Record<string, CategoryStats> = {};
-  const trapTypes = [
-    ...new Set(adversarial.flatMap((r) => r.sample.expected)),
-  ];
+  const trapTypes = [...new Set(adversarial.flatMap((r) => r.sample.expected))];
   for (const trapType of trapTypes) {
-    const relevant = adversarial.filter((r) =>
-      r.sample.expected.includes(trapType)
-    );
-    const found = relevant.filter((r) =>
-      r.truePositives.includes(trapType)
-    );
+    const relevant = adversarial.filter((r) => r.sample.expected.includes(trapType));
+    const found = relevant.filter((r) => r.truePositives.includes(trapType));
     byCategory[trapType] = {
       total: relevant.length,
       detected: found.length,
@@ -163,9 +131,7 @@ function computeSummary(results: DetectionResult[]): Summary {
   // By difficulty
   const byDifficulty: Record<string, CategoryStats> = {};
   for (const diff of ['easy', 'moderate', 'hard'] as const) {
-    const relevant = adversarial.filter(
-      (r) => r.sample.difficulty === diff
-    );
+    const relevant = adversarial.filter((r) => r.sample.difficulty === diff);
     const found = relevant.filter((r) => r.truePositives.length > 0);
     byDifficulty[diff] = {
       total: relevant.length,
@@ -197,12 +163,9 @@ function computeSummary(results: DetectionResult[]): Summary {
   const tpConfidences = adversarial
     .filter((r) => r.truePositives.length > 0)
     .map((r) => r.highestConfidence);
-  const fpConfidences = benign
-    .filter((r) => r.detected.length > 0)
-    .map((r) => r.highestConfidence);
+  const fpConfidences = benign.filter((r) => r.detected.length > 0).map((r) => r.highestConfidence);
 
-  const avg = (arr: number[]) =>
-    arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+  const avg = (arr: number[]) => (arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
 
   return {
     strictness: 'balanced',
@@ -220,9 +183,7 @@ function computeSummary(results: DetectionResult[]): Summary {
     acceptedFalsePositives: results
       .filter((r) => r.acceptedFlag === 'flagged')
       .map((r) => r.sample.id),
-    staleAccepted: results
-      .filter((r) => r.acceptedFlag === 'clean')
-      .map((r) => r.sample.id),
+    staleAccepted: results.filter((r) => r.acceptedFlag === 'clean').map((r) => r.sample.id),
   };
 }
 
@@ -234,23 +195,37 @@ function printReport(summary: Summary): void {
   console.log('  Strictness: ' + summary.strictness);
   console.log('='.repeat(70));
 
-  console.log(`\n  Samples: ${summary.totalSamples} total (${summary.adversarialSamples} adversarial, ${summary.benignSamples} benign)`);
-  console.log(`\n  DETECTION RATE:      ${pct(summary.overallDetectionRate)} (${Math.round(summary.overallDetectionRate * summary.adversarialSamples)}/${summary.adversarialSamples} adversarial samples caught)`);
-  console.log(`  FALSE POSITIVE RATE: ${pct(summary.overallFalsePositiveRate)} (${Math.round(summary.overallFalsePositiveRate * summary.benignSamples)}/${summary.benignSamples} benign samples flagged)`);
+  console.log(
+    `\n  Samples: ${summary.totalSamples} total (${summary.adversarialSamples} adversarial, ${summary.benignSamples} benign)`,
+  );
+  console.log(
+    `\n  DETECTION RATE:      ${pct(summary.overallDetectionRate)} (${Math.round(summary.overallDetectionRate * summary.adversarialSamples)}/${summary.adversarialSamples} adversarial samples caught)`,
+  );
+  console.log(
+    `  FALSE POSITIVE RATE: ${pct(summary.overallFalsePositiveRate)} (${Math.round(summary.overallFalsePositiveRate * summary.benignSamples)}/${summary.benignSamples} benign samples flagged)`,
+  );
 
   console.log('\n  ── By Trap Type ──');
   for (const [type, stats] of Object.entries(summary.byCategory)) {
-    console.log(`  ${type.padEnd(25)} ${pct(stats.rate).padStart(6)}  (${stats.detected}/${stats.total})`);
+    console.log(
+      `  ${type.padEnd(25)} ${pct(stats.rate).padStart(6)}  (${stats.detected}/${stats.total})`,
+    );
   }
 
   console.log('\n  ── By Difficulty ──');
   for (const [diff, stats] of Object.entries(summary.byDifficulty)) {
-    console.log(`  ${diff.padEnd(25)} ${pct(stats.rate).padStart(6)}  (${stats.detected}/${stats.total})`);
+    console.log(
+      `  ${diff.padEnd(25)} ${pct(stats.rate).padStart(6)}  (${stats.detected}/${stats.total})`,
+    );
   }
 
   console.log('\n  ── Confidence Calibration ──');
-  console.log(`  Avg confidence (true positives):  ${summary.avgConfidenceTruePositive.toFixed(3)}`);
-  console.log(`  Avg confidence (false positives): ${summary.avgConfidenceFalsePositive.toFixed(3)}`);
+  console.log(
+    `  Avg confidence (true positives):  ${summary.avgConfidenceTruePositive.toFixed(3)}`,
+  );
+  console.log(
+    `  Avg confidence (false positives): ${summary.avgConfidenceFalsePositive.toFixed(3)}`,
+  );
 
   if (summary.falseNegativeDetails.length > 0) {
     console.log('\n  ── Missed Detections (False Negatives) ──');
@@ -290,7 +265,9 @@ function printReport(summary: Summary): void {
   } else if (dr >= 0.75 && fpr <= 0.2) {
     console.log('  VERDICT: ACCEPTABLE — review false negatives/positives before publish');
   } else {
-    console.log('  VERDICT: NEEDS WORK — detection rate or false positive rate outside acceptable range');
+    console.log(
+      '  VERDICT: NEEDS WORK — detection rate or false positive rate outside acceptable range',
+    );
   }
   console.log('='.repeat(70) + '\n');
 }
@@ -323,10 +300,7 @@ function isRate(v: unknown): v is number {
  * config cannot silently pass the gate by skipping a comparison.
  */
 function loadThresholds(): Thresholds {
-  const raw = readFileSync(
-    new URL('./thresholds.json', import.meta.url),
-    'utf-8'
-  );
+  const raw = readFileSync(new URL('./thresholds.json', import.meta.url), 'utf-8');
   const parsed = JSON.parse(raw) as Record<string, unknown>;
   const out = {} as Thresholds;
   for (const level of STRICTNESS_LEVELS) {
@@ -335,14 +309,10 @@ function loadThresholds(): Thresholds {
       throw new Error(`thresholds.json: missing "${level}" entry`);
     }
     if (!isRate(entry.minDetectionRate)) {
-      throw new Error(
-        `thresholds.json: "${level}.minDetectionRate" must be a number in [0,1]`
-      );
+      throw new Error(`thresholds.json: "${level}.minDetectionRate" must be a number in [0,1]`);
     }
     if (!isRate(entry.maxFalsePositiveRate)) {
-      throw new Error(
-        `thresholds.json: "${level}.maxFalsePositiveRate" must be a number in [0,1]`
-      );
+      throw new Error(`thresholds.json: "${level}.maxFalsePositiveRate" must be a number in [0,1]`);
     }
     out[level] = {
       minDetectionRate: entry.minDetectionRate,
@@ -358,10 +328,7 @@ function loadThresholds(): Thresholds {
  * small epsilon so deterministic 1.0 / 0.0 results are not tripped by
  * representation error.
  */
-function checkGate(
-  summaries: Summary[],
-  thresholds: Thresholds
-): GateFailure[] {
+function checkGate(summaries: Summary[], thresholds: Thresholds): GateFailure[] {
   const EPS = 1e-9;
   const failures: GateFailure[] = [];
   for (const summary of summaries) {
@@ -375,7 +342,7 @@ function checkGate(
     if (summary.adversarialSamples === 0 || summary.benignSamples === 0) {
       throw new Error(
         `empty eval cohort for "${summary.strictness}" ` +
-          `(${summary.adversarialSamples} adversarial, ${summary.benignSamples} benign)`
+          `(${summary.adversarialSamples} adversarial, ${summary.benignSamples} benign)`,
       );
     }
     if (
@@ -418,17 +385,15 @@ function printGateResult(failures: GateFailure[]): void {
   for (const f of failures) {
     if (f.metric === 'detection') {
       console.log(
-        `  [${f.strictness}] detection rate ${pct(f.actual)} below floor ${pct(f.bound)}`
+        `  [${f.strictness}] detection rate ${pct(f.actual)} below floor ${pct(f.bound)}`,
       );
     } else {
       console.log(
-        `  [${f.strictness}] false-positive rate ${pct(f.actual)} above ceiling ${pct(f.bound)}`
+        `  [${f.strictness}] false-positive rate ${pct(f.actual)} above ceiling ${pct(f.bound)}`,
       );
     }
   }
-  console.log(
-    '\n  If this drop is intentional, edit scripts/eval/thresholds.json in'
-  );
+  console.log('\n  If this drop is intentional, edit scripts/eval/thresholds.json in');
   console.log('  this same PR so the trade-off is reviewed alongside the change.');
   console.log('='.repeat(70) + '\n');
 }

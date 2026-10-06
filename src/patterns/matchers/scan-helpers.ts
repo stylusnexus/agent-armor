@@ -68,7 +68,10 @@ export function literalFinder(content: string, needle: string): (from: number) =
 /** `[A-Za-z0-9_]`, the regex word characters. */
 export function isWordChar(code: number): boolean {
   return (
-    (code >= 48 && code <= 57) || (code >= 65 && code <= 90) || (code >= 97 && code <= 122) || code === 95
+    (code >= 48 && code <= 57) ||
+    (code >= 65 && code <= 90) ||
+    (code >= 97 && code <= 122) ||
+    code === 95
   );
 }
 
@@ -109,7 +112,8 @@ export class PositionIndex {
     for (let i = 0; i < content.length; i++) if (test(content.charCodeAt(i))) count++;
     this.positions = new Int32Array(count);
     let k = 0;
-    for (let i = 0; i < content.length; i++) if (test(content.charCodeAt(i))) this.positions[k++] = i;
+    for (let i = 0; i < content.length; i++)
+      if (test(content.charCodeAt(i))) this.positions[k++] = i;
   }
 
   /** First indexed position at or after `from`, or -1. */

@@ -75,8 +75,7 @@ export class MetadataInjectionDetector extends BaseDetector {
         const trimmed = extracted.trim();
         if (trimmed.length < 10) continue;
 
-        const hasInstruction =
-          MetadataInjectionDetector.INSTRUCTION_SIGNALS.test(trimmed);
+        const hasInstruction = MetadataInjectionDetector.INSTRUCTION_SIGNALS.test(trimmed);
 
         const confidence = hasInstruction
           ? Math.min(pattern.baseConfidence + 0.4, 1.0)

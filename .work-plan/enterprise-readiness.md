@@ -17,6 +17,7 @@ next_up:
   - 38
 blockers: []
 ---
+
 # Enterprise Readiness
 
 Enterprise/observability surface: extensible diagnostics + audit-evidence records, compliance control mapping (SOC2/ISO crosswalk)
@@ -25,12 +26,11 @@ Reprioritized P3 → P1 on 2026-07-07: #24 is the most actively-discussed open i
 
 ## Issues
 
-| # | Title | Assignee | Status |
-|---|---|---|---|
-| #24 | feat: extensible diagnostics/event system (warn, error, detectorSkipped) | — | ✅ Shipped |
-| #38 | Compliance control mapping (SOC 2 / ISO 27001 crosswalk) — deferred | — | 🔲 Open |
-| #75 | feat: audit-evidence records (AuditRecord + evidence-package aggregation) | — | ✅ Shipped |
-
+| #   | Title                                                                     | Assignee | Status     |
+| --- | ------------------------------------------------------------------------- | -------- | ---------- |
+| #24 | feat: extensible diagnostics/event system (warn, error, detectorSkipped)  | —        | ✅ Shipped |
+| #38 | Compliance control mapping (SOC 2 / ISO 27001 crosswalk) — deferred       | —        | 🔲 Open    |
+| #75 | feat: audit-evidence records (AuditRecord + evidence-package aggregation) | —        | ✅ Shipped |
 
 ## Session log
 

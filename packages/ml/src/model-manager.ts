@@ -102,10 +102,7 @@ export async function resolveModel(config: MLConfigLike = {}): Promise<ModelArti
  * Acquire a lock file, download all model files, verify checksum, then release the lock.
  * If another process holds the lock, wait for it.
  */
-export async function downloadWithLock(
-  cacheDir: string,
-  config: MLConfigLike,
-): Promise<void> {
+export async function downloadWithLock(cacheDir: string, config: MLConfigLike): Promise<void> {
   const lockPath = join(cacheDir, 'model.onnx.lock');
 
   let lockFd;
@@ -198,13 +195,20 @@ export async function downloadFile(
         const makeRequest = (requestUrl: string, redirectCount = 0): void => {
           if (redirectCount > 5) {
             clearTimeout(timer);
-            reject(new AgentArmorModelError('DOWNLOAD_FAILED', `Too many redirects for ${filename}`));
+            reject(
+              new AgentArmorModelError('DOWNLOAD_FAILED', `Too many redirects for ${filename}`),
+            );
             return;
           }
 
           const protocol = requestUrl.startsWith('https') ? httpsGet : httpsGet;
           const req = protocol(requestUrl, (res) => {
-            if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+            if (
+              res.statusCode &&
+              res.statusCode >= 300 &&
+              res.statusCode < 400 &&
+              res.headers.location
+            ) {
               makeRequest(res.headers.location, redirectCount + 1);
               return;
             }
@@ -247,7 +251,11 @@ export async function downloadFile(
               .catch((pipeErr) => {
                 clearTimeout(timer);
                 reject(
-                  new AgentArmorModelError('DOWNLOAD_FAILED', `Failed to write ${filename}`, pipeErr),
+                  new AgentArmorModelError(
+                    'DOWNLOAD_FAILED',
+                    `Failed to write ${filename}`,
+                    pipeErr,
+                  ),
                 );
               });
           });
@@ -255,7 +263,11 @@ export async function downloadFile(
           req.on('error', (reqErr) => {
             clearTimeout(timer);
             reject(
-              new AgentArmorModelError('DOWNLOAD_FAILED', `Network error downloading ${filename}`, reqErr),
+              new AgentArmorModelError(
+                'DOWNLOAD_FAILED',
+                `Network error downloading ${filename}`,
+                reqErr,
+              ),
             );
           });
         };

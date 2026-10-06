@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { replaceRanges } from '../sanitize';
-import { HiddenHTMLDetector, MetadataInjectionDetector, SyntacticMaskingDetector } from '../detectors/content-injection';
-import { ExfiltrationDetector, JailbreakPatternDetector, SubAgentSpawningDetector } from '../detectors/behavioural-control';
+import {
+  HiddenHTMLDetector,
+  MetadataInjectionDetector,
+  SyntacticMaskingDetector,
+} from '../detectors/content-injection';
+import {
+  ExfiltrationDetector,
+  JailbreakPatternDetector,
+  SubAgentSpawningDetector,
+} from '../detectors/behavioural-control';
 import type { Detector, Threat } from '../types';
 
 /**
@@ -11,7 +19,11 @@ import type { Detector, Threat } from '../types';
  */
 type Range = { offset: number; length: number };
 
-function rebuildPerEdit(content: string, ranges: Range[], replacementFor: (original: string) => string): string {
+function rebuildPerEdit(
+  content: string,
+  ranges: Range[],
+  replacementFor: (original: string) => string,
+): string {
   let result = content;
   const sorted = [...ranges].sort((a, b) => b.offset - a.offset);
   for (const { offset, length } of sorted) {
@@ -38,14 +50,28 @@ function rng(seed: number): () => number {
 
 /** Random text, and random ranges inside it that never overlap (they may touch, or be empty). */
 function randomCase(rand: () => number): { content: string; ranges: Range[] } {
-  const pieces = ['<!-- x -->', '<div hidden="true">', 'data-x="y"', 'ignore all', 'abc', ' ', '\n', '=\'q\'', 'é', '😀'];
+  const pieces = [
+    '<!-- x -->',
+    '<div hidden="true">',
+    'data-x="y"',
+    'ignore all',
+    'abc',
+    ' ',
+    '\n',
+    "='q'",
+    'é',
+    '😀',
+  ];
   let content = '';
-  for (let n = Math.floor(rand() * 40); n > 0; n--) content += pieces[Math.floor(rand() * pieces.length)];
+  for (let n = Math.floor(rand() * 40); n > 0; n--)
+    content += pieces[Math.floor(rand() * pieces.length)];
   const cuts: number[] = [];
-  for (let n = Math.floor(rand() * 12) * 2; n > 0; n--) cuts.push(Math.floor(rand() * (content.length + 1)));
+  for (let n = Math.floor(rand() * 12) * 2; n > 0; n--)
+    cuts.push(Math.floor(rand() * (content.length + 1)));
   cuts.sort((a, b) => a - b);
   const ranges: Range[] = [];
-  for (let i = 0; i + 1 < cuts.length; i += 2) ranges.push({ offset: cuts[i], length: cuts[i + 1] - cuts[i] });
+  for (let i = 0; i + 1 < cuts.length; i += 2)
+    ranges.push({ offset: cuts[i], length: cuts[i + 1] - cuts[i] });
   // Shuffle: the order the threats arrive in must not matter.
   for (let i = ranges.length - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));
@@ -62,13 +88,26 @@ function replacementOf(detector: Detector): string {
 const classes: Array<[string, Detector, (original: string) => string]> = [
   ['HiddenHTMLDetector', new HiddenHTMLDetector(), () => ''],
   ['SyntacticMaskingDetector', new SyntacticMaskingDetector(), () => ''],
-  ['JailbreakPatternDetector', new JailbreakPatternDetector(), () => replacementOf(new JailbreakPatternDetector())],
-  ['ExfiltrationDetector', new ExfiltrationDetector(), () => replacementOf(new ExfiltrationDetector())],
-  ['SubAgentSpawningDetector', new SubAgentSpawningDetector(), () => replacementOf(new SubAgentSpawningDetector())],
+  [
+    'JailbreakPatternDetector',
+    new JailbreakPatternDetector(),
+    () => replacementOf(new JailbreakPatternDetector()),
+  ],
+  [
+    'ExfiltrationDetector',
+    new ExfiltrationDetector(),
+    () => replacementOf(new ExfiltrationDetector()),
+  ],
+  [
+    'SubAgentSpawningDetector',
+    new SubAgentSpawningDetector(),
+    () => replacementOf(new SubAgentSpawningDetector()),
+  ],
   [
     'MetadataInjectionDetector',
     new MetadataInjectionDetector(),
-    (original) => (original.startsWith('<!--') ? '' : original.replace(/=\s*["'][^"']*["']/, '=""')),
+    (original) =>
+      original.startsWith('<!--') ? '' : original.replace(/=\s*["'][^"']*["']/, '=""'),
   ],
 ];
 
@@ -77,7 +116,9 @@ describe.each(classes)('%s sanitize (#170)', (_name, detector, replacementFor) =
     const rand = rng(170);
     for (let n = 0; n < 3000; n++) {
       const { content, ranges } = randomCase(rand);
-      expect(detector.sanitize(content, threatsFor(ranges))).toBe(rebuildPerEdit(content, ranges, replacementFor));
+      expect(detector.sanitize(content, threatsFor(ranges))).toBe(
+        rebuildPerEdit(content, ranges, replacementFor),
+      );
     }
   });
 
@@ -91,7 +132,8 @@ describe.each(classes)('%s sanitize (#170)', (_name, detector, replacementFor) =
     const content = unit.repeat(65_536); // 1,048,576 characters, 65,536 findings
     const ranges: Range[] = [];
     for (let at = 3; at + 10 <= content.length; at += 16) ranges.push({ offset: at, length: 10 });
-    for (let at = 0; ranges.length < 100_000 && at + 2 <= content.length; at += 16) ranges.push({ offset: at, length: 0 });
+    for (let at = 0; ranges.length < 100_000 && at + 2 <= content.length; at += 16)
+      ranges.push({ offset: at, length: 0 });
     const threats = threatsFor(ranges);
     const start = performance.now();
     const out = detector.sanitize(content, threats);
@@ -103,11 +145,29 @@ describe.each(classes)('%s sanitize (#170)', (_name, detector, replacementFor) =
 describe('replaceRanges', () => {
   it('removes with an empty replacement and replaces with a string', () => {
     expect(replaceRanges('abcdef', [{ offset: 1, length: 2 }], '')).toBe('adef');
-    expect(replaceRanges('abcdef', [{ offset: 1, length: 2 }, { offset: 4, length: 1 }], '#')).toBe('a#d#f');
+    expect(
+      replaceRanges(
+        'abcdef',
+        [
+          { offset: 1, length: 2 },
+          { offset: 4, length: 1 },
+        ],
+        '#',
+      ),
+    ).toBe('a#d#f');
   });
 
   it('passes the original text of each range to a replacement function', () => {
-    expect(replaceRanges('xaybz', [{ offset: 1, length: 1 }, { offset: 3, length: 1 }], (s) => s.toUpperCase())).toBe('xAyBz');
+    expect(
+      replaceRanges(
+        'xaybz',
+        [
+          { offset: 1, length: 1 },
+          { offset: 3, length: 1 },
+        ],
+        (s) => s.toUpperCase(),
+      ),
+    ).toBe('xAyBz');
   });
 
   it('appends instead of landing inside inserted text when an offset is past the end', () => {

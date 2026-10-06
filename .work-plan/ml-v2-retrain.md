@@ -20,19 +20,19 @@ next_up:
   - 25
 blockers: []
 ---
+
 # ML v2 Retrain
 
 Next model retrain: data requirements, transport-integrity training samples, eval-gated external-feed ingestion
 
 ## Issues
 
-| # | Title | Assignee | Status |
-|---|---|---|---|
-| #25 | ML v2: data requirements for next model retrain | — | 🔲 Open |
-| #32 | ML v2: Add transport-integrity attack samples to training data | — | 🔲 Open (blocked on #26) |
-| #40 | Eval-gated external-feed ingestion (patterns + ML training data) | — | 🔲 Open |
-| #71 | ci(ml): scheduled integrity check of MODEL_CHECKSUM against the HuggingFace artifact | — | 🔲 Open |
-
+| #   | Title                                                                                | Assignee | Status                   |
+| --- | ------------------------------------------------------------------------------------ | -------- | ------------------------ |
+| #25 | ML v2: data requirements for next model retrain                                      | —        | 🔲 Open                  |
+| #32 | ML v2: Add transport-integrity attack samples to training data                       | —        | 🔲 Open (blocked on #26) |
+| #40 | Eval-gated external-feed ingestion (patterns + ML training data)                     | —        | 🔲 Open                  |
+| #71 | ci(ml): scheduled integrity check of MODEL_CHECKSUM against the HuggingFace artifact | —        | 🔲 Open                  |
 
 ## Session log
 

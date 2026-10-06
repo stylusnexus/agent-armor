@@ -120,5 +120,5 @@ console.log(`  Clean:                ${clean}`);
 console.log(`  Threats caught:       ${blocked}`);
 console.log(
   `\n  Without Agent Armor, ${blocked} malicious tool output(s) would have been ` +
-    'fed directly into the agent context.'
+    'fed directly into the agent context.',
 );

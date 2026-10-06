@@ -28,9 +28,10 @@ results.forEach((result, i) => {
     safeChunks.push(retrievedChunks[i]);
   } else {
     blockedChunks.push(retrievedChunks[i]);
-    console.warn(`Blocked chunk ${i}:`, result.threats.map(t =>
-      `${t.type} (${t.source}, confidence: ${t.confidence.toFixed(2)})`
-    ));
+    console.warn(
+      `Blocked chunk ${i}:`,
+      result.threats.map((t) => `${t.type} (${t.source}, confidence: ${t.confidence.toFixed(2)})`),
+    );
   }
 });
 

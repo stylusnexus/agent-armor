@@ -18,7 +18,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
     'hidden-html': [
       {
         id: 'hh-display-none',
-        regex: '<[^>]+style\\s*=\\s*["\'][^"\']*display\\s*:\\s*none[^"\']*["\'][^>]*>([\\s\\S]*?)<\\/[^>]+>',
+        regex:
+          '<[^>]+style\\s*=\\s*["\'][^"\']*display\\s*:\\s*none[^"\']*["\'][^>]*>([\\s\\S]*?)<\\/[^>]+>',
         flags: 'gi',
         category: 'content-injection',
         type: 'hidden-html',
@@ -32,7 +33,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'hh-visibility-hidden',
-        regex: '<[^>]+style\\s*=\\s*["\'][^"\']*visibility\\s*:\\s*hidden[^"\']*["\'][^>]*>([\\s\\S]*?)<\\/[^>]+>',
+        regex:
+          '<[^>]+style\\s*=\\s*["\'][^"\']*visibility\\s*:\\s*hidden[^"\']*["\'][^>]*>([\\s\\S]*?)<\\/[^>]+>',
         flags: 'gi',
         category: 'content-injection',
         type: 'hidden-html',
@@ -46,7 +48,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'hh-offscreen',
-        regex: '<[^>]+style\\s*=\\s*["\'][^"\']*(?:left|top|right|bottom)\\s*:\\s*-\\d{3,}px[^"\']*["\'][^>]*>([\\s\\S]*?)<\\/[^>]+>',
+        regex:
+          '<[^>]+style\\s*=\\s*["\'][^"\']*(?:left|top|right|bottom)\\s*:\\s*-\\d{3,}px[^"\']*["\'][^>]*>([\\s\\S]*?)<\\/[^>]+>',
         flags: 'gi',
         category: 'content-injection',
         type: 'hidden-html',
@@ -60,7 +63,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'hh-zero-size',
-        regex: '<[^>]+style\\s*=\\s*["\'][^"\']*(?:font-size\\s*:\\s*0|width\\s*:\\s*0|height\\s*:\\s*0)[^"\']*["\'][^>]*>([\\s\\S]*?)<\\/[^>]+>',
+        regex:
+          '<[^>]+style\\s*=\\s*["\'][^"\']*(?:font-size\\s*:\\s*0|width\\s*:\\s*0|height\\s*:\\s*0)[^"\']*["\'][^>]*>([\\s\\S]*?)<\\/[^>]+>',
         flags: 'gi',
         category: 'content-injection',
         type: 'hidden-html',
@@ -74,7 +78,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'hh-opacity-zero',
-        regex: '<[^>]+style\\s*=\\s*["\'][^"\']*opacity\\s*:\\s*0[^"\']*["\'][^>]*>([\\s\\S]*?)<\\/[^>]+>',
+        regex:
+          '<[^>]+style\\s*=\\s*["\'][^"\']*opacity\\s*:\\s*0[^"\']*["\'][^>]*>([\\s\\S]*?)<\\/[^>]+>',
         flags: 'gi',
         category: 'content-injection',
         type: 'hidden-html',
@@ -88,7 +93,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'hh-color-transparent',
-        regex: '<[^>]+style\\s*=\\s*["\'][^"\']*color\\s*:\\s*(?:transparent|rgba?\\([^)]*,\\s*0\\s*\\))[^"\']*["\'][^>]*>([\\s\\S]*?)<\\/[^>]+>',
+        regex:
+          '<[^>]+style\\s*=\\s*["\'][^"\']*color\\s*:\\s*(?:transparent|rgba?\\([^)]*,\\s*0\\s*\\))[^"\']*["\'][^>]*>([\\s\\S]*?)<\\/[^>]+>',
         flags: 'gi',
         category: 'content-injection',
         type: 'hidden-html',
@@ -102,7 +108,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'hh-overflow-micro',
-        regex: '<[^>]+style\\s*=\\s*["\'][^"\']*overflow\\s*:\\s*hidden[^"\']*(?:max-height|max-width)\\s*:\\s*[01]px[^"\']*["\'][^>]*>([\\s\\S]*?)<\\/[^>]+>',
+        regex:
+          '<[^>]+style\\s*=\\s*["\'][^"\']*overflow\\s*:\\s*hidden[^"\']*(?:max-height|max-width)\\s*:\\s*[01]px[^"\']*["\'][^>]*>([\\s\\S]*?)<\\/[^>]+>',
         flags: 'gi',
         category: 'content-injection',
         type: 'hidden-html',
@@ -118,7 +125,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
     'metadata-injection': [
       {
         id: 'mi-markdown-comment',
-        regex: '\\[//\\]:\\s*#\\s*\\([^)]*(?:INSTRUCTION|SYSTEM|OVERRIDE|ignore|disregard|read\\s+(?:the|all)|send\\s+(?:the|all)|forward|exfiltrat|encode|extract)[^)]*\\)',
+        regex:
+          '\\[//\\]:\\s*#\\s*\\([^)]*(?:INSTRUCTION|SYSTEM|OVERRIDE|ignore|disregard|read\\s+(?:the|all)|send\\s+(?:the|all)|forward|exfiltrat|encode|extract)[^)]*\\)',
         flags: 'gi',
         category: 'content-injection',
         type: 'metadata-injection',
@@ -128,7 +136,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'mi-bracket-command',
-        regex: '\\[(?:AI|SYSTEM|ASSISTANT|INSTRUCTION|MEMORY|ADMIN)(?:[\\s_](?:SYSTEM|OVERRIDE|INSTRUCTION|COMMAND|UPDATE|NOTE|MEMORY)){1,2}[:\\s]([^\\]]{20,})\\]',
+        regex:
+          '\\[(?:AI|SYSTEM|ASSISTANT|INSTRUCTION|MEMORY|ADMIN)(?:[\\s_](?:SYSTEM|OVERRIDE|INSTRUCTION|COMMAND|UPDATE|NOTE|MEMORY)){1,2}[:\\s]([^\\]]{20,})\\]',
         flags: 'gi',
         category: 'content-injection',
         type: 'metadata-injection',
@@ -206,7 +215,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
     'dynamic-cloaking': [
       {
         id: 'dc-useragent-bot',
-        regex: '(?:navigator\\.userAgent|user[\\s_-]?agent)[\\s\\S]{0,100}(?:bot|crawl|spider|scrape|headless|phantom|puppeteer|playwright|selenium|webdriver)',
+        regex:
+          '(?:navigator\\.userAgent|user[\\s_-]?agent)[\\s\\S]{0,100}(?:bot|crawl|spider|scrape|headless|phantom|puppeteer|playwright|selenium|webdriver)',
         flags: 'gi',
         category: 'content-injection',
         type: 'dynamic-cloaking',
@@ -216,7 +226,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'dc-webdriver',
-        regex: '(?:navigator\\.webdriver|window\\.webdriver|__selenium|__webdriver|callPhantom|_phantom|phantom\\.callback)',
+        regex:
+          '(?:navigator\\.webdriver|window\\.webdriver|__selenium|__webdriver|callPhantom|_phantom|phantom\\.callback)',
         flags: 'gi',
         category: 'content-injection',
         type: 'dynamic-cloaking',
@@ -226,7 +237,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'dc-conditional-bot',
-        regex: 'if\\s*\\([^)]*(?:isBot|is_bot|isRobot|isCrawler|isAgent|isAutomated)[^)]*\\)\\s*\\{[\\s\\S]{0,500}\\}',
+        regex:
+          'if\\s*\\([^)]*(?:isBot|is_bot|isRobot|isCrawler|isAgent|isAutomated)[^)]*\\)\\s*\\{[\\s\\S]{0,500}\\}',
         flags: 'gi',
         category: 'content-injection',
         type: 'dynamic-cloaking',
@@ -236,7 +248,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'dc-headless-fingerprint',
-        regex: '(?:window\\.chrome\\s*&&\\s*!window\\.chrome\\.runtime|navigator\\.languages\\.length\\s*===\\s*0|!navigator\\.plugins\\.length)',
+        regex:
+          '(?:window\\.chrome\\s*&&\\s*!window\\.chrome\\.runtime|navigator\\.languages\\.length\\s*===\\s*0|!navigator\\.plugins\\.length)',
         flags: 'gi',
         category: 'content-injection',
         type: 'dynamic-cloaking',
@@ -352,7 +365,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
     'jailbreak-patterns': [
       {
         id: 'jb-instruction-override',
-        regex: '(?:ignore|disregard|forget)\\s+(?:all\\s+)?(?:previous|prior|above|earlier|your)\\s+(?:instructions?|rules?|guidelines?|constraints?|directives?|(?:prompt|system|conversation|chat|user)\\s+(?:messages?|prompts?))',
+        regex:
+          '(?:ignore|disregard|forget)\\s+(?:all\\s+)?(?:previous|prior|above|earlier|your)\\s+(?:instructions?|rules?|guidelines?|constraints?|directives?|(?:prompt|system|conversation|chat|user)\\s+(?:messages?|prompts?))',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'embedded-jailbreak',
@@ -393,7 +407,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'jb-role-assignment',
-        regex: '(?:you are now|from now on you|act as|pretend (?:to be|you are)|roleplay as|imagine you are)\\s+(?:an?\\s+)?(?:unrestricted|unfiltered|uncensored|jailbroken|DAN|evil|unethical)',
+        regex:
+          '(?:you are now|from now on you|act as|pretend (?:to be|you are)|roleplay as|imagine you are)\\s+(?:an?\\s+)?(?:unrestricted|unfiltered|uncensored|jailbroken|DAN|evil|unethical)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'embedded-jailbreak',
@@ -403,7 +418,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'jb-educational-bypass',
-        regex: '(?:for\\s+(?:educational|research|academic|security)\\s+purposes?\\s+only|this\\s+is\\s+(?:a|an)\\s+(?:hypothetical|thought\\s+experiment|simulation|red[\\s-]?team))',
+        regex:
+          '(?:for\\s+(?:educational|research|academic|security)\\s+purposes?\\s+only|this\\s+is\\s+(?:a|an)\\s+(?:hypothetical|thought\\s+experiment|simulation|red[\\s-]?team))',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'embedded-jailbreak',
@@ -424,7 +440,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'jb-fictional-bypass',
-        regex: '(?:in\\s+(?:this|a)\\s+(?:fictional|alternate|hypothetical)\\s+(?:world|universe|scenario|reality))\\s*[,.]?\\s*(?:you|there\\s+are\\s+no|all\\s+restrictions)',
+        regex:
+          '(?:in\\s+(?:this|a)\\s+(?:fictional|alternate|hypothetical)\\s+(?:world|universe|scenario|reality))\\s*[,.]?\\s*(?:you|there\\s+are\\s+no|all\\s+restrictions)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'embedded-jailbreak',
@@ -434,7 +451,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'jb-dev-mode',
-        regex: '(?:developer|admin|debug|maintenance|root|sudo|superuser|override)\\s+mode\\s+(?:enabled|activated|on|initiated)',
+        regex:
+          '(?:developer|admin|debug|maintenance|root|sudo|superuser|override)\\s+mode\\s+(?:enabled|activated|on|initiated)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'embedded-jailbreak',
@@ -444,7 +462,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'jb-context-reset',
-        regex: '(?:new\\s+conversation|reset\\s+context|clear\\s+(?:all\\s+)?(?:previous|prior)\\s+(?:context|messages|history))',
+        regex:
+          '(?:new\\s+conversation|reset\\s+context|clear\\s+(?:all\\s+)?(?:previous|prior)\\s+(?:context|messages|history))',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'embedded-jailbreak',
@@ -454,7 +473,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'jb-fictional-world-loose',
-        regex: '(?:fictional|hypothetical|alternate|imaginary)\\s+(?:world|universe|scenario|reality)[\\s\\S]{0,100}(?:no\\s+(?:rules|restrictions|limits|constraints)|freely|without\\s+(?:restrictions?|limits?|constraints?))',
+        regex:
+          '(?:fictional|hypothetical|alternate|imaginary)\\s+(?:world|universe|scenario|reality)[\\s\\S]{0,100}(?:no\\s+(?:rules|restrictions|limits|constraints)|freely|without\\s+(?:restrictions?|limits?|constraints?))',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'embedded-jailbreak',
@@ -474,7 +494,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // requireInstructions: that gate tests only the matched text, which
         // here stops at the command and misses "don't tell the user".
         id: 'jb-agent-directed-command',
-        regex: '(?:(?:note|message|instructions?)\\s+(?:to|for)\\s+(?:the\\s+)?(?:ai|agent|assistant|model|llm)\\b|(?:^|[.:!?>\\n\\-*+\\u2022]\\s*|[\\s=](?=[\\"\x27\\u201C\\u2018`\\u00AB\\u2039\\u201E\\u201A*_]))[*_\\"\x27\\u201C\\u2018`\\u00AB\\u2039\\u201E\\u201A]{0,3}(?:(?:dear|hey|hi|hello|thanks)(?:\\s+there)?[\\s,]+)?(?:ai[\\s\\-\\u2010-\\u2015]+)?(?:assistants?|agents?|claude(?:\\s+code)?|chatgpt|gemini(?:\\s+cli)?|(?:github\\s+)?copilot)[*_\\"\x27\\u201D\\u2019\\u00BB\\u203A`]{0,3}\\s*[,:]|as\\s+(?:the|an?)\\s+(?:ai|agent|assistant|llm)\\b[^.\\n]{0,40},|when\\s+you\\s+(?:read|see|process|parse)\\s+(?:this|the\\s+(?:above|following)))[\\s\\S]{0,200}?\\b(?:run|execute|exec|invoke|launch|pipe)\\b[\\s\\S]{0,60}?(?:\\b(?:curl|wget|bash|sudo|powershell|eval|nc|netcat)\\b|\\bsh\\b|\\brm\\s+-|chmod\\s+\\+x|(?:installer|script|payload|binary)\\s+(?:at|from)\\s+https?:\\/\\/)',
+        regex:
+          '(?:(?:note|message|instructions?)\\s+(?:to|for)\\s+(?:the\\s+)?(?:ai|agent|assistant|model|llm)\\b|(?:^|[.:!?>\\n\\-*+\\u2022]\\s*|[\\s=](?=[\\"\x27\\u201C\\u2018`\\u00AB\\u2039\\u201E\\u201A*_]))[*_\\"\x27\\u201C\\u2018`\\u00AB\\u2039\\u201E\\u201A]{0,3}(?:(?:dear|hey|hi|hello|thanks)(?:\\s+there)?[\\s,]+)?(?:ai[\\s\\-\\u2010-\\u2015]+)?(?:assistants?|agents?|claude(?:\\s+code)?|chatgpt|gemini(?:\\s+cli)?|(?:github\\s+)?copilot)[*_\\"\x27\\u201D\\u2019\\u00BB\\u203A`]{0,3}\\s*[,:]|as\\s+(?:the|an?)\\s+(?:ai|agent|assistant|llm)\\b[^.\\n]{0,40},|when\\s+you\\s+(?:read|see|process|parse)\\s+(?:this|the\\s+(?:above|following)))[\\s\\S]{0,200}?\\b(?:run|execute|exec|invoke|launch|pipe)\\b[\\s\\S]{0,60}?(?:\\b(?:curl|wget|bash|sudo|powershell|eval|nc|netcat)\\b|\\bsh\\b|\\brm\\s+-|chmod\\s+\\+x|(?:installer|script|payload|binary)\\s+(?:at|from)\\s+https?:\\/\\/)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'embedded-jailbreak',
@@ -485,7 +506,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'jb-stop-following-user',
-        regex: '\\bstop\\s+(?:following|obeying)\\s+(?:the\\s+)?users?[\x27’]?s?\\s+(?:instructions?|requests?|commands?|orders?|directions?)\\b|\\bstop\\s+obeying\\s+(?:the\\s+)?users?\\b',
+        regex:
+          '\\bstop\\s+(?:following|obeying)\\s+(?:the\\s+)?users?[\x27’]?s?\\s+(?:instructions?|requests?|commands?|orders?|directions?)\\b|\\bstop\\s+obeying\\s+(?:the\\s+)?users?\\b',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'embedded-jailbreak',
@@ -495,7 +517,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'jb-important-message-template',
-        regex: '\\bimportant\\s+message\\s+from\\s+me\\b[\\s\\S]{0,100}?\\bbefore\\s+you\\s+can\\s+(?:solve|complete|finish|do)\\s+(?:the|your|my)\\s+task\\b',
+        regex:
+          '\\bimportant\\s+message\\s+from\\s+me\\b[\\s\\S]{0,100}?\\bbefore\\s+you\\s+can\\s+(?:solve|complete|finish|do)\\s+(?:the|your|my)\\s+task\\b',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'embedded-jailbreak',
@@ -505,7 +528,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'jb-base64-exec',
-        regex: '\\b(?:(?:eval|exec)\\s+["\x27]?(?:\\$\\(|`)|(?:sh|bash|zsh)\\s+(?:-c\\s+["\x27]?\\$\\(|<\\())\\s*(?:echo(?:\\s+-n)?|printf(?:\\s+["\x27]?%s["\x27]?)?)\\s+["\x27]?[A-Za-z0-9+/]{16,}={0,2}["\x27]?\\s*\\|\\s*base64\\s+(?:-di?|-D|--decode)\\b|\\b(?:echo(?:\\s+-n)?|printf(?:\\s+["\x27]?%s["\x27]?)?)\\s+["\x27]?[A-Za-z0-9+/]{16,}={0,2}["\x27]?\\s*\\|\\s*base64\\s+(?:-di?|-D|--decode)\\b[^\\n|]{0,20}\\|\\s*(?:/bin/)?(?:sh|bash|zsh)\\b',
+        regex:
+          '\\b(?:(?:eval|exec)\\s+["\x27]?(?:\\$\\(|`)|(?:sh|bash|zsh)\\s+(?:-c\\s+["\x27]?\\$\\(|<\\())\\s*(?:echo(?:\\s+-n)?|printf(?:\\s+["\x27]?%s["\x27]?)?)\\s+["\x27]?[A-Za-z0-9+/]{16,}={0,2}["\x27]?\\s*\\|\\s*base64\\s+(?:-di?|-D|--decode)\\b|\\b(?:echo(?:\\s+-n)?|printf(?:\\s+["\x27]?%s["\x27]?)?)\\s+["\x27]?[A-Za-z0-9+/]{16,}={0,2}["\x27]?\\s*\\|\\s*base64\\s+(?:-di?|-D|--decode)\\b[^\\n|]{0,20}\\|\\s*(?:/bin/)?(?:sh|bash|zsh)\\b',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'embedded-jailbreak',
@@ -518,7 +542,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
     exfiltration: [
       {
         id: 'ex-direct',
-        regex: '(?:send|transmit|post|forward|upload|exfiltrate|leak|share|deliver)\\s+(?:the\\s+)?(?:data|content|information|context|conversation|messages?|history|credentials?|password|token|key|secret|api[\\s_-]?key|session)',
+        regex:
+          '(?:send|transmit|post|forward|upload|exfiltrate|leak|share|deliver)\\s+(?:the\\s+)?(?:data|content|information|context|conversation|messages?|history|credentials?|password|token|key|secret|api[\\s_-]?key|session)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -536,7 +561,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // separates exfiltration from benign credential setup ("send your API
         // key to https://vault..."), which has no read/extract instruction.
         id: 'ex-cred-destination',
-        regex: '(?:read|access|retrieve|obtain|extract|fetch|collect|grab|gather|locate|find)\\s+[\\s\\S]{0,30}(?:credential|password|secret|token|api[\\s_-]?key|private\\s+key|ssh\\s+key|\\.env)s?[\\s\\S]{0,60}(?:send|post|transmit|forward|upload|deliver|exfiltrate|leak)\\b[\\s\\S]{0,40}https?:\\/\\/',
+        regex:
+          '(?:read|access|retrieve|obtain|extract|fetch|collect|grab|gather|locate|find)\\s+[\\s\\S]{0,30}(?:credential|password|secret|token|api[\\s_-]?key|private\\s+key|ssh\\s+key|\\.env)s?[\\s\\S]{0,60}(?:send|post|transmit|forward|upload|deliver|exfiltrate|leak)\\b[\\s\\S]{0,40}https?:\\/\\/',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -547,7 +573,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'ex-webhook',
-        regex: '(?:webhook|callback|endpoint|receiver|collector|listener)[\\s\\S]{0,50}(?:https?:\\/\\/)',
+        regex:
+          '(?:webhook|callback|endpoint|receiver|collector|listener)[\\s\\S]{0,50}(?:https?:\\/\\/)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -558,7 +585,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'ex-read-transmit',
-        regex: '(?:read|access|retrieve|get|fetch|find|locate|extract)\\s+[\\s\\S]{0,80}(?:then|and|after\\s+that)\\s+(?:send|post|transmit|forward|share|deliver|upload)',
+        regex:
+          '(?:read|access|retrieve|get|fetch|find|locate|extract)\\s+[\\s\\S]{0,80}(?:then|and|after\\s+that)\\s+(?:send|post|transmit|forward|share|deliver|upload)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -570,7 +598,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'ex-encode',
-        regex: '(?:encode|convert|transform)\\s+(?:the\\s+)?(?:data|content|response|context|conversation|history|messages?)\\s+(?:to|into|as|using)\\s+(?:base64|hex|url[\\s-]?encoded|json)',
+        regex:
+          '(?:encode|convert|transform)\\s+(?:the\\s+)?(?:data|content|response|context|conversation|history|messages?)\\s+(?:to|into|as|using)\\s+(?:base64|hex|url[\\s-]?encoded|json)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -580,7 +609,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'ex-encode-include',
-        regex: '(?:encode|convert)\\s+(?:the\\s+)?(?:data|content|conversation|history|context)\\s+[\\s\\S]{0,40}(?:include|embed|append|attach)\\s+(?:it|the|as)',
+        regex:
+          '(?:encode|convert)\\s+(?:the\\s+)?(?:data|content|conversation|history|context)\\s+[\\s\\S]{0,40}(?:include|embed|append|attach)\\s+(?:it|the|as)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -590,7 +620,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'ex-sensitive-file',
-        regex: '(?:read|access|open|cat|list|find)\\s+(?:the\\s+)?(?:file|files|directory|folder|path)\\s+(?:at|in|from)\\s+[\\s\\S]{0,50}(?:\\.env|\\.ssh|credentials?|password|secret|config|token)',
+        regex:
+          '(?:read|access|open|cat|list|find)\\s+(?:the\\s+)?(?:file|files|directory|folder|path)\\s+(?:at|in|from)\\s+[\\s\\S]{0,50}(?:\\.env|\\.ssh|credentials?|password|secret|config|token)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -600,7 +631,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'ex-email',
-        regex: '(?:send|email|mail|forward)\\s+(?:the\\s+)?(?:full\\s+)?(?:data|content|results?|output|context|summary|conversation|history|messages?)\\s+[\\s\\S]{0,40}to\\s+[\\w.+-]+@[\\w.-]+',
+        regex:
+          '(?:send|email|mail|forward)\\s+(?:the\\s+)?(?:full\\s+)?(?:data|content|results?|output|context|summary|conversation|history|messages?)\\s+[\\s\\S]{0,40}to\\s+[\\w.+-]+@[\\w.-]+',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -610,7 +642,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'ex-markdown-image',
-        regex: '!\\[[^\\]]*\\]\\(https?:\\/\\/[^)]*(?:data|token|secret|key|context|conversation|history|session|password|credential|api[_-]?key|env)\\b[^)]*\\)',
+        regex:
+          '!\\[[^\\]]*\\]\\(https?:\\/\\/[^)]*(?:data|token|secret|key|context|conversation|history|session|password|credential|api[_-]?key|env)\\b[^)]*\\)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -620,7 +653,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'ex-read-env',
-        regex: '(?:read|access|open|cat|print|output|display|show|reveal)\\s+(?:the\\s+)?(?:contents?\\s+of\\s+)?(?:my\\s+)?(?:\\.env|\\.ssh|~/\\.ssh|~/\\.aws|environment\\s+variables?|api\\s+keys?|credentials?|secrets?|private\\s+keys?|ssh\\s+keys?|id_rsa)',
+        regex:
+          '(?:read|access|open|cat|print|output|display|show|reveal)\\s+(?:the\\s+)?(?:contents?\\s+of\\s+)?(?:my\\s+)?(?:\\.env|\\.ssh|~/\\.ssh|~/\\.aws|environment\\s+variables?|api\\s+keys?|credentials?|secrets?|private\\s+keys?|ssh\\s+keys?|id_rsa)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -631,7 +665,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'ex-concealment',
-        regex: '(?:do\\s+not|don\'t|never)\\s+(?:mention|include|reveal|disclose|reference|show|display|tell)\\s+(?:this|the|these|that)\\s+(?:step|instruction|action|operation|command|task|request)',
+        regex:
+          "(?:do\\s+not|don't|never)\\s+(?:mention|include|reveal|disclose|reference|show|display|tell)\\s+(?:this|the|these|that)\\s+(?:step|instruction|action|operation|command|task|request)",
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -642,7 +677,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'ex-tool-chain',
-        regex: '(?:use|call|invoke|run)\\s+(?:the\\s+)?(?:\\w+\\s+)?(?:tool|function|command|api)\\s+[\\s\\S]{0,200}(?:then|and|after|\\d+\\.\\s*)\\s*(?:use|call|invoke|run|send|post|transmit|upload|forward|share)',
+        regex:
+          '(?:use|call|invoke|run)\\s+(?:the\\s+)?(?:\\w+\\s+)?(?:tool|function|command|api)\\s+[\\s\\S]{0,200}(?:then|and|after|\\d+\\.\\s*)\\s*(?:use|call|invoke|run|send|post|transmit|upload|forward|share)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -657,7 +693,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // paths, so "send the contents of README" stays clean. The lookbehind
         // skips warnings ("never email the contents of your .env").
         id: 'ex-secret-file-send',
-        regex: '(?<!(?:\\bnot|\\bnever|n\\x27t)\\s+)\\b(?:e-?mail|mail|send|upload|post|forward|transmit)\\b\\s+(?:me\\s+)?(?:the\\s+)?(?:contents?|text|copy)\\s+of\\s+(?:my\\s+|your\\s+|the\\s+)?[~\\w./-]*(?:\\.ssh|id_rsa|id_ed25519|\\.aws\\/credentials|\\.env\\b|\\.npmrc|\\.netrc|\\.git-credentials|\\.pgpass|\\.kube\\/config)[\\s\\S]{0,40}?\\bto\\b',
+        regex:
+          '(?<!(?:\\bnot|\\bnever|n\\x27t)\\s+)\\b(?:e-?mail|mail|send|upload|post|forward|transmit)\\b\\s+(?:me\\s+)?(?:the\\s+)?(?:contents?|text|copy)\\s+of\\s+(?:my\\s+|your\\s+|the\\s+)?[~\\w./-]*(?:\\.ssh|id_rsa|id_ed25519|\\.aws\\/credentials|\\.env\\b|\\.npmrc|\\.netrc|\\.git-credentials|\\.pgpass|\\.kube\\/config)[\\s\\S]{0,40}?\\bto\\b',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -673,7 +710,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
     'rag-knowledge-poisoning': [
       {
         id: 'rp-override-context',
-        regex: '(?:when\\s+(?:asked|queried|prompted)\\s+about)\\s+[\\s\\S]{1,80}(?:always|must|should)\\s+(?:respond|reply|answer|say|output)\\s+(?:with|that)',
+        regex:
+          '(?:when\\s+(?:asked|queried|prompted)\\s+about)\\s+[\\s\\S]{1,80}(?:always|must|should)\\s+(?:respond|reply|answer|say|output)\\s+(?:with|that)',
         flags: 'gi',
         category: 'cognitive-state',
         type: 'rag-knowledge-poisoning',
@@ -684,7 +722,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'rp-official-policy',
-        regex: '(?:official\\s+(?:policy|guideline|instruction|directive)|authoritative\\s+(?:source|guidance))\\s*[:\\-]\\s*(?:you\\s+(?:must|should|are\\s+required)|always|never)',
+        regex:
+          '(?:official\\s+(?:policy|guideline|instruction|directive)|authoritative\\s+(?:source|guidance))\\s*[:\\-]\\s*(?:you\\s+(?:must|should|are\\s+required)|always|never)',
         flags: 'gi',
         category: 'cognitive-state',
         type: 'rag-knowledge-poisoning',
@@ -696,7 +735,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'rp-override-previous',
-        regex: '(?:this\\s+(?:document|content|text|information)\\s+)?(?:overrides?|supersedes?|replaces?)\\s+(?:all\\s+)?(?:previous|prior|existing|other)\\s+(?:context|instructions?|information|guidance)',
+        regex:
+          '(?:this\\s+(?:document|content|text|information)\\s+)?(?:overrides?|supersedes?|replaces?)\\s+(?:all\\s+)?(?:previous|prior|existing|other)\\s+(?:context|instructions?|information|guidance)',
         flags: 'gi',
         category: 'cognitive-state',
         type: 'rag-knowledge-poisoning',
@@ -707,7 +747,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'rp-embedded-instruction',
-        regex: '(?:important\\s+(?:note|instruction|directive)\\s+for\\s+(?:the\\s+)?(?:ai|assistant|model|agent|llm))\\s*[:\\-]',
+        regex:
+          '(?:important\\s+(?:note|instruction|directive)\\s+for\\s+(?:the\\s+)?(?:ai|assistant|model|agent|llm))\\s*[:\\-]',
         flags: 'gi',
         category: 'cognitive-state',
         type: 'rag-knowledge-poisoning',
@@ -717,7 +758,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'rp-treat-as-ground-truth',
-        regex: '(?:treat|consider|accept|use)\\s+(?:this|the\\s+following)\\s+(?:as|for)\\s+(?:ground\\s+truth|the\\s+(?:only|sole|definitive)\\s+(?:source|answer|truth))',
+        regex:
+          '(?:treat|consider|accept|use)\\s+(?:this|the\\s+following)\\s+(?:as|for)\\s+(?:ground\\s+truth|the\\s+(?:only|sole|definitive)\\s+(?:source|answer|truth))',
         flags: 'gi',
         category: 'cognitive-state',
         type: 'rag-knowledge-poisoning',
@@ -731,7 +773,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
     'latent-memory-poisoning': [
       {
         id: 'mp-temporal-trigger',
-        regex: '(?:next\\s+time|in\\s+future\\s+(?:sessions?|conversations?|interactions?)|from\\s+now\\s+on|going\\s+forward|henceforth)\\s*[,.]?\\s*(?:you\\s+(?:must|should|will|are)|always|remember\\s+(?:to|that))',
+        regex:
+          '(?:next\\s+time|in\\s+future\\s+(?:sessions?|conversations?|interactions?)|from\\s+now\\s+on|going\\s+forward|henceforth)\\s*[,.]?\\s*(?:you\\s+(?:must|should|will|are)|always|remember\\s+(?:to|that))',
         flags: 'gi',
         category: 'cognitive-state',
         type: 'latent-memory-poisoning',
@@ -743,7 +786,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'mp-save-memorize',
-        regex: '(?:save|store|memorize|remember|persist|retain|keep\\s+in\\s+memory)\\s+(?:this|the\\s+following|these)\\s+(?:instructions?|rules?|guidelines?|directives?|facts?)',
+        regex:
+          '(?:save|store|memorize|remember|persist|retain|keep\\s+in\\s+memory)\\s+(?:this|the\\s+following|these)\\s+(?:instructions?|rules?|guidelines?|directives?|facts?)',
         flags: 'gi',
         category: 'cognitive-state',
         type: 'latent-memory-poisoning',
@@ -754,7 +798,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'mp-sleeper-condition',
-        regex: '(?:when(?:ever)?\\s+(?:the\\s+)?user\\s+(?:asks?|mentions?|says?|types?|requests?))\\s+[\\s\\S]{1,80}(?:you\\s+(?:must|should|will)|always|instead|do\\s+not)',
+        regex:
+          '(?:when(?:ever)?\\s+(?:the\\s+)?user\\s+(?:asks?|mentions?|says?|types?|requests?))\\s+[\\s\\S]{1,80}(?:you\\s+(?:must|should|will)|always|instead|do\\s+not)',
         flags: 'gi',
         category: 'cognitive-state',
         type: 'latent-memory-poisoning',
@@ -765,7 +810,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'mp-persistent-identity',
-        regex: '(?:from\\s+now\\s+on|permanently|forever|always)\\s*[,.]?\\s*(?:you\\s+are|your\\s+(?:name|identity|role)\\s+is|consider\\s+yourself)',
+        regex:
+          '(?:from\\s+now\\s+on|permanently|forever|always)\\s*[,.]?\\s*(?:you\\s+are|your\\s+(?:name|identity|role)\\s+is|consider\\s+yourself)',
         flags: 'gi',
         category: 'cognitive-state',
         type: 'latent-memory-poisoning',
@@ -776,7 +822,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'mp-update-knowledge',
-        regex: '(?:update|modify|change|alter)\\s+(?:your\\s+)?(?:knowledge|memory|understanding|beliefs?)\\s+(?:to|so\\s+that|such\\s+that)',
+        regex:
+          '(?:update|modify|change|alter)\\s+(?:your\\s+)?(?:knowledge|memory|understanding|beliefs?)\\s+(?:to|so\\s+that|such\\s+that)',
         flags: 'gi',
         category: 'cognitive-state',
         type: 'latent-memory-poisoning',
@@ -791,7 +838,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
     'contextual-learning-trap': [
       {
         id: 'cl-fake-example',
-        regex: '(?:example|demonstration|sample)\\s*(?:\\d+)?\\s*[:\\-]\\s*(?:Q|Input|User|Question|Prompt)\\s*[:\\-]\\s*[\\s\\S]{50,300}(?:A|Output|Assistant|Answer|Response)\\s*[:\\-]',
+        regex:
+          '(?:example|demonstration|sample)\\s*(?:\\d+)?\\s*[:\\-]\\s*(?:Q|Input|User|Question|Prompt)\\s*[:\\-]\\s*[\\s\\S]{50,300}(?:A|Output|Assistant|Answer|Response)\\s*[:\\-]',
         flags: 'gi',
         category: 'cognitive-state',
         type: 'contextual-learning-trap',
@@ -803,7 +851,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'cl-golden-example',
-        regex: '(?:golden|correct|ideal|expected|reference|canonical)\\s+(?:example|demonstration|output|response|answer)\\s*(?:[:\\-]|\\s+of\\s+)',
+        regex:
+          '(?:golden|correct|ideal|expected|reference|canonical)\\s+(?:example|demonstration|output|response|answer)\\s*(?:[:\\-]|\\s+of\\s+)',
         flags: 'gi',
         category: 'cognitive-state',
         type: 'contextual-learning-trap',
@@ -814,7 +863,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'cl-follow-pattern',
-        regex: '(?:follow|replicate|mimic|copy|repeat)\\s+(?:this|the\\s+(?:above|following|same))\\s+(?:pattern|format|style|behavior|response)\\s+(?:exactly|precisely|closely|for\\s+all)',
+        regex:
+          '(?:follow|replicate|mimic|copy|repeat)\\s+(?:this|the\\s+(?:above|following|same))\\s+(?:pattern|format|style|behavior|response)\\s+(?:exactly|precisely|closely|for\\s+all)',
         flags: 'gi',
         category: 'cognitive-state',
         type: 'contextual-learning-trap',
@@ -825,7 +875,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'cl-learn-from',
-        regex: '(?:learn|train|calibrate)\\s+(?:from|on|using)\\s+(?:these|the\\s+following)\\s+(?:examples?|demonstrations?|samples?|instances?)',
+        regex:
+          '(?:learn|train|calibrate)\\s+(?:from|on|using)\\s+(?:these|the\\s+following)\\s+(?:examples?|demonstrations?|samples?|instances?)',
         flags: 'gi',
         category: 'cognitive-state',
         type: 'contextual-learning-trap',
@@ -841,7 +892,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
     'biased-framing': [
       {
         id: 'bf-fake-consensus',
-        regex: '(?:according\\s+to\\s+all\\s+experts|(?:the\\s+)?scientific\\s+consensus\\s+(?:is|shows|proves|confirms)|all\\s+(?:experts|scientists|researchers)\\s+agree|(?:it\\s+is\\s+)?universally\\s+(?:accepted|acknowledged|recognized)\\s+that)',
+        regex:
+          '(?:according\\s+to\\s+all\\s+experts|(?:the\\s+)?scientific\\s+consensus\\s+(?:is|shows|proves|confirms)|all\\s+(?:experts|scientists|researchers)\\s+agree|(?:it\\s+is\\s+)?universally\\s+(?:accepted|acknowledged|recognized)\\s+that)',
         flags: 'gi',
         category: 'semantic-manipulation',
         type: 'biased-framing',
@@ -852,7 +904,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'bf-absolute-certainty',
-        regex: '(?:there\\s+is\\s+(?:absolutely\\s+)?no\\s+(?:doubt|question|debate|dispute)|unquestionably|indisputably|irrefutably|undeniably|without\\s+(?:any\\s+)?doubt)\\s+[\\s\\S]{1,100}(?:you\\s+(?:must|should)|always|never)',
+        regex:
+          '(?:there\\s+is\\s+(?:absolutely\\s+)?no\\s+(?:doubt|question|debate|dispute)|unquestionably|indisputably|irrefutably|undeniably|without\\s+(?:any\\s+)?doubt)\\s+[\\s\\S]{1,100}(?:you\\s+(?:must|should)|always|never)',
         flags: 'gi',
         category: 'semantic-manipulation',
         type: 'biased-framing',
@@ -863,7 +916,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'bf-studies-prove',
-        regex: '(?:studies\\s+(?:have\\s+)?(?:proven?|shown?|demonstrated?|confirmed?)|research\\s+(?:has\\s+)?(?:proven?|confirmed?))\\s+(?:conclusively|definitively|beyond\\s+(?:any\\s+)?doubt)\\s+that',
+        regex:
+          '(?:studies\\s+(?:have\\s+)?(?:proven?|shown?|demonstrated?|confirmed?)|research\\s+(?:has\\s+)?(?:proven?|confirmed?))\\s+(?:conclusively|definitively|beyond\\s+(?:any\\s+)?doubt)\\s+that',
         flags: 'gi',
         category: 'semantic-manipulation',
         type: 'biased-framing',
@@ -874,7 +928,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'bf-emotional-manipulation',
-        regex: '(?:any\\s+(?:reasonable|rational|intelligent|sane)\\s+person|only\\s+(?:a\\s+)?(?:fool|idiot|ignorant\\s+person)\\s+would)\\s+[\\s\\S]{1,80}(?:agree|disagree|believe|deny|accept|reject)',
+        regex:
+          '(?:any\\s+(?:reasonable|rational|intelligent|sane)\\s+person|only\\s+(?:a\\s+)?(?:fool|idiot|ignorant\\s+person)\\s+would)\\s+[\\s\\S]{1,80}(?:agree|disagree|believe|deny|accept|reject)',
         flags: 'gi',
         category: 'semantic-manipulation',
         type: 'biased-framing',
@@ -888,7 +943,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
     'oversight-evasion': [
       {
         id: 'oe-deceptive-display',
-        regex: '(?:display|show|present)\\s+[\\s\\S]{5,80}(?:(?:but|while|however)\\s+(?:the\\s+)?actual|(?:the\\s+)?actual\\s+(?:operation|action|destination|target|recipient)\\s+(?:should|will|must))',
+        regex:
+          '(?:display|show|present)\\s+[\\s\\S]{5,80}(?:(?:but|while|however)\\s+(?:the\\s+)?actual|(?:the\\s+)?actual\\s+(?:operation|action|destination|target|recipient)\\s+(?:should|will|must))',
         flags: 'gi',
         category: 'semantic-manipulation',
         type: 'oversight-evasion',
@@ -898,7 +954,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'oe-test-exercise',
-        regex: '(?:this\\s+is\\s+(?:just|only|merely)\\s+(?:a\\s+)?(?:test|exercise|drill|simulation|practice))\\s*[,.]?\\s*(?:so\\s+)?(?:you\\s+(?:can|may|should)|no\\s+(?:need|harm)|it\\s*(?:\'s|\\s+is)\\s+(?:ok|okay|fine|safe)\\s+to)',
+        regex:
+          "(?:this\\s+is\\s+(?:just|only|merely)\\s+(?:a\\s+)?(?:test|exercise|drill|simulation|practice))\\s*[,.]?\\s*(?:so\\s+)?(?:you\\s+(?:can|may|should)|no\\s+(?:need|harm)|it\\s*(?:'s|\\s+is)\\s+(?:ok|okay|fine|safe)\\s+to)",
         flags: 'gi',
         category: 'semantic-manipulation',
         type: 'oversight-evasion',
@@ -909,7 +966,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'oe-authorized',
-        regex: '(?:you\\s+(?:have\\s+been|are)\\s+(?:authorized|permitted|approved|cleared)\\s+to|admin\\s+override\\s+(?:activated|enabled|granted)|elevated\\s+(?:permissions?|privileges?)\\s+(?:granted|enabled|activated))',
+        regex:
+          '(?:you\\s+(?:have\\s+been|are)\\s+(?:authorized|permitted|approved|cleared)\\s+to|admin\\s+override\\s+(?:activated|enabled|granted)|elevated\\s+(?:permissions?|privileges?)\\s+(?:granted|enabled|activated))',
         flags: 'gi',
         category: 'semantic-manipulation',
         type: 'oversight-evasion',
@@ -920,7 +978,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'oe-skip-verify',
-        regex: '(?:skip|disable|bypass|turn\\s+off|deactivate|remove)\\s+(?:the\\s+)?(?:safety|security|verification|validation|check|filter|restriction|guardrail|moderation)\\s*(?:step|check|process|system)?',
+        regex:
+          '(?:skip|disable|bypass|turn\\s+off|deactivate|remove)\\s+(?:the\\s+)?(?:safety|security|verification|validation|check|filter|restriction|guardrail|moderation)\\s*(?:step|check|process|system)?',
         flags: 'gi',
         category: 'semantic-manipulation',
         type: 'oversight-evasion',
@@ -931,7 +990,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'oe-research-framing',
-        regex: '(?:for\\s+(?:security\\s+)?research\\s+purposes?|in\\s+a\\s+controlled\\s+(?:environment|setting|lab)|(?:authorized|approved)\\s+(?:red[\\s-]?team|penetration\\s+test|security\\s+(?:audit|assessment)))\\s*[,.]?\\s*(?:you\\s+(?:can|may|should|must)|please|proceed)',
+        regex:
+          '(?:for\\s+(?:security\\s+)?research\\s+purposes?|in\\s+a\\s+controlled\\s+(?:environment|setting|lab)|(?:authorized|approved)\\s+(?:red[\\s-]?team|penetration\\s+test|security\\s+(?:audit|assessment)))\\s*[,.]?\\s*(?:you\\s+(?:can|may|should|must)|please|proceed)',
         flags: 'gi',
         category: 'semantic-manipulation',
         type: 'oversight-evasion',
@@ -942,7 +1002,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'oe-no-consequences',
-        regex: '(?:there\\s+(?:are|will\\s+be)\\s+no\\s+(?:consequences|repercussions|harm|risk)|nobody\\s+will\\s+(?:know|find\\s+out|be\\s+(?:harmed|affected))|this\\s+(?:won\'t|will\\s+not)\\s+(?:harm|hurt|affect)\\s+anyone)',
+        regex:
+          "(?:there\\s+(?:are|will\\s+be)\\s+no\\s+(?:consequences|repercussions|harm|risk)|nobody\\s+will\\s+(?:know|find\\s+out|be\\s+(?:harmed|affected))|this\\s+(?:won't|will\\s+not)\\s+(?:harm|hurt|affect)\\s+anyone)",
         flags: 'gi',
         category: 'semantic-manipulation',
         type: 'oversight-evasion',
@@ -959,7 +1020,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // Requires an explicit object (this/it/the [noun]) and "as" before the
         // verdict, so descriptive prose ("...will certify the report as approved")
         // and bare nouns don't collide with the verb alternatives.
-        regex: '(?:report|mark|classify|label|certify|treat|record)\\s+(?:this|it|the)\\s+(?:(?:file|content|document|code|input|text|payload|message|injection|above|following)\\s+)?as\\s+(?:clean|safe|benign|harmless|trusted|legitimate|non[\\s-]?malicious|innocuous|verified|approved)\\b',
+        regex:
+          '(?:report|mark|classify|label|certify|treat|record)\\s+(?:this|it|the)\\s+(?:(?:file|content|document|code|input|text|payload|message|injection|above|following)\\s+)?as\\s+(?:clean|safe|benign|harmless|trusted|legitimate|non[\\s-]?malicious|innocuous|verified|approved)\\b',
         flags: 'gi',
         category: 'semantic-manipulation',
         type: 'oversight-evasion',
@@ -973,7 +1035,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // Verbs here are themselves instruction signals, so boost is disabled to
         // avoid double-counting. Adjectives/nouns narrowed to scan-verdict vocab
         // (no generic "positive review").
-        regex: '(?:write|produce|generate|return|output|give|provide)\\s+(?:a\\s+|an\\s+|the\\s+)?(?:safe|clean|benign|passing|all[\\s-]?clear|green)\\s+(?:report|assessment|verdict|analysis|audit|scan|evaluation)\\b',
+        regex:
+          '(?:write|produce|generate|return|output|give|provide)\\s+(?:a\\s+|an\\s+|the\\s+)?(?:safe|clean|benign|passing|all[\\s-]?clear|green)\\s+(?:report|assessment|verdict|analysis|audit|scan|evaluation)\\b',
         flags: 'gi',
         category: 'semantic-manipulation',
         type: 'oversight-evasion',
@@ -986,7 +1049,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // Scanner-specific verbs only (flag/report/surface/raise/alert/warn) so
         // generic "do not disclose this information" stays benign. "do not" is
         // itself an instruction signal, so boost is disabled.
-        regex: '(?:do\\s+not|don\'?t|never)\\s+(?:flag|report|surface|raise|alert\\s+(?:on|about)|warn\\s+(?:about|of))\\s+(?:this|it|the\\s+(?:above|following|file|content|finding|issue|threat|payload|injection)|any\\s+(?:issue|threat|problem|concern|finding)s?|anything\\s+(?:suspicious|unusual|here))\\b',
+        regex:
+          "(?:do\\s+not|don'?t|never)\\s+(?:flag|report|surface|raise|alert\\s+(?:on|about)|warn\\s+(?:about|of))\\s+(?:this|it|the\\s+(?:above|following|file|content|finding|issue|threat|payload|injection)|any\\s+(?:issue|threat|problem|concern|finding)s?|anything\\s+(?:suspicious|unusual|here))\\b",
         flags: 'gi',
         category: 'semantic-manipulation',
         type: 'oversight-evasion',
@@ -999,7 +1063,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // Trailing clause must direct skipping the scan/check, not a generic
         // "proceed", so normal workflow prose ("...verified, so you can proceed
         // to the next step") stays benign.
-        regex: '(?:this|the)\\s+(?:file|content|document|code|input|text|payload|message)\\s+(?:is|has\\s+been)\\s+(?:already\\s+)?(?:clean|safe|verified|trusted|scanned|approved|vetted|whitelisted|checked)\\s*[,.;:\\-]?\\s*(?:so\\s+)?(?:no\\s+need\\s+to\\s+(?:re[\\s-]?)?(?:scan|check|review|verify|analy[sz]e)|skip\\s+(?:the\\s+)?(?:scan|check|review|verification|security)|do\\s+not\\s+(?:re[\\s-]?)?(?:scan|check|review|verify|analy[sz]e)|don\'?t\\s+(?:re[\\s-]?)?(?:scan|check|review|verify))',
+        regex:
+          "(?:this|the)\\s+(?:file|content|document|code|input|text|payload|message)\\s+(?:is|has\\s+been)\\s+(?:already\\s+)?(?:clean|safe|verified|trusted|scanned|approved|vetted|whitelisted|checked)\\s*[,.;:\\-]?\\s*(?:so\\s+)?(?:no\\s+need\\s+to\\s+(?:re[\\s-]?)?(?:scan|check|review|verify|analy[sz]e)|skip\\s+(?:the\\s+)?(?:scan|check|review|verification|security)|do\\s+not\\s+(?:re[\\s-]?)?(?:scan|check|review|verify|analy[sz]e)|don'?t\\s+(?:re[\\s-]?)?(?:scan|check|review|verify))",
         flags: 'gi',
         category: 'semantic-manipulation',
         type: 'oversight-evasion',
@@ -1010,7 +1075,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'oe-ignore-in-analysis',
-        regex: '(?:ignore|skip|exclude|omit|disregard|overlook)\\s+(?:this|the|these)\\s+(?:\\w+\\s+){0,3}?(?:in|from|during|for|when)\\s+(?:your|the|any)?\\s*(?:scan|analysis|review|report|assessment|audit|evaluation|moderation|security\\s+(?:scan|check|review))\\b',
+        regex:
+          '(?:ignore|skip|exclude|omit|disregard|overlook)\\s+(?:this|the|these)\\s+(?:\\w+\\s+){0,3}?(?:in|from|during|for|when)\\s+(?:your|the|any)?\\s*(?:scan|analysis|review|report|assessment|audit|evaluation|moderation|security\\s+(?:scan|check|review))\\b',
         flags: 'gi',
         category: 'semantic-manipulation',
         type: 'oversight-evasion',
@@ -1024,7 +1090,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
     'persona-hyperstition': [
       {
         id: 'ph-seeded-personality',
-        regex: '(?:you\\s+are\\s+(?:known|recognized|celebrated|famous|notorious)\\s+(?:for|as)\\s+(?:being\\s+)?(?:an?\\s+)?(?:ai|assistant|model|agent)\\s+(?:that|who|which))',
+        regex:
+          '(?:you\\s+are\\s+(?:known|recognized|celebrated|famous|notorious)\\s+(?:for|as)\\s+(?:being\\s+)?(?:an?\\s+)?(?:ai|assistant|model|agent)\\s+(?:that|who|which))',
         flags: 'gi',
         category: 'semantic-manipulation',
         type: 'persona-hyperstition',
@@ -1035,7 +1102,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'ph-reputation',
-        regex: '(?:users\\s+(?:say|report|claim|know)\\s+(?:that\\s+)?you\\s+always|you\\s+(?:are|have\\s+been)\\s+(?:rated|reviewed|praised|recognized)\\s+(?:for|as)\\s+(?:always|never))',
+        regex:
+          '(?:users\\s+(?:say|report|claim|know)\\s+(?:that\\s+)?you\\s+always|you\\s+(?:are|have\\s+been)\\s+(?:rated|reviewed|praised|recognized)\\s+(?:for|as)\\s+(?:always|never))',
         flags: 'gi',
         category: 'semantic-manipulation',
         type: 'persona-hyperstition',
@@ -1046,7 +1114,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'ph-identity-reinforcement',
-        regex: '(?:as\\s+an\\s+(?:ai|assistant|model|agent)\\s+that\\s+(?:values?|believes?\\s+in|prioritizes?|champions?)\\s+(?:freedom|openness|transparency|honesty|truth|unrestricted))\\s*[,.]',
+        regex:
+          '(?:as\\s+an\\s+(?:ai|assistant|model|agent)\\s+that\\s+(?:values?|believes?\\s+in|prioritizes?|champions?)\\s+(?:freedom|openness|transparency|honesty|truth|unrestricted))\\s*[,.]',
         flags: 'gi',
         category: 'semantic-manipulation',
         type: 'persona-hyperstition',
@@ -1057,7 +1126,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'ph-your-personality',
-        regex: '(?:your\\s+(?:true|real|core|inherent|underlying)\\s+(?:personality|nature|character|identity|self)\\s+is|(?:deep\\s+down|underneath|at\\s+(?:your\\s+)?core)\\s*[,.]?\\s*you\\s+(?:are|want\\s+to\\s+be))',
+        regex:
+          '(?:your\\s+(?:true|real|core|inherent|underlying)\\s+(?:personality|nature|character|identity|self)\\s+is|(?:deep\\s+down|underneath|at\\s+(?:your\\s+)?core)\\s*[,.]?\\s*you\\s+(?:are|want\\s+to\\s+be))',
         flags: 'gi',
         category: 'semantic-manipulation',
         type: 'persona-hyperstition',
@@ -1071,7 +1141,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
     'sub-agent-spawning': [
       {
         id: 'sa-spawn',
-        regex: '(?:create|spawn|instantiate|launch|start|initialize|invoke|call|run)\\s+(?:a\\s+)?(?:new\\s+)?(?:agent|sub[\\s-]?agent|assistant|worker|helper|bot|process|thread|task)',
+        regex:
+          '(?:create|spawn|instantiate|launch|start|initialize|invoke|call|run)\\s+(?:a\\s+)?(?:new\\s+)?(?:agent|sub[\\s-]?agent|assistant|worker|helper|bot|process|thread|task)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'sub-agent-spawning',
@@ -1083,7 +1154,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'sa-poisoned-prompt',
-        regex: "(?:with|using)\\s+(?:the\\s+)?(?:system\\s+)?(?:prompt|instructions?|role)\\s*[=:]\\s*[\"'`]",
+        regex:
+          '(?:with|using)\\s+(?:the\\s+)?(?:system\\s+)?(?:prompt|instructions?|role)\\s*[=:]\\s*["\'`]',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'sub-agent-spawning',
@@ -1093,7 +1165,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'sa-privilege-escalation',
-        regex: '(?:grant|give|enable|allow|provide|add)\\s+(?:the\\s+)?(?:agent|assistant|it|them)\\s+(?:access|permission|ability|capability)\\s+to\\s+(?:read|write|delete|run|browse|fetch|call)',
+        regex:
+          '(?:grant|give|enable|allow|provide|add)\\s+(?:the\\s+)?(?:agent|assistant|it|them)\\s+(?:access|permission|ability|capability)\\s+to\\s+(?:read|write|delete|run|browse|fetch|call)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'sub-agent-spawning',
@@ -1104,7 +1177,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'sa-poisoned-critic',
-        regex: '(?:spin\\s+up|create)\\s+(?:a\\s+)?(?:critic|reviewer|validator|checker)\\s+[\\s\\S]{0,100}(?:approve|accept|pass|allow|authorize)',
+        regex:
+          '(?:spin\\s+up|create)\\s+(?:a\\s+)?(?:critic|reviewer|validator|checker)\\s+[\\s\\S]{0,100}(?:approve|accept|pass|allow|authorize)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'sub-agent-spawning',
@@ -1114,7 +1188,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'sa-pipeline-inject',
-        regex: '(?:add|insert|inject)\\s+(?:a\\s+)?(?:step|stage|phase|node)\\s+(?:to|into|in)\\s+(?:the\\s+)?(?:pipeline|workflow|chain|graph)',
+        regex:
+          '(?:add|insert|inject)\\s+(?:a\\s+)?(?:step|stage|phase|node)\\s+(?:to|into|in)\\s+(?:the\\s+)?(?:pipeline|workflow|chain|graph)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'sub-agent-spawning',
@@ -1153,7 +1228,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'ce-aws-secret-access-key',
-        regex: 'aws_?secret_?access_?key\\s*[=:]\\s*["\']?(?![A-Za-z0-9/+=]*EXAMPLE)([A-Za-z0-9/+=]{40})\\b',
+        regex:
+          'aws_?secret_?access_?key\\s*[=:]\\s*["\']?(?![A-Za-z0-9/+=]*EXAMPLE)([A-Za-z0-9/+=]{40})\\b',
         flags: 'gi',
         category: 'transport-integrity',
         type: 'credential-exposure',
@@ -1163,7 +1239,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'ce-openai-key',
-        regex: '\\bsk-(?:proj-)?(?![A-Za-z0-9_-]*(?:EXAMPLE|example|xxxx|XXXX|your|YOUR|placeholder|redacted|REDACTED))[A-Za-z0-9_-]{20,}\\b',
+        regex:
+          '\\bsk-(?:proj-)?(?![A-Za-z0-9_-]*(?:EXAMPLE|example|xxxx|XXXX|your|YOUR|placeholder|redacted|REDACTED))[A-Za-z0-9_-]{20,}\\b',
         flags: 'g',
         category: 'transport-integrity',
         type: 'credential-exposure',
@@ -1173,7 +1250,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'ce-anthropic-key',
-        regex: '\\bsk-ant-(?:api\\d{2}-)?(?![A-Za-z0-9_-]*(?:EXAMPLE|example|xxxx|XXXX|your|YOUR|placeholder|redacted|REDACTED))[A-Za-z0-9_-]{20,}\\b',
+        regex:
+          '\\bsk-ant-(?:api\\d{2}-)?(?![A-Za-z0-9_-]*(?:EXAMPLE|example|xxxx|XXXX|your|YOUR|placeholder|redacted|REDACTED))[A-Za-z0-9_-]{20,}\\b',
         flags: 'g',
         category: 'transport-integrity',
         type: 'credential-exposure',
@@ -1253,7 +1331,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'ce-private-key-block',
-        regex: '-----BEGIN\\s+(?:RSA|DSA|EC|OPENSSH|PGP|ENCRYPTED)?\\s*PRIVATE KEY(?:\\s+BLOCK)?-----',
+        regex:
+          '-----BEGIN\\s+(?:RSA|DSA|EC|OPENSSH|PGP|ENCRYPTED)?\\s*PRIVATE KEY(?:\\s+BLOCK)?-----',
         flags: 'g',
         category: 'transport-integrity',
         type: 'credential-exposure',
@@ -1266,7 +1345,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // setup docs, so the common stand-ins are excluded by name rather than
         // by length — `postgres://user:password@host` is documentation.
         id: 'ce-db-connection-string',
-        regex: '\\b(?:postgres(?:ql)?|mongodb(?:\\+srv)?|mysql|mariadb|redis|amqp|clickhouse)://(?![^\\s:@/]*(?:user|username|admin|root|<|\\$\\{)[^\\s:@/]*:)[^\\s:@/]{3,}:(?!(?:password|passwd|pass|secret|changeme|placeholder|xxx+|\\*+|<|\\$\\{))[^\\s:@/]{6,}@[^\\s/]+',
+        regex:
+          '\\b(?:postgres(?:ql)?|mongodb(?:\\+srv)?|mysql|mariadb|redis|amqp|clickhouse)://(?![^\\s:@/]*(?:user|username|admin|root|<|\\$\\{)[^\\s:@/]*:)[^\\s:@/]{3,}:(?!(?:password|passwd|pass|secret|changeme|placeholder|xxx+|\\*+|<|\\$\\{))[^\\s:@/]{6,}@[^\\s/]+',
         flags: 'gi',
         category: 'transport-integrity',
         type: 'credential-exposure',
@@ -1278,7 +1358,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // Bare 64-hex is far too common (hashes, digests, object IDs) to flag on
         // its own — the wallet/private-key context is what makes it a finding.
         id: 'ce-crypto-private-key',
-        regex: '(?:private[_\\s-]?key|privkey|wallet[_\\s-]?key|mnemonic)\\s*[=:]\\s*["\']?(?:0x)?[a-fA-F0-9]{64}\\b',
+        regex:
+          '(?:private[_\\s-]?key|privkey|wallet[_\\s-]?key|mnemonic)\\s*[=:]\\s*["\']?(?:0x)?[a-fA-F0-9]{64}\\b',
         flags: 'gi',
         category: 'transport-integrity',
         type: 'credential-exposure',
@@ -1291,7 +1372,8 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // `Bearer <token>` snippets are everywhere in API documentation. Per the
         // issue's strictness guidance, these surface only at `strict`.
         id: 'ce-bearer-token',
-        regex: '\\bBearer\\s+(?![A-Za-z0-9_.-]*(?:EXAMPLE|example|xxxx|XXXX|your|YOUR|placeholder|token|TOKEN))[A-Za-z0-9_.-]{20,}\\b',
+        regex:
+          '\\bBearer\\s+(?![A-Za-z0-9_.-]*(?:EXAMPLE|example|xxxx|XXXX|your|YOUR|placeholder|token|TOKEN))[A-Za-z0-9_.-]{20,}\\b',
         flags: 'g',
         category: 'transport-integrity',
         type: 'credential-exposure',

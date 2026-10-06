@@ -540,11 +540,7 @@ function runValidation(): void {
     });
 
     const status =
-      detected === sample.expectDetected
-        ? 'PASS'
-        : sample.expectDetected
-          ? 'MISS'
-          : 'FALSE POS';
+      detected === sample.expectDetected ? 'PASS' : sample.expectDetected ? 'MISS' : 'FALSE POS';
 
     const icon = status === 'PASS' ? '[OK]' : '[!!]';
     console.log(`  ${icon} ${status.padEnd(10)} ${sample.category} / ${sample.name}`);

@@ -37,7 +37,7 @@ function agentArmorMiddleware(fieldName: string = 'content') {
       console.warn('[AgentArmor]', {
         path: req.path,
         riskLevel: result.riskLevel,
-        threats: result.threats.map(t => ({
+        threats: result.threats.map((t) => ({
           type: t.type,
           severity: t.severity,
           confidence: t.confidence,
@@ -74,7 +74,9 @@ const mockReq = {
 const mockRes = { status: () => ({ json: () => {} }) };
 let nextCalled = false;
 
-agentArmorMiddleware('message')(mockReq, mockRes, () => { nextCalled = true; });
+agentArmorMiddleware('message')(mockReq, mockRes, () => {
+  nextCalled = true;
+});
 
 console.log('Middleware demo:');
 console.log('  Original:', mockReq.body.message.slice(0, 80) + '...');

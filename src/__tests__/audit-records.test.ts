@@ -81,7 +81,10 @@ describe('audit records — exception', () => {
     });
     const record = onAudit.mock.calls[0][0];
     expect(record.decision).toBe('exception');
-    expect(record.exception).toEqual({ reason: 'known false positive, reviewed', actor: 'security-team' });
+    expect(record.exception).toEqual({
+      reason: 'known false positive, reviewed',
+      actor: 'security-team',
+    });
   });
 });
 
@@ -93,7 +96,11 @@ describe('audit records — scanRAGChunks (per-chunk firing)', () => {
     expect(onAudit).toHaveBeenCalledTimes(3);
     const records = onAudit.mock.calls.map((c) => c[0]);
     expect(records.map((r) => r.index)).toEqual([0, 1, 2]);
-    expect(records.map((r) => r.source)).toEqual(['scanRAGChunks', 'scanRAGChunks', 'scanRAGChunks']);
+    expect(records.map((r) => r.source)).toEqual([
+      'scanRAGChunks',
+      'scanRAGChunks',
+      'scanRAGChunks',
+    ]);
     const batchIds = new Set(records.map((r) => r.batchId));
     expect(batchIds.size).toBe(1);
     expect([...batchIds][0]).toBeDefined();
@@ -117,7 +124,10 @@ describe('audit records — scanSession (per-turn firing)', () => {
 });
 
 describe('evidence package — aggregation and verification', () => {
-  function makeRecord(decision: AuditRecord['decision'], overrides: Partial<AuditRecord> = {}): AuditRecord {
+  function makeRecord(
+    decision: AuditRecord['decision'],
+    overrides: Partial<AuditRecord> = {},
+  ): AuditRecord {
     return {
       schemaVersion: 'audit-record.v1',
       timestamp: new Date().toISOString(),
@@ -190,7 +200,7 @@ describe('evidence package — aggregation and verification', () => {
           ],
         }),
       ],
-      { periodStart: 'x', periodEnd: 'y' }
+      { periodStart: 'x', periodEnd: 'y' },
     );
     expect(withEvidence.rawContentStored).toBe(true);
   });

@@ -1,0 +1,19 @@
+# Generated, vendored or data files Prettier should not touch
+node_modules
+dist
+coverage
+.vitest
+*.tsbuildinfo
+package-lock.json
+site/api
+docs/internal
+docs/superpowers
+ml/data/output
+ml/train/output
+packages/ml/dist
+packages/ml/node_modules
+.claude
+.agents
+.codex
+CHANGELOG.md
+site

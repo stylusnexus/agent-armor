@@ -24,15 +24,15 @@
 /** Normalize a path for matching: strip leading `./`, collapse `//`, drop a
  * single trailing slash (so `data/` and `data` are equivalent). */
 export function normalizePath(input: string): string {
-  let p = input.replace(/\/{2,}/g, "/");
-  while (p.startsWith("./")) p = p.slice(2);
-  if (p.length > 1 && p.endsWith("/")) p = p.slice(0, -1);
+  let p = input.replace(/\/{2,}/g, '/');
+  while (p.startsWith('./')) p = p.slice(2);
+  if (p.length > 1 && p.endsWith('/')) p = p.slice(0, -1);
   return p;
 }
 
 /** Escape regex-special characters when a glob char is taken literally. */
 function escapeLiteral(ch: string): string {
-  return ch.replace(/[.+^${}()|[\]\\*?]/g, "\\$&");
+  return ch.replace(/[.+^${}()|[\]\\*?]/g, '\\$&');
 }
 
 /**
@@ -45,14 +45,14 @@ export function expandBraces(glob: string): string[] {
   let openAt = -1;
   for (let i = 0; i < glob.length; i++) {
     const ch = glob[i];
-    if (ch === "\\") {
+    if (ch === '\\') {
       i++;
       continue;
     }
-    if (ch === "{") {
+    if (ch === '{') {
       if (depth === 0) openAt = i;
       depth++;
-    } else if (ch === "}") {
+    } else if (ch === '}') {
       if (depth === 0) continue;
       depth--;
       if (depth === 0 && openAt !== -1) {
@@ -62,13 +62,13 @@ export function expandBraces(glob: string): string[] {
         let start = 0;
         for (let j = 0; j < body.length; j++) {
           const c = body[j];
-          if (c === "\\") {
+          if (c === '\\') {
             j++;
             continue;
           }
-          if (c === "{") inner++;
-          else if (c === "}") inner--;
-          else if (c === "," && inner === 0) {
+          if (c === '{') inner++;
+          else if (c === '}') inner--;
+          else if (c === ',' && inner === 0) {
             parts.push(body.slice(start, j));
             start = j + 1;
           }
@@ -111,24 +111,22 @@ export function expandBraces(glob: string): string[] {
 function compileAlternative(glob: string): string {
   type Token = { globstar: true } | { globstar: false; src: string };
   const tokens: Token[] = glob
-    .split("/")
+    .split('/')
     .map((segment): Token =>
-      segment === "**"
-        ? { globstar: true }
-        : { globstar: false, src: compileSegment(segment) }
+      segment === '**' ? { globstar: true } : { globstar: false, src: compileSegment(segment) },
     );
 
-  let re = "";
+  let re = '';
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i];
     if (token.globstar) {
-      if (tokens.length === 1) re += ".*";
-      else if (i === 0) re += "(?:[^/]+/)*";
-      else re += "(?:/[^/]+)*";
+      if (tokens.length === 1) re += '.*';
+      else if (i === 0) re += '(?:[^/]+/)*';
+      else re += '(?:/[^/]+)*';
     } else {
       const prev = tokens[i - 1];
       const followsLeadingGlobstar = i === 1 && prev && prev.globstar === true;
-      if (i > 0 && !followsLeadingGlobstar) re += "/";
+      if (i > 0 && !followsLeadingGlobstar) re += '/';
       re += token.src;
     }
   }
@@ -137,28 +135,28 @@ function compileAlternative(glob: string): string {
 
 /** Compile one path segment (no `/`, not a bare `**`) to a regex source. */
 function compileSegment(segment: string): string {
-  let re = "";
+  let re = '';
   for (let i = 0; i < segment.length; i++) {
     const ch = segment[i];
-    if (ch === "\\") {
+    if (ch === '\\') {
       const next = segment[i + 1];
       if (next !== undefined) {
         re += escapeLiteral(next);
         i++;
       } else {
-        re += "\\\\";
+        re += '\\\\';
       }
-    } else if (ch === "*") {
-      re += "[^/]*";
-    } else if (ch === "?") {
-      re += "[^/]";
-    } else if (ch === "[") {
+    } else if (ch === '*') {
+      re += '[^/]*';
+    } else if (ch === '?') {
+      re += '[^/]';
+    } else if (ch === '[') {
       const compiled = compileCharClass(segment, i);
       if (compiled) {
         re += compiled.source;
         i = compiled.endIndex;
       } else {
-        re += "\\[";
+        re += '\\[';
       }
     } else {
       re += escapeLiteral(ch);
@@ -174,44 +172,44 @@ function compileSegment(segment: string): string {
  */
 function compileCharClass(
   segment: string,
-  start: number
+  start: number,
 ): { source: string; endIndex: number } | null {
   let i = start + 1;
   let negated = false;
-  if (segment[i] === "!" || segment[i] === "^") {
+  if (segment[i] === '!' || segment[i] === '^') {
     negated = true;
     i++;
   }
-  let body = "";
+  let body = '';
   // A `]` immediately after the (optional) negation is a literal member.
-  if (segment[i] === "]") {
-    body += "\\]";
+  if (segment[i] === ']') {
+    body += '\\]';
     i++;
   }
   let closed = false;
   for (; i < segment.length; i++) {
     const ch = segment[i];
-    if (ch === "]") {
+    if (ch === ']') {
       closed = true;
       break;
     }
-    if (ch === "/") return null;
-    if (ch === "\\") {
+    if (ch === '/') return null;
+    if (ch === '\\') {
       const next = segment[i + 1];
       if (next !== undefined) {
-        body += "\\" + next;
+        body += '\\' + next;
         i++;
         continue;
       }
     }
-    if (ch === "^" || ch === "\\") {
-      body += "\\" + ch;
+    if (ch === '^' || ch === '\\') {
+      body += '\\' + ch;
     } else {
       body += ch;
     }
   }
   if (!closed) return null;
-  return { source: `[${negated ? "^" : ""}${body}]`, endIndex: i };
+  return { source: `[${negated ? '^' : ''}${body}]`, endIndex: i };
 }
 
 /**
@@ -219,10 +217,8 @@ function compileCharClass(
  * expanded and joined with `|`; the result matches the entire input string.
  */
 export function globToRegExp(glob: string): RegExp {
-  const alternatives = expandBraces(glob).map((alt) =>
-    compileAlternative(normalizePath(alt))
-  );
-  return new RegExp(`^(?:${alternatives.join("|")})$`);
+  const alternatives = expandBraces(glob).map((alt) => compileAlternative(normalizePath(alt)));
+  return new RegExp(`^(?:${alternatives.join('|')})$`);
 }
 
 /** True if `path` matches `glob` under the semantics documented above. */
