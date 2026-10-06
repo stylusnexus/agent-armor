@@ -112,6 +112,67 @@ const STRIP = new Set<string>([
 const isVariationSelector = (cp: number): boolean =>
   (cp >= 0xfe00 && cp <= 0xfe0f) || (cp >= 0xe0100 && cp <= 0xe01ef);
 
+/** Arabic tatweel (a stretching character) and the optional vowel marks: decoration that a reader skips. */
+const isArabicDecoration = (cp: number): boolean =>
+  cp === 0x0640 || (cp >= 0x064b && cp <= 0x065f) || cp === 0x0670;
+
+/** Dropped without trace: invisible and formatting characters, variation selectors, Arabic decoration. */
+const isDropped = (cp: number, ch: string): boolean =>
+  STRIP.has(ch) || isVariationSelector(cp) || isArabicDecoration(cp);
+
+/**
+ * Bumped when the skeleton changes what it produces, so data written against an older skeleton (language packs
+ * hold literals in skeleton form) can be rejected instead of silently failing to match.
+ */
+export const NORMALIZER_VERSION = 2;
+
+const COMBINING_MARK = /^\p{M}$/u;
+/** A letter in a script whose accents carry no meaning for matching a phrase (unlike Indic vowel signs or kana marks). */
+const ACCENTED_SCRIPT = /^[\p{Script=Latin}\p{Script=Greek}\p{Script=Cyrillic}]/u;
+
+/**
+ * Whether `cp` continues the cluster that starts at `base`: a combining mark, a halfwidth katakana voicing mark, or
+ * a Hangul vowel or final jamo that composes with the one before it. NFKC only composes within such a cluster.
+ */
+function continuesCluster(base: number, cp: number): boolean {
+  if (cp >= 0x300) {
+    if (cp >= 0xff9e && cp <= 0xff9f) return base >= 0xff66 && base <= 0xff9d;
+    if (cp >= 0x1160 && cp <= 0x11a7)
+      return (
+        (base >= 0x1100 && base <= 0x115f) ||
+        (base >= 0x1160 && base <= 0x11a7) ||
+        (base >= 0xac00 && base <= 0xd7a3)
+      );
+    if (cp >= 0x11a8 && cp <= 0x11ff)
+      return (base >= 0x1100 && base <= 0x11ff) || (base >= 0xac00 && base <= 0xd7a3);
+    return COMBINING_MARK.test(String.fromCodePoint(cp));
+  }
+  return false;
+}
+
+/**
+ * Latin, Greek and Cyrillic: drop the accents (an accent is a way to dodge a phrase match, and a reader skips it).
+ * Everything else is composed and keeps its marks.
+ */
+function foldCluster(cluster: string): string {
+  if (ACCENTED_SCRIPT.test(cluster.normalize('NFKC'))) {
+    return cluster.normalize('NFD').replace(/\p{M}/gu, '').normalize('NFKC');
+  }
+  return cluster.normalize('NFKC');
+}
+
+const SINGLE_CACHE = new Map<string, string>();
+const SINGLE_CACHE_LIMIT = 4096;
+
+/** `foldCluster` for one character, remembered for the common scripts; the cap bounds memory on hostile input. */
+function foldOne(ch: string): string {
+  const hit = SINGLE_CACHE.get(ch);
+  if (hit !== undefined) return hit;
+  const folded = foldCluster(ch);
+  if (SINGLE_CACHE.size < SINGLE_CACHE_LIMIT) SINGLE_CACHE.set(ch, folded);
+  return folded;
+}
+
 export interface NormalizedText {
   /** The folded skeleton that semantic detectors should scan. */
   normalized: string;
@@ -152,35 +213,55 @@ export function normalizeForScan(content: string): NormalizedText {
 
   const out: string[] = [];
   const map: number[] = [];
-  let srcIdx = 0;
+  const n = content.length;
+  let i = 0; // UTF-16 index into the original
 
-  for (const ch of content) {
-    const cp = ch.codePointAt(0) ?? 0;
+  while (i < n) {
+    const cp = content.codePointAt(i) ?? 0;
+    const unitLen = cp > 0xffff ? 2 : 1;
 
-    // ASCII passes straight through (NFKC is identity for it).
-    if (cp < 0x80) {
-      map.push(srcIdx);
-      out.push(ch);
-      srcIdx += 1;
+    // ASCII passes straight through unless a combining mark follows it (NFKC is identity for ASCII alone).
+    if (cp < 0x80 && (i + 1 >= n || content.charCodeAt(i + 1) < 0x300)) {
+      map.push(i);
+      out.push(content[i]);
+      i += 1;
       continue;
     }
 
-    const unitLen = ch.length; // 1 or 2 UTF-16 units
-
-    if (STRIP.has(ch) || isVariationSelector(cp)) {
-      srcIdx += unitLen;
+    const ch = String.fromCodePoint(cp);
+    if (isDropped(cp, ch)) {
+      i += unitLen;
       continue;
     }
 
-    const folded = ch.normalize('NFKC');
+    // A cluster: this character plus the marks and jamo that compose with it. Invisible characters inside it are
+    // dropped, so zero-width padding between a letter and its accent does not split them. Most characters have
+    // nothing after them that can attach, and those take the cached path.
+    let j = i + unitLen;
+    let folded: string;
+    if (j >= n || content.charCodeAt(j) < 0x300) {
+      folded = foldOne(ch);
+    } else {
+      let cluster = ch;
+      while (j < n) {
+        const next = content.codePointAt(j) ?? 0;
+        const nextCh = String.fromCodePoint(next);
+        if (isDropped(next, nextCh)) {
+          j += next > 0xffff ? 2 : 1;
+          continue;
+        }
+        if (!continuesCluster(cp, next)) break;
+        cluster += nextCh;
+        j += next > 0xffff ? 2 : 1;
+      }
+      folded = cluster.length === ch.length ? foldOne(ch) : foldCluster(cluster);
+    }
     for (const c of folded) {
       const skeleton = CONFUSABLES[c] ?? c;
-      for (let k = 0; k < skeleton.length; k++) {
-        map.push(srcIdx);
-      }
+      for (let k = 0; k < skeleton.length; k++) map.push(i);
       out.push(skeleton);
     }
-    srcIdx += unitLen;
+    i = j;
   }
 
   const normalized = out.join('');
