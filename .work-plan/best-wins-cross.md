@@ -38,13 +38,14 @@ next_up:
   - 107
 blockers: []
 ---
+
 # Best Wins (convergence track)
 
 **This track owns nothing.** `github.issues` is deliberately empty and every issue below sits in
 `github.references` — the toolkit's cross-track construct for surfacing scope without claiming
 ownership. Status, session logs, and issue-table upkeep stay in each issue's home track; this
-file answers one question the seven topic tracks can't answer individually: *what should we pick
-up next?*
+file answers one question the seven topic tracks can't answer individually: _what should we pick
+up next?_
 
 Rules of the road:
 
@@ -71,24 +72,24 @@ of it substitutes for picking a launch date.
 
 ## Ranking
 
-| Rank | Issue | Home track | Why it wins | Effort | Risk |
-|---|---|---|---|---|---|
-| ~~1~~ | ~~#28 credential-exposure detector~~ | transport-integrity | **✅ Shipped 2026-08-05** (PR #94, `0505bc7`) — closed #26 with it. 6/6 detection, FP held at 0.0%. | — | — |
-| 1 | #71 ML checksum integrity CI | ml-v2-retrain | A security tool that verifies its own supply chain. One scheduled workflow, no secrets, public HF repo. Also blocks publishing an ML version whose checksum disagrees with HuggingFace. | **Low** | Low |
-| 2 | #69 item 1 — kill or implement `steganographic-payload` | detection-hardening | A declared-but-dead enum in a public type system reads as a capability claim that isn't real. On a security product that's a trust wart. **Split this item out and ship it alone.** | **Low** | Low (breaking type change if removed) |
-| 3 | #68 items 1+3 — bare-rule footgun + aggregate reasons | detection-hardening | The bare-rule footgun is a dangerous default in the *pre-execution gate* — the README warns about it but nothing prevents it. Aggregate reasons make a denial debuggable without bisecting the policy. | Low–Med | Low (fuzz baseline protects it) |
-| 4 | #27 tool-call-tampering detector | transport-integrity | The strongest launch narrative available: 0 of 4 major agent frameworks verify response integrity (Liu et al. 2026), citing real router compromises. | Med | **Med–High** — install docs legitimately contain `curl \| sh`; needs hard negatives and careful confidence tuning |
-| 5 | #68 items 2+4 — tool globs + `baseDir` | detection-hardening | Both need the SecLists fuzz corpus extended alongside them, so they cost more than 1+3. Real value: `baseDir` gives callers who can't pre-normalise a safe option. | Med | Med |
-| 6 | #69 items 2+3 — thin coverage + threshold extraction | detection-hardening | Protects the regression gate that protects every future change. Verified thin: 3 samples each for `dynamic-cloaking`, `syntactic-masking`, `persona-hyperstition`; 4 each for `contextual-learning-trap`, `biased-framing` — against 11 for the best-covered types. | Med (curation grind) | Low |
-| 7 | #37 long-context attention-dilution | detection-hardening | Real open detection gap against a documented bypass technique. Cheap heuristic over already-computed match positions and content length. | Med | Med — one open design call (detector vs. pipeline scoring; the issue leans pipeline) |
-| 8 | #29 dependency-substitution | transport-integrity | Typosquat/supply-chain angle lands with the same audience as #27 and shares its machinery once #27's patterns exist. Structural approach, no dictionary to maintain. | Med | Med |
-| 9 | #38 SOC 2 / ISO 27001 crosswalk | enterprise-readiness | **Newly unblocked** — all three stated dependencies shipped. Docs, not code, written against a real shipped schema (`AuditRecord`, `buildEvidencePackage`). Enterprise credibility asset. | Med (writing) | Low, provided it doesn't over-claim |
-| 10 | #40 eval-gated external-feed ingestion | ml-v2-retrain | Highest *strategic* value here — it's the mechanism behind the Pro-tier pattern feed. But design-heavy, and worth more once there's adoption to serve. | **High** | Med |
-| 11 | #30 response-anomaly screening | transport-integrity | Marginal value drops sharply once #27 and #28 ship — its highest-weighted feature (shell risk) is #27's, and its secret-pattern feature is #28's. | Med | Med |
-| 12 | #25 ML v2 retrain data | ml-v2-retrain | The big lift: ~5,400 labelled samples. High long-term value ("ML demonstrably better than regex" is a monetisation trigger), but weeks, not days. | **High** | Med |
-| 13 | #32 transport-integrity ML samples | ml-v2-retrain | Rides #25 plus the #27–#30 detectors. Nothing to do before both. | Med | Low |
-| 14 | #31 provider response-envelope signing | transport-integrity | Genuinely future — needs provider cooperation that doesn't exist yet. | High | High |
-| 15–21 | #7–#13 systemic + human-in-the-loop | systemic-traps, human-in-the-loop | Correctly deferred, and not referenced by this track. These need real incident signal from real users; building them now means guessing. | High | High |
+| Rank  | Issue                                                   | Home track                        | Why it wins                                                                                                                                                                                                                                                         | Effort               | Risk                                                                                                              |
+| ----- | ------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| ~~1~~ | ~~#28 credential-exposure detector~~                    | transport-integrity               | **✅ Shipped 2026-08-05** (PR #94, `0505bc7`) — closed #26 with it. 6/6 detection, FP held at 0.0%.                                                                                                                                                                 | —                    | —                                                                                                                 |
+| 1     | #71 ML checksum integrity CI                            | ml-v2-retrain                     | A security tool that verifies its own supply chain. One scheduled workflow, no secrets, public HF repo. Also blocks publishing an ML version whose checksum disagrees with HuggingFace.                                                                             | **Low**              | Low                                                                                                               |
+| 2     | #69 item 1 — kill or implement `steganographic-payload` | detection-hardening               | A declared-but-dead enum in a public type system reads as a capability claim that isn't real. On a security product that's a trust wart. **Split this item out and ship it alone.**                                                                                 | **Low**              | Low (breaking type change if removed)                                                                             |
+| 3     | #68 items 1+3 — bare-rule footgun + aggregate reasons   | detection-hardening               | The bare-rule footgun is a dangerous default in the _pre-execution gate_ — the README warns about it but nothing prevents it. Aggregate reasons make a denial debuggable without bisecting the policy.                                                              | Low–Med              | Low (fuzz baseline protects it)                                                                                   |
+| 4     | #27 tool-call-tampering detector                        | transport-integrity               | The strongest launch narrative available: 0 of 4 major agent frameworks verify response integrity (Liu et al. 2026), citing real router compromises.                                                                                                                | Med                  | **Med–High** — install docs legitimately contain `curl \| sh`; needs hard negatives and careful confidence tuning |
+| 5     | #68 items 2+4 — tool globs + `baseDir`                  | detection-hardening               | Both need the SecLists fuzz corpus extended alongside them, so they cost more than 1+3. Real value: `baseDir` gives callers who can't pre-normalise a safe option.                                                                                                  | Med                  | Med                                                                                                               |
+| 6     | #69 items 2+3 — thin coverage + threshold extraction    | detection-hardening               | Protects the regression gate that protects every future change. Verified thin: 3 samples each for `dynamic-cloaking`, `syntactic-masking`, `persona-hyperstition`; 4 each for `contextual-learning-trap`, `biased-framing` — against 11 for the best-covered types. | Med (curation grind) | Low                                                                                                               |
+| 7     | #37 long-context attention-dilution                     | detection-hardening               | Real open detection gap against a documented bypass technique. Cheap heuristic over already-computed match positions and content length.                                                                                                                            | Med                  | Med — one open design call (detector vs. pipeline scoring; the issue leans pipeline)                              |
+| 8     | #29 dependency-substitution                             | transport-integrity               | Typosquat/supply-chain angle lands with the same audience as #27 and shares its machinery once #27's patterns exist. Structural approach, no dictionary to maintain.                                                                                                | Med                  | Med                                                                                                               |
+| 9     | #38 SOC 2 / ISO 27001 crosswalk                         | enterprise-readiness              | **Newly unblocked** — all three stated dependencies shipped. Docs, not code, written against a real shipped schema (`AuditRecord`, `buildEvidencePackage`). Enterprise credibility asset.                                                                           | Med (writing)        | Low, provided it doesn't over-claim                                                                               |
+| 10    | #40 eval-gated external-feed ingestion                  | ml-v2-retrain                     | Highest _strategic_ value here — it's the mechanism behind the Pro-tier pattern feed. But design-heavy, and worth more once there's adoption to serve.                                                                                                              | **High**             | Med                                                                                                               |
+| 11    | #30 response-anomaly screening                          | transport-integrity               | Marginal value drops sharply once #27 and #28 ship — its highest-weighted feature (shell risk) is #27's, and its secret-pattern feature is #28's.                                                                                                                   | Med                  | Med                                                                                                               |
+| 12    | #25 ML v2 retrain data                                  | ml-v2-retrain                     | The big lift: ~5,400 labelled samples. High long-term value ("ML demonstrably better than regex" is a monetisation trigger), but weeks, not days.                                                                                                                   | **High**             | Med                                                                                                               |
+| 13    | #32 transport-integrity ML samples                      | ml-v2-retrain                     | Rides #25 plus the #27–#30 detectors. Nothing to do before both.                                                                                                                                                                                                    | Med                  | Low                                                                                                               |
+| 14    | #31 provider response-envelope signing                  | transport-integrity               | Genuinely future — needs provider cooperation that doesn't exist yet.                                                                                                                                                                                               | High                 | High                                                                                                              |
+| 15–21 | #7–#13 systemic + human-in-the-loop                     | systemic-traps, human-in-the-loop | Correctly deferred, and not referenced by this track. These need real incident signal from real users; building them now means guessing.                                                                                                                            | High                 | High                                                                                                              |
 
 ## Suggested sequencing
 
@@ -96,7 +97,7 @@ Three batches, each independently mergeable:
 
 1. **Credibility batch (days):** ~~#28~~ ✅ → **#71 → #69 item 1**. Two small PRs left. Ends with a
    self-verifying model supply chain and no dead types in the public taxonomy. This is the batch
-   to have finished *before* a launch post, not after.
+   to have finished _before_ a launch post, not after.
 2. **Hardening batch:** #68 items 1+3, then #69 items 2+3. Tightens the pre-execution gate's
    dangerous defaults, then shores up the regression floor everything else stands on.
 3. **Transport-integrity batch:** #27 → #29 → #68 items 2+4 → #37. No taxonomy prerequisite
@@ -111,7 +112,7 @@ other batches touch.
 Found by checking live source rather than trusting issue text. These change the effort estimates
 above and should be reflected in the home tracks.
 
-1. **#26 (transport-integrity taxonomy) is substantially already implemented** and is *not* the
+1. **#26 (transport-integrity taxonomy) is substantially already implemented** and is _not_ the
    blocker the transport-integrity track's `next_up` implies. Verified live:
    - `TrapCategory` already includes `'transport-integrity'` (`src/types/index.ts:18`)
    - `TransportIntegrityType` is fully defined with all four subtypes (`src/types/index.ts:58`)
@@ -123,7 +124,7 @@ above and should be reflected in the home tracks.
      (`src/agent-armor.ts:118`)
 
    What's genuinely missing is a `DETECTOR_REGISTRY` entry and a pattern-DB key — and those land
-   *with the first detector*, not before it. **Confirmed by shipping it:** #28 supplied both and
+   _with the first detector_, not before it. **Confirmed by shipping it:** #28 supplied both and
    closed #26 in the same PR. The config defaults were indeed already `true`, so the detector went
    out on-by-default for existing users — called out in the PR and the merge commit.
 
@@ -192,7 +193,7 @@ v0.2.15 (core). Ranks 1-3 of the previous ordering are done.
 2. **#98** — C2 / drop-service endpoints. Zero pattern coverage today; `rw-011` is a standing miss.
 3. **#107** — dependency-install risk. Zero coverage of install commands, lockfiles, `ignore-scripts`,
    `postinstall` in ANY ecosystem. This repo has already been targeted (PR #73's `pip install
-   vulnledger` comment), which makes it grounded rather than speculative.
+vulnledger` comment), which makes it grounded rather than speculative.
 4. **#99** — persistence + logging suppression (`rw-014` is a standing miss).
 5. **#106** — action-gate package policy. After #68, since it depends on the rule hygiene.
 6. **#37**, then **#69 items 2+3**, then #29 / #38 / #40 as previously ranked.

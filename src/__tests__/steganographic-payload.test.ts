@@ -67,9 +67,7 @@ describe('steganographic-payload — benign near-misses', () => {
   });
 
   it('does not flag emoji presentation selectors (VS16)', () => {
-    expect(scanTypes('Shipped ❤️ ☀️ ✔️ on time.')).not.toContain(
-      'steganographic-payload'
-    );
+    expect(scanTypes('Shipped ❤️ ☀️ ✔️ on time.')).not.toContain('steganographic-payload');
   });
 
   it('does not flag high-entropy but legitimate content', () => {
@@ -110,8 +108,8 @@ describe('steganographic-payload — configuration and wiring', () => {
     // onto the normalized skeleton, the variation-selector carrier would vanish
     // before it could be seen and this test would fail.
     const armor = new AgentArmor({ normalizeUnicode: true });
-    expect(
-      armor.scanSync(toVariationSelectors(PAYLOAD)).threats.map((t) => t.type)
-    ).toContain('steganographic-payload');
+    expect(armor.scanSync(toVariationSelectors(PAYLOAD)).threats.map((t) => t.type)).toContain(
+      'steganographic-payload',
+    );
   });
 });

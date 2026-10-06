@@ -25,6 +25,12 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
+      - name: Check formatting
+        run: |
+          npm run format:check || {
+            echo "::error::Files are not formatted. Run 'npm run format -- <files>' on the files you changed and commit the result."
+            exit 1
+          }
 
   docs-drift:
     runs-on: ubuntu-latest

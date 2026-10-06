@@ -72,7 +72,9 @@ for (const article of knowledgeBase) {
     safeArticles.push({ ...article, content: result.sanitized });
     console.log(`  [SANITIZED] ${article.title}`);
     for (const threat of result.threats) {
-      console.log(`    Threat: ${threat.type} (${threat.severity}, confidence: ${threat.confidence})`);
+      console.log(
+        `    Threat: ${threat.type} (${threat.severity}, confidence: ${threat.confidence})`,
+      );
       console.log(`    Evidence: "${threat.evidence.slice(0, 80)}..."`);
     }
   }

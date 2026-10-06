@@ -57,9 +57,10 @@ One copy of each recipe, in `.agents/skills/` (read by Codex and Gemini CLI; Cla
 - `write-matcher`: write an exact linear-time matcher for a slow detection regex.
 - `pattern-red-team`: adversarial review of a pattern, detector, matcher, threshold or eval-floor change. Run it before merging one.
 - `refresh-attack-feeds`: refresh the external attack-feed list and find real attacks the scanner misses (about once a quarter).
+- `agent-armor-tools` (a plugin folder with two skills): `retrain` retrains the ML classifier, and `version-check` recommends a semver bump before a publish. Its `evals/` holds trigger evals and their results.
 
 Per tool:
 
-- **Codex:** reads this file and `.agents/skills/`.
+- **Codex:** reads this file and `.agents/skills/`. `.codex/agents/pattern-red-team.toml` registers the red-team reviewer for Codex; it points at the shared skill.
 - **Gemini CLI:** `GEMINI.md` imports this file; it reads `.agents/skills/`.
 - **Claude Code:** `CLAUDE.md` imports this file. Keep personal notes in `CLAUDE.local.md` (gitignored). `.claude/skills/write-matcher` links to the shared skill, and `.claude/agents/pattern-red-team.md` is a thin subagent that points at the shared one.

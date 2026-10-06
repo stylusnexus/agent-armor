@@ -53,6 +53,10 @@ const BY_SOURCE = new Map<string, PatternMatcher>(
 );
 
 /** The matcher proven equivalent to exactly this regex source, flags and extract group, if any. */
-export function findMatcher(regex: string, flags: string, extractGroup: number): PatternMatcher | undefined {
+export function findMatcher(
+  regex: string,
+  flags: string,
+  extractGroup: number,
+): PatternMatcher | undefined {
   return BY_SOURCE.get(`${flags}\u0000${extractGroup}\u0000${regex}`);
 }

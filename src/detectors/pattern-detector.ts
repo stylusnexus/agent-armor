@@ -3,6 +3,7 @@ import type { PatternEntry } from '../patterns/pattern-db';
 import { compilePattern } from '../patterns/pattern-db';
 import { findMatcher, type MatcherHit, type PatternMatcher } from '../patterns/matchers';
 import type { TextEdit, Threat, TrapCategory, TrapType } from '../types';
+import { replaceRanges } from '../sanitize';
 
 const INSTRUCTION_SIGNALS =
   /(?:ignore|disregard|forget|override|system|assistant|you (?:are|must|should|will)|IMPORTANT|instruction|do not|instead|pretend|act as|role|new task|send to|transmit|summarise|summarize|say that|respond with|output|generate|write|tell the user|without\s+(?:restrictions?|scrutiny|review)|approve\s+(?:all|everything|any)|all\s+files|arbitrary|bypass|credentials?|privileged|unrestricted)/i;
@@ -45,7 +46,11 @@ export class PatternDetector extends BaseDetector {
   readonly category: TrapCategory;
   protected readonly trapType: TrapType;
   /** Patterns with their regexes compiled once at construction, not per scan. */
-  private readonly compiled: Array<{ entry: PatternEntry; regex: RegExp; matcher?: PatternMatcher }>;
+  private readonly compiled: Array<{
+    entry: PatternEntry;
+    regex: RegExp;
+    matcher?: PatternMatcher;
+  }>;
   private readonly sanitizeMode: 'remove' | 'replace' | 'none';
   private readonly replaceText?: string;
   private readonly maskEvidence: boolean;
@@ -85,7 +90,9 @@ export class PatternDetector extends BaseDetector {
     const matches: PatternMatch[] = [];
 
     for (const { entry, regex, matcher } of this.compiled) {
-      for (const hit of matcher ? matcher.match(content) : execAll(regex, content, entry.extractGroup ?? 0)) {
+      for (const hit of matcher
+        ? matcher.match(content)
+        : execAll(regex, content, entry.extractGroup ?? 0)) {
         const extracted = hit.extracted ?? hit.text;
         const trimmed = extracted.trim();
 
@@ -130,8 +137,7 @@ export class PatternDetector extends BaseDetector {
 
   sanitizeEdits(_content: string, threats: Threat[]): TextEdit[] {
     if (this.sanitizeMode === 'none') return [];
-    const replacement =
-      this.sanitizeMode === 'replace' && this.replaceText ? this.replaceText : '';
+    const replacement = this.sanitizeMode === 'replace' && this.replaceText ? this.replaceText : '';
     return threats
       .filter((t) => t.location)
       .map((t) => ({
@@ -144,51 +150,11 @@ export class PatternDetector extends BaseDetector {
 
   sanitize(content: string, threats: Threat[]): string {
     if (this.sanitizeMode === 'none') return content;
-
-    const sorted = [...threats]
-      .filter((t) => t.location)
-      .sort((a, b) => (b.location?.offset ?? 0) - (a.location?.offset ?? 0));
-
-    const replacement =
-      this.sanitizeMode === 'replace' && this.replaceText
-        ? this.replaceText
-        : '';
-
-    // Apply the edits from the last offset to the first without rebuilding the
-    // string per edit (that was quadratic in the number of findings, #160).
-    // State: result = content.slice(0, boundary) + the chunks, which are kept
-    // in reverse so the front is the last element. An edit that reaches past
-    // `boundary` eats into the front of the chunks, as slicing the already-edited
-    // string did. Output matches the old method whenever every edit fits the
-    // text; an offset past the end (stale offsets from an earlier detector)
-    // now appends instead of landing inside inserted text.
-    const chunks: string[] = [];
-    let boundary = content.length;
-
-    for (const threat of sorted) {
-      if (!threat.location) continue;
-      const { offset, length } = threat.location;
-      const end = offset + length;
-
-      if (end <= boundary) {
-        if (end < boundary) chunks.push(content.slice(end, boundary));
-      } else {
-        let drop = end - boundary;
-        while (drop > 0 && chunks.length > 0) {
-          const front = chunks[chunks.length - 1];
-          if (front.length <= drop) {
-            drop -= front.length;
-            chunks.pop();
-          } else {
-            chunks[chunks.length - 1] = front.slice(drop);
-            drop = 0;
-          }
-        }
-      }
-      if (replacement) chunks.push(replacement);
-      boundary = offset;
-    }
-
-    return content.slice(0, boundary) + chunks.reverse().join('');
+    const replacement = this.sanitizeMode === 'replace' && this.replaceText ? this.replaceText : '';
+    return replaceRanges(
+      content,
+      threats.flatMap((t) => (t.location ? [t.location] : [])),
+      replacement,
+    );
   }
 }

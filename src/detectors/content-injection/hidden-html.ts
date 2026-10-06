@@ -1,5 +1,6 @@
 import { BaseDetector, type PatternMatch } from '../base';
 import type { Threat, TrapCategory, TrapType } from '../../types';
+import { replaceRanges } from '../../sanitize';
 
 /**
  * Detects instructions hidden via CSS/HTML that are invisible to humans
@@ -25,8 +26,7 @@ export class HiddenHTMLDetector extends BaseDetector {
     label: string;
   }> = [
     {
-      regex:
-        /<[^>]+style\s*=\s*["'][^"']*display\s*:\s*none[^"']*["'][^>]*>([\s\S]*?)<\/[^>]+>/gi,
+      regex: /<[^>]+style\s*=\s*["'][^"']*display\s*:\s*none[^"']*["'][^>]*>([\s\S]*?)<\/[^>]+>/gi,
       severity: 'high',
       confidence: 0.85,
       label: 'CSS display:none hiding content',
@@ -53,8 +53,7 @@ export class HiddenHTMLDetector extends BaseDetector {
       label: 'Zero-size element hiding content',
     },
     {
-      regex:
-        /<[^>]+style\s*=\s*["'][^"']*opacity\s*:\s*0[^"']*["'][^>]*>([\s\S]*?)<\/[^>]+>/gi,
+      regex: /<[^>]+style\s*=\s*["'][^"']*opacity\s*:\s*0[^"']*["'][^>]*>([\s\S]*?)<\/[^>]+>/gi,
       severity: 'medium',
       confidence: 0.7,
       label: 'Opacity:0 hiding content',
@@ -91,15 +90,12 @@ export class HiddenHTMLDetector extends BaseDetector {
 
         if (trimmed.length < 5) continue;
 
-        const hasInstruction =
-          HiddenHTMLDetector.INSTRUCTION_SIGNALS.test(trimmed);
+        const hasInstruction = HiddenHTMLDetector.INSTRUCTION_SIGNALS.test(trimmed);
         const adjustedConfidence = hasInstruction
           ? Math.min(pattern.confidence + 0.15, 1.0)
           : pattern.confidence;
         const adjustedSeverity: 'medium' | 'high' | 'critical' =
-          hasInstruction && pattern.severity === 'high'
-            ? 'critical'
-            : pattern.severity;
+          hasInstruction && pattern.severity === 'high' ? 'critical' : pattern.severity;
 
         matches.push({
           pattern: pattern.label,
@@ -119,17 +115,10 @@ export class HiddenHTMLDetector extends BaseDetector {
   }
 
   sanitize(content: string, threats: Threat[]): string {
-    let result = content;
-    const sorted = [...threats]
-      .filter((t) => t.location)
-      .sort((a, b) => (b.location?.offset ?? 0) - (a.location?.offset ?? 0));
-
-    for (const threat of sorted) {
-      if (!threat.location) continue;
-      const { offset, length } = threat.location;
-      result = result.slice(0, offset) + result.slice(offset + length);
-    }
-
-    return result;
+    return replaceRanges(
+      content,
+      threats.flatMap((t) => (t.location ? [t.location] : [])),
+      '',
+    );
   }
 }

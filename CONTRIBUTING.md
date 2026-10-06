@@ -49,7 +49,7 @@ npm run test:run
 ## Code Style
 
 - TypeScript strict mode
-- Prettier for formatting
+- Prettier for formatting: the rules are in `.prettierrc.json` (single quotes, 100 columns). Run `npm run format -- <files>` on files you change, and `npm run format:check` before you push. CI runs the check. To make local `git blame` skip the one-off reformat, run `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
 - No unnecessary dependencies
 - Keep imports explicit
 

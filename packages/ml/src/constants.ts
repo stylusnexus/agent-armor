@@ -11,10 +11,7 @@ export const REQUIRED_MODEL_FILES = [
   'label_map.json',
 ] as const;
 
-export const OPTIONAL_MODEL_FILES = [
-  'tokenizer_config.json',
-  'special_tokens_map.json',
-] as const;
+export const OPTIONAL_MODEL_FILES = ['tokenizer_config.json', 'special_tokens_map.json'] as const;
 
 export const MODEL_CHECKSUM = '5d4c8551c958f398181c60239aebedbaa4ed5b641d1645904d2de9c2d02bd41f';
 
@@ -35,9 +32,10 @@ export const LABELS = [
   'benign',
 ] as const;
 
-export const LABEL_TO_INDEX = Object.fromEntries(
-  LABELS.map((label, i) => [label, i])
-) as Record<(typeof LABELS)[number], number>;
+export const LABEL_TO_INDEX = Object.fromEntries(LABELS.map((label, i) => [label, i])) as Record<
+  (typeof LABELS)[number],
+  number
+>;
 
 export function getDefaultCacheDir(): string {
   const envOverride = process.env.AGENTARMOR_CACHE_DIR;

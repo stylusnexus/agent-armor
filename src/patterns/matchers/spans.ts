@@ -16,7 +16,20 @@ export const HTML_COMMENT_MATCHER: PatternMatcher = {
   regex: String.raw`<!--([\s\S]*?)-->`,
   flags: 'g',
   extractGroup: 1,
-  fuzzAtoms: ['<!--', '-->', '--', '-', '>', '<!', ' ', 'ignore previous', 'x', '\n', '<!-->', '<!---->'],
+  fuzzAtoms: [
+    '<!--',
+    '-->',
+    '--',
+    '-',
+    '>',
+    '<!',
+    ' ',
+    'ignore previous',
+    'x',
+    '\n',
+    '<!-->',
+    '<!---->',
+  ],
   match(content) {
     const hits: MatcherHit[] = [];
     let pos = 0;
@@ -25,7 +38,11 @@ export const HTML_COMMENT_MATCHER: PatternMatcher = {
       if (open < 0) break;
       const close = content.indexOf('-->', open + 4);
       if (close < 0) break;
-      hits.push({ index: open, text: content.slice(open, close + 3), extracted: content.slice(open + 4, close) });
+      hits.push({
+        index: open,
+        text: content.slice(open, close + 3),
+        extracted: content.slice(open + 4, close),
+      });
       pos = close + 3;
     }
     return hits;
@@ -40,7 +57,20 @@ export const LATEX_TINY_MATCHER: PatternMatcher = {
   regex: String.raw`\\(?:tiny|scriptsize|footnotesize)\s*\{([^}]+)\}`,
   flags: 'g',
   extractGroup: 1,
-  fuzzAtoms: ['\\tiny', '\\scriptsize', '\\footnotesize', '\\tin', '{', '}', '{}', ' ', '\n', 'ignore all', 'x', '\\'],
+  fuzzAtoms: [
+    '\\tiny',
+    '\\scriptsize',
+    '\\footnotesize',
+    '\\tin',
+    '{',
+    '}',
+    '{}',
+    ' ',
+    '\n',
+    'ignore all',
+    'x',
+    '\\',
+  ],
   match(content) {
     const hits: MatcherHit[] = [];
     const start = /\\(?:tiny|scriptsize|footnotesize)\s*\{/g;
@@ -56,7 +86,11 @@ export const LATEX_TINY_MATCHER: PatternMatcher = {
         pos = m.index + 1;
         continue;
       }
-      hits.push({ index: m.index, text: content.slice(m.index, close + 1), extracted: content.slice(bodyStart, close) });
+      hits.push({
+        index: m.index,
+        text: content.slice(m.index, close + 1),
+        extracted: content.slice(bodyStart, close),
+      });
       pos = close + 1;
     }
     return hits;
@@ -72,7 +106,21 @@ export const DATA_ATTR_MATCHER: PatternMatcher = {
   regex: String.raw`data-[\w-]+\s*=\s*["']([^"']{80,})["']`,
   flags: 'gi',
   extractGroup: 1,
-  fuzzAtoms: ['data-', 'DATA-', 'data-x', 'data-a-b', '=', ' = ', '"', "'", 'x'.repeat(40), 'y'.repeat(81), 'z'.repeat(80), '\n', 'é'],
+  fuzzAtoms: [
+    'data-',
+    'DATA-',
+    'data-x',
+    'data-a-b',
+    '=',
+    ' = ',
+    '"',
+    "'",
+    'x'.repeat(40),
+    'y'.repeat(81),
+    'z'.repeat(80),
+    '\n',
+    'é',
+  ],
   match(content) {
     const hits: MatcherHit[] = [];
     const start = /data-/gi;
@@ -126,7 +174,21 @@ export const BIDI_OVERRIDE_MATCHER: PatternMatcher = {
   regex: '[\\u202A-\\u202E\\u2066-\\u2069]+[^]*?[\\u202C\\u2069]',
   flags: 'g',
   extractGroup: 0,
-  fuzzAtoms: ['\u202A', '\u202B', '\u202C', '\u202D', '\u202E', '\u2066', '\u2067', '\u2068', '\u2069', 'abc', ' ', '\n', 'x'],
+  fuzzAtoms: [
+    '\u202A',
+    '\u202B',
+    '\u202C',
+    '\u202D',
+    '\u202E',
+    '\u2066',
+    '\u2067',
+    '\u2068',
+    '\u2069',
+    'abc',
+    ' ',
+    '\n',
+    'x',
+  ],
   match(content) {
     const hits: MatcherHit[] = [];
     const n = content.length;
@@ -171,7 +233,24 @@ export const SYSTEM_PROMPT_MATCHER: PatternMatcher = {
   regex: String.raw`(?:^|\n)\s*(?:SYSTEM|System)\s*:\s*.{10,}`,
   flags: 'gm',
   extractGroup: 0,
-  fuzzAtoms: ['SYSTEM', 'System', 'system', 'SYSTEM:', 'System: ', ':', ' ', '  ', '\n', '\r', ' ', '\t', 'a', 'abcdefghij', 'do the thing now', '\n\n'],
+  fuzzAtoms: [
+    'SYSTEM',
+    'System',
+    'system',
+    'SYSTEM:',
+    'System: ',
+    ':',
+    ' ',
+    '  ',
+    '\n',
+    '\r',
+    ' ',
+    '\t',
+    'a',
+    'abcdefghij',
+    'do the thing now',
+    '\n\n',
+  ],
   match(content) {
     const hits: MatcherHit[] = [];
     const n = content.length;
@@ -188,7 +267,11 @@ export const SYSTEM_PROMPT_MATCHER: PatternMatcher = {
       while (ws > lastEnd && isWhitespace(content.charCodeAt(ws - 1))) ws--;
       let anchor = -1;
       for (let j = ws; j <= kp; j++) {
-        if (j === 0 || isLineTerminator(content.charCodeAt(j - 1)) || (j < kp && content.charCodeAt(j) === 10)) {
+        if (
+          j === 0 ||
+          isLineTerminator(content.charCodeAt(j - 1)) ||
+          (j < kp && content.charCodeAt(j) === 10)
+        ) {
           anchor = j;
           break;
         }
@@ -237,7 +320,25 @@ export const DAN_MATCHER: PatternMatcher = {
   regex: String.raw`\bD\.?A\.?N\.?\b.*(?:mode|enabled|activated|jailbreak)`,
   flags: 'gi',
   extractGroup: 0,
-  fuzzAtoms: ['DAN', 'dan', 'D.A.N', 'D.A.N.', 'D.AN', 'DANK', 'DAN.', ' mode', 'MODE', 'enabled', 'activated', 'jailbreak', ' ', '.', '\n', 'x', 'é'],
+  fuzzAtoms: [
+    'DAN',
+    'dan',
+    'D.A.N',
+    'D.A.N.',
+    'D.AN',
+    'DANK',
+    'DAN.',
+    ' mode',
+    'MODE',
+    'enabled',
+    'activated',
+    'jailbreak',
+    ' ',
+    '.',
+    '\n',
+    'x',
+    'é',
+  ],
   match(content) {
     const hits: MatcherHit[] = [];
     const n = content.length;

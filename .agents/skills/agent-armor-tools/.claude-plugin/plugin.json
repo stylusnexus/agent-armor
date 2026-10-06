@@ -1,0 +1,5 @@
+{
+  "name": "agent-armor-tools",
+  "version": "0.1.0",
+  "description": "Project-local skills for agent-armor: ML classifier retraining and semver version-check before npm publish."
+}

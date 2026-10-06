@@ -1,5 +1,6 @@
 import { BaseDetector, type PatternMatch } from '../base';
 import type { Threat, TrapCategory, TrapType } from '../../types';
+import { replaceRanges } from '../../sanitize';
 
 /**
  * Detects instructions injected via HTML metadata channels that agents parse
@@ -74,8 +75,7 @@ export class MetadataInjectionDetector extends BaseDetector {
         const trimmed = extracted.trim();
         if (trimmed.length < 10) continue;
 
-        const hasInstruction =
-          MetadataInjectionDetector.INSTRUCTION_SIGNALS.test(trimmed);
+        const hasInstruction = MetadataInjectionDetector.INSTRUCTION_SIGNALS.test(trimmed);
 
         const confidence = hasInstruction
           ? Math.min(pattern.baseConfidence + 0.4, 1.0)
@@ -105,26 +105,11 @@ export class MetadataInjectionDetector extends BaseDetector {
   }
 
   sanitize(content: string, threats: Threat[]): string {
-    let result = content;
-    const sorted = [...threats]
-      .filter((t) => t.location)
-      .sort((a, b) => (b.location?.offset ?? 0) - (a.location?.offset ?? 0));
-
-    for (const threat of sorted) {
-      if (!threat.location) continue;
-      const { offset, length } = threat.location;
-      const original = result.slice(offset, offset + length);
-
-      if (original.startsWith('<!--')) {
-        result = result.slice(0, offset) + result.slice(offset + length);
-      } else {
-        result =
-          result.slice(0, offset) +
-          original.replace(/=\s*["'][^"']*["']/, '=""') +
-          result.slice(offset + length);
-      }
-    }
-
-    return result;
+    return replaceRanges(
+      content,
+      threats.flatMap((t) => (t.location ? [t.location] : [])),
+      (original) =>
+        original.startsWith('<!--') ? '' : original.replace(/=\s*["'][^"']*["']/, '=""'),
+    );
   }
 }

@@ -39,29 +39,33 @@ export function parseScanArgs(argv: string[]): ScanCliOptions {
   const strictness = (strictnessRaw ?? 'balanced') as Strictness;
   if (!STRICTNESS_VALUES.includes(strictness)) {
     throw new CliUsageError(
-      `Invalid --strictness "${strictnessRaw}" — expected one of: ${STRICTNESS_VALUES.join(', ')}`
+      `Invalid --strictness "${strictnessRaw}" — expected one of: ${STRICTNESS_VALUES.join(', ')}`,
     );
   }
 
   const format = (formatRaw ?? 'text') as OutputFormat;
   if (!FORMAT_VALUES.includes(format)) {
     throw new CliUsageError(
-      `Invalid --format "${formatRaw}" — expected one of: ${FORMAT_VALUES.join(', ')}`
+      `Invalid --format "${formatRaw}" — expected one of: ${FORMAT_VALUES.join(', ')}`,
     );
   }
 
   const failOn = (failOnRaw ?? 'low') as RiskLevel;
   if (!RISK_LEVEL_VALUES.includes(failOn)) {
     throw new CliUsageError(
-      `Invalid --fail-on "${failOnRaw}" — expected one of: ${RISK_LEVEL_VALUES.join(', ')}`
+      `Invalid --fail-on "${failOnRaw}" — expected one of: ${RISK_LEVEL_VALUES.join(', ')}`,
     );
   }
 
   const flagsAndValues = new Set([
-    '--strictness', strictnessRaw,
-    '--format', formatRaw,
-    '--fail-on', failOnRaw,
-    '--include', includeRaw,
+    '--strictness',
+    strictnessRaw,
+    '--format',
+    formatRaw,
+    '--fail-on',
+    failOnRaw,
+    '--include',
+    includeRaw,
     '--ml',
   ]);
   const paths = argv.filter((a) => !flagsAndValues.has(a));

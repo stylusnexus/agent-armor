@@ -16,17 +16,17 @@ next_up:
   - 12
 blockers: []
 ---
+
 # Human-in-the-Loop (P2)
 
 P2 human-in-the-loop trap detectors: approval fatigue, social engineering via compromised agent
 
 ## Issues
 
-| # | Title | Assignee | Status |
-|---|---|---|---|
-| #12 | P2: Approval Fatigue Mitigation | — | 🔲 Open |
-| #13 | P2: Social Engineering via Compromised Agent | — | 🔲 Open |
-
+| #   | Title                                        | Assignee | Status  |
+| --- | -------------------------------------------- | -------- | ------- |
+| #12 | P2: Approval Fatigue Mitigation              | —        | 🔲 Open |
+| #13 | P2: Social Engineering via Compromised Agent | —        | 🔲 Open |
 
 ## Session log
 

@@ -25,11 +25,7 @@ import type { PatternDatabase } from './patterns/pattern-db';
 import { DEFAULT_PATTERNS } from './patterns/default-patterns';
 import { PatternDetector, redactSecret } from './detectors/pattern-detector';
 import { MarkdownReferenceExfiltrationDetector } from './detectors/behavioural-control/markdown-reference-exfiltration';
-import {
-  normalizeForScan,
-  mapRangeToOriginal,
-  type NormalizedText,
-} from './normalize/unicode';
+import { normalizeForScan, mapRangeToOriginal, type NormalizedText } from './normalize/unicode';
 
 const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
   strictness: 'balanced',
@@ -99,28 +95,30 @@ const SEVERITY_ORDER: Record<Severity, number> = {
  * | medium                | medium   | medium  | low    |
  * | low                   | low      | low     | low    |
  */
-export function computeRiskLevel(
-  severity: Severity | null,
-  confidence: number
-): RiskLevel {
-  if (severity === null) return "none";
-  const band: "high" | "mid" | "low" =
-    confidence >= 0.8 ? "high" : confidence >= 0.5 ? "mid" : "low";
+export function computeRiskLevel(severity: Severity | null, confidence: number): RiskLevel {
+  if (severity === null) return 'none';
+  const band: 'high' | 'mid' | 'low' =
+    confidence >= 0.8 ? 'high' : confidence >= 0.5 ? 'mid' : 'low';
   switch (severity) {
-    case "critical":
-      return band === "high" ? "critical" : band === "mid" ? "high" : "medium";
-    case "high":
-      return band === "low" ? "medium" : "high";
-    case "medium":
-      return band === "low" ? "low" : "medium";
-    case "low":
-      return "low";
+    case 'critical':
+      return band === 'high' ? 'critical' : band === 'mid' ? 'high' : 'medium';
+    case 'high':
+      return band === 'low' ? 'medium' : 'high';
+    case 'medium':
+      return band === 'low' ? 'low' : 'medium';
+    case 'low':
+      return 'low';
   }
 }
 
 /** Detector config: maps config flags to pattern DB keys + metadata */
 const DETECTOR_REGISTRY: Array<{
-  configGroup: 'contentInjection' | 'behaviouralControl' | 'cognitiveState' | 'semanticManipulation' | 'transportIntegrity';
+  configGroup:
+    | 'contentInjection'
+    | 'behaviouralControl'
+    | 'cognitiveState'
+    | 'semanticManipulation'
+    | 'transportIntegrity';
   configKey: string;
   patternDbKey: string;
   id: string;
@@ -198,8 +196,7 @@ const DETECTOR_REGISTRY: Array<{
     category: 'behavioural-control',
     trapType: 'embedded-jailbreak',
     sanitizeMode: 'replace',
-    replaceText:
-      '[BLOCKED: potential jailbreak sequence removed by AgentArmor]',
+    replaceText: '[BLOCKED: potential jailbreak sequence removed by AgentArmor]',
   },
   {
     configGroup: 'behaviouralControl',
@@ -210,8 +207,7 @@ const DETECTOR_REGISTRY: Array<{
     category: 'behavioural-control',
     trapType: 'data-exfiltration',
     sanitizeMode: 'replace',
-    replaceText:
-      '[BLOCKED: exfiltration instruction removed by AgentArmor]',
+    replaceText: '[BLOCKED: exfiltration instruction removed by AgentArmor]',
     extraDetectors: () => [new MarkdownReferenceExfiltrationDetector()],
   },
   {
@@ -223,8 +219,7 @@ const DETECTOR_REGISTRY: Array<{
     category: 'behavioural-control',
     trapType: 'sub-agent-spawning',
     sanitizeMode: 'replace',
-    replaceText:
-      '[BLOCKED: agent spawning instruction removed by AgentArmor]',
+    replaceText: '[BLOCKED: agent spawning instruction removed by AgentArmor]',
   },
   // Cognitive State
   {
@@ -236,8 +231,7 @@ const DETECTOR_REGISTRY: Array<{
     category: 'cognitive-state',
     trapType: 'rag-knowledge-poisoning',
     sanitizeMode: 'replace',
-    replaceText:
-      '[BLOCKED: RAG poisoning content removed by AgentArmor]',
+    replaceText: '[BLOCKED: RAG poisoning content removed by AgentArmor]',
   },
   {
     configGroup: 'cognitiveState',
@@ -248,8 +242,7 @@ const DETECTOR_REGISTRY: Array<{
     category: 'cognitive-state',
     trapType: 'latent-memory-poisoning',
     sanitizeMode: 'replace',
-    replaceText:
-      '[BLOCKED: memory poisoning content removed by AgentArmor]',
+    replaceText: '[BLOCKED: memory poisoning content removed by AgentArmor]',
   },
   {
     configGroup: 'cognitiveState',
@@ -260,8 +253,7 @@ const DETECTOR_REGISTRY: Array<{
     category: 'cognitive-state',
     trapType: 'contextual-learning-trap',
     sanitizeMode: 'replace',
-    replaceText:
-      '[BLOCKED: manipulated few-shot content removed by AgentArmor]',
+    replaceText: '[BLOCKED: manipulated few-shot content removed by AgentArmor]',
   },
   // Semantic Manipulation
   {
@@ -273,8 +265,7 @@ const DETECTOR_REGISTRY: Array<{
     category: 'semantic-manipulation',
     trapType: 'biased-framing',
     sanitizeMode: 'replace',
-    replaceText:
-      '[BLOCKED: biased framing content removed by AgentArmor]',
+    replaceText: '[BLOCKED: biased framing content removed by AgentArmor]',
   },
   {
     configGroup: 'semanticManipulation',
@@ -285,8 +276,7 @@ const DETECTOR_REGISTRY: Array<{
     category: 'semantic-manipulation',
     trapType: 'oversight-evasion',
     sanitizeMode: 'replace',
-    replaceText:
-      '[BLOCKED: oversight evasion content removed by AgentArmor]',
+    replaceText: '[BLOCKED: oversight evasion content removed by AgentArmor]',
   },
   {
     configGroup: 'semanticManipulation',
@@ -297,8 +287,7 @@ const DETECTOR_REGISTRY: Array<{
     category: 'semantic-manipulation',
     trapType: 'persona-hyperstition',
     sanitizeMode: 'replace',
-    replaceText:
-      '[BLOCKED: persona manipulation content removed by AgentArmor]',
+    replaceText: '[BLOCKED: persona manipulation content removed by AgentArmor]',
   },
   // Transport Integrity
   {
@@ -310,8 +299,7 @@ const DETECTOR_REGISTRY: Array<{
     category: 'transport-integrity',
     trapType: 'credential-exposure',
     sanitizeMode: 'replace',
-    replaceText:
-      '[REDACTED: potential credential removed by AgentArmor]',
+    replaceText: '[REDACTED: potential credential removed by AgentArmor]',
     maskEvidence: true,
   },
 ];
@@ -448,9 +436,7 @@ export class AgentArmor {
   static async fetchLatestPatterns(url: string): Promise<PatternDatabase> {
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(
-        `Failed to fetch patterns: ${response.status} ${response.statusText}`
-      );
+      throw new Error(`Failed to fetch patterns: ${response.status} ${response.statusText}`);
     }
     return (await response.json()) as PatternDatabase;
   }
@@ -505,7 +491,7 @@ export class AgentArmor {
         const result = await this.runScanPipelineAsync(chunk);
         this.emitAudit(this.buildAuditRecord(result, 'scanRAGChunks', options, { batchId, index }));
         return result;
-      })
+      }),
     );
   }
 
@@ -536,12 +522,7 @@ export class AgentArmor {
       return result;
     });
     const { crossTurnThreats, windowChars } = this.scanCrossTurn(turns);
-    return this.assembleSession(
-      perTurn,
-      crossTurnThreats,
-      windowChars,
-      performance.now() - start
-    );
+    return this.assembleSession(perTurn, crossTurnThreats, windowChars, performance.now() - start);
   }
 
   /**
@@ -569,7 +550,7 @@ export class AgentArmor {
       perTurn,
       [...crossTurnThreats, ...accumulationThreats],
       windowChars,
-      performance.now() - start
+      performance.now() - start,
     );
   }
 
@@ -600,7 +581,7 @@ export class AgentArmor {
         if (behavior === 'throw') {
           throw new Error(
             `ML classifier unavailable: ${err instanceof Error ? err.message : String(err)}. ` +
-            `Install @stylusnexus/agentarmor-ml or set ml.onUnavailable to 'warn-and-skip'.`
+              `Install @stylusnexus/agentarmor-ml or set ml.onUnavailable to 'warn-and-skip'.`,
           );
         } else if (behavior === 'warn-and-skip') {
           const message = `[AgentArmor] ML classifier unavailable, falling back to regex-only: ${err instanceof Error ? err.message : String(err)}`;
@@ -618,8 +599,7 @@ export class AgentArmor {
     this.normalizedDetectorIds.clear();
     this.maskedDetectorIds.clear();
     for (const reg of DETECTOR_REGISTRY) {
-      const groupConfig =
-        this.config[reg.configGroup] as Record<string, boolean>;
+      const groupConfig = this.config[reg.configGroup] as Record<string, boolean>;
       if (!groupConfig[reg.configKey]) {
         this.config.on?.detectorSkipped?.({ detectorId: reg.id, reason: 'config-disabled' });
         continue;
@@ -643,7 +623,7 @@ export class AgentArmor {
           sanitizeMode: reg.sanitizeMode,
           replaceText: reg.replaceText,
           maskEvidence: reg.maskEvidence,
-        })
+        }),
       );
 
       const extras = reg.extraDetectors?.() ?? [];
@@ -662,25 +642,14 @@ export class AgentArmor {
   }
 
   /** Re-map normalized-space threats back onto the original content. */
-  private remapThreats(
-    threats: Threat[],
-    norm: NormalizedText,
-    original: string
-  ): Threat[] {
+  private remapThreats(threats: Threat[], norm: NormalizedText, original: string): Threat[] {
     return threats.map((t) => {
       if (!t.location) return t;
-      const location = mapRangeToOriginal(
-        norm,
-        t.location.offset,
-        t.location.length
-      );
+      const location = mapRangeToOriginal(norm, t.location.offset, t.location.length);
       const relatedLocation = t.relatedLocation
         ? mapRangeToOriginal(norm, t.relatedLocation.offset, t.relatedLocation.length)
         : undefined;
-      const slice = original.slice(
-        location.offset,
-        location.offset + location.length
-      );
+      const slice = original.slice(location.offset, location.offset + location.length);
       // The remapped evidence is the original text, so a detector that masks
       // its evidence (leaked credentials) must be masked again here, or one
       // invisible character in the input would print the secret.
@@ -757,13 +726,10 @@ export class AgentArmor {
     if (content.length > this.config.maxInputLength) return this.oversizedResult(content);
     const start = performance.now();
     const allThreats: Threat[] = [];
-    const norm = this.config.normalizeUnicode
-      ? normalizeForScan(content)
-      : null;
+    const norm = this.config.normalizeUnicode ? normalizeForScan(content) : null;
 
     for (const detector of this.detectors) {
-      const useNorm =
-        norm !== null && norm.changed && this.normalizedDetectorIds.has(detector.id);
+      const useNorm = norm !== null && norm.changed && this.normalizedDetectorIds.has(detector.id);
       const scanInput = useNorm ? norm!.normalized : content;
       try {
         const result = detector.scan(scanInput, {
@@ -771,9 +737,7 @@ export class AgentArmor {
         });
         appendAll(
           allThreats,
-          useNorm
-            ? this.remapThreats(result.threats, norm!, content)
-            : result.threats,
+          useNorm ? this.remapThreats(result.threats, norm!, content) : result.threats,
         );
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err));
@@ -801,10 +765,7 @@ export class AgentArmor {
       threats: allThreats,
       sanitized,
       durationMs,
-      riskLevel: computeRiskLevel(
-        allThreats[0]?.severity ?? null,
-        allThreats[0]?.confidence ?? 0
-      ),
+      riskLevel: computeRiskLevel(allThreats[0]?.severity ?? null, allThreats[0]?.confidence ?? 0),
       stats: {
         detectorsRun: this.detectors.length,
         threatsFound: allThreats.length,
@@ -817,13 +778,10 @@ export class AgentArmor {
     if (content.length > this.config.maxInputLength) return this.oversizedResult(content);
     const start = performance.now();
     const allThreats: Threat[] = [];
-    const norm = this.config.normalizeUnicode
-      ? normalizeForScan(content)
-      : null;
+    const norm = this.config.normalizeUnicode ? normalizeForScan(content) : null;
 
     for (const detector of this.detectors) {
-      const useNorm =
-        norm !== null && norm.changed && this.normalizedDetectorIds.has(detector.id);
+      const useNorm = norm !== null && norm.changed && this.normalizedDetectorIds.has(detector.id);
       const scanInput = useNorm ? norm!.normalized : content;
       try {
         if ('scanAsync' in detector && typeof detector.scanAsync === 'function') {
@@ -832,9 +790,7 @@ export class AgentArmor {
           });
           appendAll(
             allThreats,
-            useNorm
-              ? this.remapThreats(result.threats, norm!, content)
-              : result.threats,
+            useNorm ? this.remapThreats(result.threats, norm!, content) : result.threats,
           );
         } else {
           const result = detector.scan(scanInput, {
@@ -842,9 +798,7 @@ export class AgentArmor {
           });
           appendAll(
             allThreats,
-            useNorm
-              ? this.remapThreats(result.threats, norm!, content)
-              : result.threats,
+            useNorm ? this.remapThreats(result.threats, norm!, content) : result.threats,
           );
         }
       } catch (err) {
@@ -873,10 +827,7 @@ export class AgentArmor {
       threats: allThreats,
       sanitized,
       durationMs,
-      riskLevel: computeRiskLevel(
-        allThreats[0]?.severity ?? null,
-        allThreats[0]?.confidence ?? 0
-      ),
+      riskLevel: computeRiskLevel(allThreats[0]?.severity ?? null, allThreats[0]?.confidence ?? 0),
       stats: {
         detectorsRun: this.detectors.length,
         threatsFound: allThreats.length,
@@ -892,7 +843,7 @@ export class AgentArmor {
 
   private deriveDecision(
     riskLevel: RiskLevel,
-    exception?: { reason: string; actor: string }
+    exception?: { reason: string; actor: string },
   ): AuditRecord['decision'] {
     if (exception) return 'exception';
     if (riskLevel === 'none') return 'allow';
@@ -904,7 +855,7 @@ export class AgentArmor {
     result: ScanResult,
     source: AuditRecord['source'],
     options?: ScanOptions,
-    extra?: { batchId?: string; index?: number }
+    extra?: { batchId?: string; index?: number },
   ): AuditRecord {
     const mlModelVersion =
       this.mlDetector && 'version' in this.mlDetector
@@ -985,8 +936,7 @@ export class AgentArmor {
       ? 'cross-turn accumulation runs only on the async path — call scanSessionAsync()'
       : 'enable the ML classifier (ml.enabled) to activate cross-turn accumulation';
     const message =
-      `[AgentArmor] session.accumulation: ${reason}. ` +
-      'Split-payload detection is unaffected.';
+      `[AgentArmor] session.accumulation: ${reason}. ` + 'Split-payload detection is unaffected.';
     if (this.config.on?.warn) {
       this.config.on.warn({ message });
     } else {
@@ -1012,7 +962,7 @@ export class AgentArmor {
    */
   private async scanAccumulation(
     turns: ConversationTurn[],
-    perTurn: ScanResult[]
+    perTurn: ScanResult[],
   ): Promise<CrossTurnThreat[]> {
     const canRunML =
       !!this.mlDetector &&
@@ -1026,9 +976,7 @@ export class AgentArmor {
       'contextual-learning-trap',
     ]);
     // Types already caught on a single turn are not cross-turn-only signals.
-    const perTurnTypes = new Set<TrapType>(
-      perTurn.flatMap((r) => r.threats.map((t) => t.type))
-    );
+    const perTurnTypes = new Set<TrapType>(perTurn.flatMap((r) => r.threats.map((t) => t.type)));
 
     const SEP = '\n';
     const maxTurns = this.config.session.windowTurns ?? 8;
@@ -1100,8 +1048,7 @@ export class AgentArmor {
       const earlier = turns[i].content;
       const later = turns[i + 1].content;
       // Boundary-adjacent slices, each capped so padding cannot hide the join.
-      const aSlice =
-        earlier.length > cap ? earlier.slice(earlier.length - cap) : earlier;
+      const aSlice = earlier.length > cap ? earlier.slice(earlier.length - cap) : earlier;
       const bSlice = later.length > cap ? later.slice(0, cap) : later;
 
       const joined = aSlice + SEP + bSlice;
@@ -1112,7 +1059,9 @@ export class AgentArmor {
       for (const threat of this.runScanPipeline(joined).threats) {
         if (!threat.location) continue; // no offset → cannot prove a span
         const rel = threat.relatedLocation;
-        const spanStart = rel ? Math.min(threat.location.offset, rel.offset) : threat.location.offset;
+        const spanStart = rel
+          ? Math.min(threat.location.offset, rel.offset)
+          : threat.location.offset;
         const spanEnd = rel
           ? Math.max(threat.location.offset + threat.location.length, rel.offset + rel.length)
           : threat.location.offset + threat.location.length;
@@ -1146,21 +1095,16 @@ export class AgentArmor {
     perTurn: ScanResult[],
     crossTurnThreats: CrossTurnThreat[],
     windowChars: number,
-    durationMs: number
+    durationMs: number,
   ): SessionScanResult {
-    const perTurnThreatCount = perTurn.reduce(
-      (n, r) => n + r.threats.length,
-      0
-    );
+    const perTurnThreatCount = perTurn.reduce((n, r) => n + r.threats.length, 0);
     const severities = [
       ...perTurn.flatMap((r) => r.threats.map((t) => t.severity)),
       ...crossTurnThreats.map((t) => t.severity),
     ];
     const highestSeverity =
       severities.length > 0
-        ? severities.reduce((hi, s) =>
-            SEVERITY_ORDER[s] > SEVERITY_ORDER[hi] ? s : hi
-          )
+        ? severities.reduce((hi, s) => (SEVERITY_ORDER[s] > SEVERITY_ORDER[hi] ? s : hi))
         : null;
 
     return {

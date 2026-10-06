@@ -144,7 +144,9 @@ function main(): void {
   if (!corpus) {
     if (process.env.CI) {
       console.error('\n[action-gate-fuzz] SecLists corpus not found in CI — failing.');
-      console.error('  Expected a checkout with Fuzzing/LFI/ at SECLISTS_DIR, ../SecLists, or ../../SecLists.');
+      console.error(
+        '  Expected a checkout with Fuzzing/LFI/ at SECLISTS_DIR, ../SecLists, or ../../SecLists.',
+      );
       console.error('  Check the sparse-checkout step in .github/workflows/ci.yml.\n');
       process.exit(1);
     }
@@ -201,7 +203,9 @@ function main(): void {
     console.log(`  ${k.padEnd(18)} ${n}`);
   }
 
-  console.log(`\nESCAPES (admitted escape attempts): ${escapes.length}  | baseline: ${ESCAPE_BASELINE}`);
+  console.log(
+    `\nESCAPES (admitted escape attempts): ${escapes.length}  | baseline: ${ESCAPE_BASELINE}`,
+  );
   if (escapes.length > ESCAPE_BASELINE) {
     console.log('\n!! REGRESSION — the gate admitted a payload that escapes the workspace:');
     for (const e of escapes.slice(0, 40)) {
@@ -213,7 +217,7 @@ function main(): void {
 
   console.log(
     `\nPASS: 0 workspace escapes across ${escapeAttempts} escape attempts ` +
-      `(${formsTested} payload-forms).\n`
+      `(${formsTested} payload-forms).\n`,
   );
   process.exit(0);
 }

@@ -57,7 +57,11 @@ for (const item of incomingContent) {
   const record = auditLog[auditLog.length - 1];
 
   const icon =
-    record.decision === 'allow' ? '[ALLOW]' : record.decision === 'sanitize' ? '[SANITIZE]' : '[BLOCK]';
+    record.decision === 'allow'
+      ? '[ALLOW]'
+      : record.decision === 'sanitize'
+        ? '[SANITIZE]'
+        : '[BLOCK]';
   console.log(`  ${icon} ${item.source}`);
 
   if (!result.clean) {

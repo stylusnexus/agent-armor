@@ -7,6 +7,7 @@ If you discover a security vulnerability in Agent Armor, please report it respon
 **Email:** [security@stylusnexus.com](mailto:security@stylusnexus.com)
 
 Please include:
+
 - Description of the vulnerability
 - Steps to reproduce
 - Affected versions
@@ -17,6 +18,7 @@ We will acknowledge your report within 48 hours and aim to provide a fix within 
 ## Scope
 
 This policy covers:
+
 - The `@stylusnexus/agentarmor` npm package
 - The `@stylusnexus/agentarmor-ml` npm package
 - Detection pattern bypasses (i.e., adversarial content that evades all detectors)
@@ -26,6 +28,6 @@ Pattern bypasses are expected and not treated as critical vulnerabilities — th
 ## Supported Versions
 
 | Version | Supported |
-|---|---|
-| 0.2.x | Yes |
-| < 0.2.0 | No |
+| ------- | --------- |
+| 0.2.x   | Yes       |
+| < 0.2.0 | No        |

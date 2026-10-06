@@ -1,11 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  matchGlob,
-  matchAnyGlob,
-  expandBraces,
-  normalizePath,
-  globToRegExp,
-} from '../glob';
+import { matchGlob, matchAnyGlob, expandBraces, normalizePath, globToRegExp } from '../glob';
 
 describe('glob matcher (#57)', () => {
   describe('single-star (within a segment)', () => {

@@ -64,13 +64,30 @@ const TABLE_DELIMITER = /\|?[ \t]*:?-+:?[ \t]*(?:\|[ \t]*:?-+:?[ \t]*)*\|?[ \t]*
 /** A character `String.prototype.trim` removes. */
 function isTrimmed(c: number): boolean {
   return (
-    c === 32 || c === 9 || c === 10 || c === 11 || c === 12 || c === 13 || c === 0xa0 || c === 0x1680 || (c >= 0x2000 && c <= 0x200a) ||
-    c === 0x2028 || c === 0x2029 || c === 0x202f || c === 0x205f || c === 0x3000 || c === 0xfeff
+    c === 32 ||
+    c === 9 ||
+    c === 10 ||
+    c === 11 ||
+    c === 12 ||
+    c === 13 ||
+    c === 0xa0 ||
+    c === 0x1680 ||
+    (c >= 0x2000 && c <= 0x200a) ||
+    c === 0x2028 ||
+    c === 0x2029 ||
+    c === 0x202f ||
+    c === 0x205f ||
+    c === 0x3000 ||
+    c === 0xfeff
   );
 }
 
 /** The next occurrence of an unescaped `needle` at or after `from`, cached so repeated searches stay linear. */
-function makeFinder(content: string, needle: string, skipEscaped: boolean): (from: number) => number {
+function makeFinder(
+  content: string,
+  needle: string,
+  skipEscaped: boolean,
+): (from: number) => number {
   let searched = -1;
   let found = -2;
   return (from: number): number => {
@@ -92,7 +109,7 @@ function makeFinder(content: string, needle: string, skipEscaped: boolean): (fro
 export function blankLineStarts(content: string): number[] {
   const n = content.length;
   const starts: number[] = [];
-  for (let i = 0; i <= n; ) {
+  for (let i = 0; i <= n;) {
     let k = i;
     while (k < n && (content.charCodeAt(k) === 32 || content.charCodeAt(k) === 9)) k++;
     if (k >= n || content.charCodeAt(k) === 10 || content.charCodeAt(k) === 13) starts.push(i);
@@ -104,7 +121,11 @@ export function blankLineStarts(content: string): number[] {
 }
 
 /** `sharedBlankLines`, when given, returns `blankLineStarts(content)`, so several calls on one text list them once. */
-export function blockEvents(content: string, opts: BlockOptions, sharedBlankLines?: () => number[]): BlockEvents {
+export function blockEvents(
+  content: string,
+  opts: BlockOptions,
+  sharedBlankLines?: () => number[],
+): BlockEvents {
   const n = content.length;
   const out: BlockEvents = { at: [], to: [], plain: true };
 
@@ -151,12 +172,14 @@ export function blockEvents(content: string, opts: BlockOptions, sharedBlankLine
     while (e < n && content.charCodeAt(e) !== 10 && content.charCodeAt(e) !== 13) e++;
     return e;
   };
-  const nextLineOf = (e: number): number => (e >= n ? n + 1 : e + (content.charCodeAt(e) === 13 && content.charCodeAt(e + 1) === 10 ? 2 : 1));
+  const nextLineOf = (e: number): number =>
+    e >= n ? n + 1 : e + (content.charCodeAt(e) === 13 && content.charCodeAt(e + 1) === 10 ? 2 : 1);
 
   /** Unescaped pipes in a table line are cell boundaries. */
   const pushPipes = (from: number, to: number): void => {
     for (let i = from; i < to; i++) {
-      if (content.charCodeAt(i) === 124 && !(i > 0 && content.charCodeAt(i - 1) === 92)) push(i, i + 1, false);
+      if (content.charCodeAt(i) === 124 && !(i > 0 && content.charCodeAt(i - 1) === 92))
+        push(i, i + 1, false);
     }
   };
 
@@ -167,9 +190,15 @@ export function blockEvents(content: string, opts: BlockOptions, sharedBlankLine
     while (a < b && isTrimmed(content.charCodeAt(a))) a++;
     while (b > a && isTrimmed(content.charCodeAt(b - 1))) b--;
     if (a < b && content.charCodeAt(a) === 124) a++;
-    if (b > a && content.charCodeAt(b - 1) === 124 && !(b - 2 >= a && content.charCodeAt(b - 2) === 92)) b--;
+    if (
+      b > a &&
+      content.charCodeAt(b - 1) === 124 &&
+      !(b - 2 >= a && content.charCodeAt(b - 2) === 92)
+    )
+      b--;
     let count = 1;
-    for (let i = a; i < b; i++) if (content.charCodeAt(i) === 124 && !(i > a && content.charCodeAt(i - 1) === 92)) count++;
+    for (let i = a; i < b; i++)
+      if (content.charCodeAt(i) === 124 && !(i > a && content.charCodeAt(i - 1) === 92)) count++;
     return count;
   };
 
@@ -183,7 +212,11 @@ export function blockEvents(content: string, opts: BlockOptions, sharedBlankLine
     const next = nextLineOf(lineEnd);
     if (next > n) return false;
     let d = next;
-    while (d < n && (content.charCodeAt(d) === 32 || content.charCodeAt(d) === 9 || content.charCodeAt(d) === 62)) d++;
+    while (
+      d < n &&
+      (content.charCodeAt(d) === 32 || content.charCodeAt(d) === 9 || content.charCodeAt(d) === 62)
+    )
+      d++;
     // A delimiter row starts with `|`, `:` or `-` (the line's indent and quote markers are skipped above).
     const first = content.charCodeAt(d);
     if (first !== 124 && first !== 58 && first !== 45) return false;
@@ -195,7 +228,11 @@ export function blockEvents(content: string, opts: BlockOptions, sharedBlankLine
   };
 
   /** A list marker at `q`: its width including the spaces after it, whether the item is empty, and an ordered number. */
-  const listMarker = (q: number, lineEnd: number, col: number): { len: number; width: number; empty: boolean; ordered: number } | undefined => {
+  const listMarker = (
+    q: number,
+    lineEnd: number,
+    col: number,
+  ): { len: number; width: number; empty: boolean; ordered: number } | undefined => {
     let c = content.charCodeAt(q);
     let len = 0;
     let ordered = -1;
@@ -203,7 +240,8 @@ export function blockEvents(content: string, opts: BlockOptions, sharedBlankLine
       len = 1;
     } else if (c >= 48 && c <= 57) {
       let d = q;
-      while (d < lineEnd && d - q < 9 && content.charCodeAt(d) >= 48 && content.charCodeAt(d) <= 57) d++;
+      while (d < lineEnd && d - q < 9 && content.charCodeAt(d) >= 48 && content.charCodeAt(d) <= 57)
+        d++;
       c = content.charCodeAt(d);
       if ((c !== 46 && c !== 41) || d === q) return undefined;
       len = d + 1 - q;
@@ -212,7 +250,8 @@ export function blockEvents(content: string, opts: BlockOptions, sharedBlankLine
       return undefined;
     }
     const after = q + len;
-    if (after < lineEnd && content.charCodeAt(after) !== 32 && content.charCodeAt(after) !== 9) return undefined;
+    if (after < lineEnd && content.charCodeAt(after) !== 32 && content.charCodeAt(after) !== 9)
+      return undefined;
     let spaces = 0;
     let x = after;
     let cc = col + len;
@@ -242,7 +281,9 @@ export function blockEvents(content: string, opts: BlockOptions, sharedBlankLine
     if (content.charCodeAt(q) !== 35) return false;
     let h = q;
     while (content.charCodeAt(h) === 35) h++;
-    return h - q <= 6 && (h >= lineEnd || content.charCodeAt(h) === 32 || content.charCodeAt(h) === 9);
+    return (
+      h - q <= 6 && (h >= lineEnd || content.charCodeAt(h) === 32 || content.charCodeAt(h) === 9)
+    );
   };
 
   const fenceAt = (q: number, lineEnd: number): { ch: number; len: number } | undefined => {
@@ -268,7 +309,13 @@ export function blockEvents(content: string, opts: BlockOptions, sharedBlankLine
     if (HTML_TYPE4.test(text)) return 4;
     const tag = HTML_TAG_NAME.exec(text);
     if (tag && BLOCK_TAGS.has(tag[1].toLowerCase())) return 6;
-    if (canType7 && lineEnd - q <= 400 && HTML_TYPE7.test(text) && (opts.mdit || !/^<\/?(?:script|style|pre|textarea)[ \t>/]/i.test(text))) return 7;
+    if (
+      canType7 &&
+      lineEnd - q <= 400 &&
+      HTML_TYPE7.test(text) &&
+      (opts.mdit || !/^<\/?(?:script|style|pre|textarea)[ \t>/]/i.test(text))
+    )
+      return 7;
     return 0;
   };
 
@@ -277,7 +324,12 @@ export function blockEvents(content: string, opts: BlockOptions, sharedBlankLine
     switch (type) {
       case 1: {
         const text = content.slice(from, lineEnd).toLowerCase();
-        return text.includes('</script>') || text.includes('</pre>') || text.includes('</style>') || text.includes('</textarea>');
+        return (
+          text.includes('</script>') ||
+          text.includes('</pre>') ||
+          text.includes('</style>') ||
+          text.includes('</textarea>')
+        );
       }
       case 2: {
         const at = findCommentEnd(from);
@@ -306,7 +358,13 @@ export function blockEvents(content: string, opts: BlockOptions, sharedBlankLine
     while (ls <= to && ls <= n) {
       const le = lineEndOf(ls);
       let q = ls;
-      while (q < le && (content.charCodeAt(q) === 32 || content.charCodeAt(q) === 9 || content.charCodeAt(q) === 62)) q++;
+      while (
+        q < le &&
+        (content.charCodeAt(q) === 32 ||
+          content.charCodeAt(q) === 9 ||
+          content.charCodeAt(q) === 62)
+      )
+        q++;
       if (q < le) {
         const marker = listMarker(q, le, 0);
         if (
@@ -347,18 +405,38 @@ export function blockEvents(content: string, opts: BlockOptions, sharedBlankLine
     while (i < n && (content.charCodeAt(i) === 32 || content.charCodeAt(i) === 9)) i++;
     if (i < n && (content.charCodeAt(i) === 10 || content.charCodeAt(i) === 13)) {
       i = nextLineOf(i);
-      while (i < n && (content.charCodeAt(i) === 32 || content.charCodeAt(i) === 9 || (inQuote && content.charCodeAt(i) === 62))) i++;
+      while (
+        i < n &&
+        (content.charCodeAt(i) === 32 ||
+          content.charCodeAt(i) === 9 ||
+          (inQuote && content.charCodeAt(i) === 62))
+      )
+        i++;
     }
     if (i >= n) return -1;
     // destination
     if (content.charCodeAt(i) === 60) {
       let x = i + 1;
-      while (x < n && content.charCodeAt(x) !== 62 && content.charCodeAt(x) !== 10 && content.charCodeAt(x) !== 13 && content.charCodeAt(x) !== 60) x += content.charCodeAt(x) === 92 ? 2 : 1;
+      while (
+        x < n &&
+        content.charCodeAt(x) !== 62 &&
+        content.charCodeAt(x) !== 10 &&
+        content.charCodeAt(x) !== 13 &&
+        content.charCodeAt(x) !== 60
+      )
+        x += content.charCodeAt(x) === 92 ? 2 : 1;
       if (content.charCodeAt(x) !== 62) return -1;
       i = x + 1;
     } else {
       const start = i;
-      while (i < n && content.charCodeAt(i) !== 32 && content.charCodeAt(i) !== 9 && content.charCodeAt(i) !== 10 && content.charCodeAt(i) !== 13) i++;
+      while (
+        i < n &&
+        content.charCodeAt(i) !== 32 &&
+        content.charCodeAt(i) !== 9 &&
+        content.charCodeAt(i) !== 10 &&
+        content.charCodeAt(i) !== 13
+      )
+        i++;
       if (i === start) return -1;
     }
     // optional title, separated by whitespace
@@ -368,7 +446,13 @@ export function blockEvents(content: string, opts: BlockOptions, sharedBlankLine
     let sep = t > afterDest;
     if (t < n && (content.charCodeAt(t) === 10 || content.charCodeAt(t) === 13)) {
       t = nextLineOf(t);
-      while (t < n && (content.charCodeAt(t) === 32 || content.charCodeAt(t) === 9 || (inQuote && content.charCodeAt(t) === 62))) t++;
+      while (
+        t < n &&
+        (content.charCodeAt(t) === 32 ||
+          content.charCodeAt(t) === 9 ||
+          (inQuote && content.charCodeAt(t) === 62))
+      )
+        t++;
       sep = true;
     }
     const open = content.charCodeAt(t);
@@ -410,7 +494,11 @@ export function blockEvents(content: string, opts: BlockOptions, sharedBlankLine
   let col = 0;
   let owed = 0; // whitespace columns consumed that `p` has not yet moved past
   const catchUp = (): void => {
-    while (owed > 0 && p < lineEnd && (content.charCodeAt(p) === 32 || content.charCodeAt(p) === 9)) {
+    while (
+      owed > 0 &&
+      p < lineEnd &&
+      (content.charCodeAt(p) === 32 || content.charCodeAt(p) === 9)
+    ) {
       const step = content.charCodeAt(p) === 9 ? 4 - (col % 4) : 1;
       owed -= step;
       col += step;
@@ -493,7 +581,8 @@ export function blockEvents(content: string, opts: BlockOptions, sharedBlankLine
           while (content.charCodeAt(f) === fenceChar) f++;
           if (f - q >= fenceLen) {
             let r = f;
-            while (r < lineEnd && (content.charCodeAt(r) === 32 || content.charCodeAt(r) === 9)) r++;
+            while (r < lineEnd && (content.charCodeAt(r) === 32 || content.charCodeAt(r) === 9))
+              r++;
             if (r >= lineEnd) {
               out.to[fenceEvent] = next > n ? n : next;
               fenceChar = 0;
@@ -559,7 +648,14 @@ export function blockEvents(content: string, opts: BlockOptions, sharedBlankLine
         }
       }
       if (para && !startsBlock) continue;
-      if (opts.mdit && !startsBlock && !blank && matched < containers.length && containers[matched] === 0 && !tableOpen) {
+      if (
+        opts.mdit &&
+        !startsBlock &&
+        !blank &&
+        matched < containers.length &&
+        containers[matched] === 0 &&
+        !tableOpen
+      ) {
         // markdown-it: a line without `>` after a quoted line stays in the quote and is read as a block there
         containers.length = matched + 1;
       } else {
@@ -587,7 +683,7 @@ export function blockEvents(content: string, opts: BlockOptions, sharedBlankLine
       if (content.charCodeAt(q) === 62) {
         containers.push(0);
         para = false;
-      defChain = false;
+        defChain = false;
         newBlock = true;
         p = q + 1;
         col += indent + 1;
@@ -601,12 +697,16 @@ export function blockEvents(content: string, opts: BlockOptions, sharedBlankLine
       if (marker && !(para && (marker.empty || (marker.ordered !== -1 && marker.ordered !== 1)))) {
         containers.push(marker.width);
         para = false;
-      defChain = false;
+        defChain = false;
         newBlock = true;
         // advance past the marker and the spaces that belong to the item
         let used = marker.len;
         let x = q + marker.len;
-        while (x < lineEnd && used < marker.width && (content.charCodeAt(x) === 32 || content.charCodeAt(x) === 9)) {
+        while (
+          x < lineEnd &&
+          used < marker.width &&
+          (content.charCodeAt(x) === 32 || content.charCodeAt(x) === 9)
+        ) {
           used += content.charCodeAt(x) === 9 ? 4 - ((col + indent + used) % 4) : 1;
           x++;
         }
@@ -665,7 +765,7 @@ export function blockEvents(content: string, opts: BlockOptions, sharedBlankLine
       }
       if (allSame) {
         para = false;
-      defChain = false;
+        defChain = false;
         continue;
       }
     }
@@ -732,7 +832,11 @@ interface CloserList {
   from: number;
 }
 
-function buildCloserList(runOfLine: Int32Array, indentOfLine: Int32Array, strict: boolean): CloserList {
+function buildCloserList(
+  runOfLine: Int32Array,
+  indentOfLine: Int32Array,
+  strict: boolean,
+): CloserList {
   const line: number[] = [];
   const run: number[] = [];
   for (let k = 0; k < runOfLine.length; k++) {
@@ -769,11 +873,25 @@ export function legacyBlockEvents(content: string): BlockEvents {
   const isSpace = (c: number): boolean => c === 32 || c === 9;
   /** Any character `String.prototype.trim` removes, other than a line break. */
   const isTrimmed = (c: number): boolean =>
-    c === 32 || c === 9 || c === 11 || c === 12 || c === 0xa0 || c === 0x1680 || (c >= 0x2000 && c <= 0x200a) || c === 0x2028 || c === 0x2029 || c === 0x202f || c === 0x205f || c === 0x3000 || c === 0xfeff;
+    c === 32 ||
+    c === 9 ||
+    c === 11 ||
+    c === 12 ||
+    c === 0xa0 ||
+    c === 0x1680 ||
+    (c >= 0x2000 && c <= 0x200a) ||
+    c === 0x2028 ||
+    c === 0x2029 ||
+    c === 0x202f ||
+    c === 0x205f ||
+    c === 0x3000 ||
+    c === 0xfeff;
   const nextLineAfter = (from: number): number => {
     let e = from;
     while (e < n && content.charCodeAt(e) !== 10 && content.charCodeAt(e) !== 13) e++;
-    return e >= n ? n + 1 : e + (content.charCodeAt(e) === 13 && content.charCodeAt(e + 1) === 10 ? 2 : 1);
+    return e >= n
+      ? n + 1
+      : e + (content.charCodeAt(e) === 13 && content.charCodeAt(e + 1) === 10 ? 2 : 1);
   };
   let m = 0;
   for (let i = 0; i <= n; i = nextLineAfter(i)) m++;
@@ -827,7 +945,8 @@ export function legacyBlockEvents(content: string): BlockEvents {
         }
       } else if (c >= 48 && c <= 57) {
         let d = q;
-        while (d < n && d - q < 9 && content.charCodeAt(d) >= 48 && content.charCodeAt(d) <= 57) d++;
+        while (d < n && d - q < 9 && content.charCodeAt(d) >= 48 && content.charCodeAt(d) <= 57)
+          d++;
         const mark = content.charCodeAt(d);
         if ((mark === 46 || mark === 41) && isSpace(content.charCodeAt(d + 1))) {
           flag |= 1;
@@ -867,10 +986,20 @@ export function legacyBlockEvents(content: string): BlockEvents {
   // Closer lists, built on first use, at (tilde ? 2 : 0) + (container ? 1 : 0). Outside a container an indented line cannot close.
   const closers: Array<CloserList | undefined> = [];
   /** Where a fence opened on line `k` ends: the line to resume at, and whether that line is the closing fence (consumed). */
-  const fenceEnd = (k: number, tilde: boolean, len: number, depth: number, container: boolean): { resume: number; consumed: boolean } | undefined => {
+  const fenceEnd = (
+    k: number,
+    tilde: boolean,
+    len: number,
+    depth: number,
+    container: boolean,
+  ): { resume: number; consumed: boolean } | undefined => {
     let quoteEnds = k + 1;
     while (quoteEnds < m && depthOf[quoteEnds] >= depth) quoteEnds = nextShallower[quoteEnds];
-    const list = (closers[(tilde ? 2 : 0) + (container ? 1 : 0)] ??= buildCloserList(tilde ? tildeRun : backtickRun, indentOf, !container));
+    const list = (closers[(tilde ? 2 : 0) + (container ? 1 : 0)] ??= buildCloserList(
+      tilde ? tildeRun : backtickRun,
+      indentOf,
+      !container,
+    ));
     while (list.from < list.line.length && list.line[list.from] <= k) list.from++;
     let at = list.from;
     while (at < list.line.length && list.run[at] < len) at = list.longer[at];
@@ -886,7 +1015,7 @@ export function legacyBlockEvents(content: string): BlockEvents {
     if (!plain) out.plain = false;
   };
   let prevDepth = 0;
-  for (let k = 0; k < m; ) {
+  for (let k = 0; k < m;) {
     const line = starts[k];
     const q = restOf[k];
     const c = content.charCodeAt(q);
@@ -908,7 +1037,10 @@ export function legacyBlockEvents(content: string): BlockEvents {
           let h = q;
           while (content.charCodeAt(h) === 35) h++;
           const after = content.charCodeAt(h);
-          if (h - q <= 6 && (h >= n || after === 32 || after === 9 || after === 10 || after === 13)) {
+          if (
+            h - q <= 6 &&
+            (h >= n || after === 32 || after === 9 || after === 10 || after === 13)
+          ) {
             push(line, line);
             if (k + 1 < m) push(starts[k + 1], starts[k + 1]);
           }
@@ -918,7 +1050,11 @@ export function legacyBlockEvents(content: string): BlockEvents {
           const fence = f - q;
           let infoHasBacktick = false;
           if (c === 96) {
-            for (let x = f; x < n && content.charCodeAt(x) !== 10 && content.charCodeAt(x) !== 13; x++) {
+            for (
+              let x = f;
+              x < n && content.charCodeAt(x) !== 10 && content.charCodeAt(x) !== 13;
+              x++
+            ) {
               if (content.charCodeAt(x) === 96) {
                 infoHasBacktick = true;
                 break;
@@ -942,7 +1078,6 @@ export function legacyBlockEvents(content: string): BlockEvents {
   return out;
 }
 
-
 /**
  * One linear pass over the lines to find which renderer readings the text needs. Plain scans, not regular
  * expressions, so a long line of pipes or list markers cannot make it slow.
@@ -950,7 +1085,10 @@ export function legacyBlockEvents(content: string): BlockEvents {
  * `htmlBlock` is false when no line's text (after its indent, quote and list markers) starts with `<`: then
  * no HTML block can start, and `blockEvents` returns the same events with `html` on as off.
  */
-export function blockTriggers(content: string, htmlLike: boolean): { table: boolean; mdit: boolean; htmlBlock: boolean } {
+export function blockTriggers(
+  content: string,
+  htmlLike: boolean,
+): { table: boolean; mdit: boolean; htmlBlock: boolean } {
   const n = content.length;
   let table = false;
   let mdit = false;
@@ -970,19 +1108,31 @@ export function blockTriggers(content: string, htmlLike: boolean): { table: bool
     let q = i;
     let quote = false;
     for (;;) {
-      while (q < e && (content.charCodeAt(q) === 32 || content.charCodeAt(q) === 9 || content.charCodeAt(q) === 62)) {
+      while (
+        q < e &&
+        (content.charCodeAt(q) === 32 ||
+          content.charCodeAt(q) === 9 ||
+          content.charCodeAt(q) === 62)
+      ) {
         if (content.charCodeAt(q) === 62) quote = true;
         q++;
       }
       const c = content.charCodeAt(q);
-      if ((c === 45 || c === 42 || c === 43) && (content.charCodeAt(q + 1) === 32 || content.charCodeAt(q + 1) === 9)) {
+      if (
+        (c === 45 || c === 42 || c === 43) &&
+        (content.charCodeAt(q + 1) === 32 || content.charCodeAt(q + 1) === 9)
+      ) {
         q++;
         continue;
       }
       if (c >= 48 && c <= 57) {
         let d = q;
-        while (d < e && d - q < 9 && content.charCodeAt(d) >= 48 && content.charCodeAt(d) <= 57) d++;
-        if ((content.charCodeAt(d) === 46 || content.charCodeAt(d) === 41) && (content.charCodeAt(d + 1) === 32 || content.charCodeAt(d + 1) === 9)) {
+        while (d < e && d - q < 9 && content.charCodeAt(d) >= 48 && content.charCodeAt(d) <= 57)
+          d++;
+        if (
+          (content.charCodeAt(d) === 46 || content.charCodeAt(d) === 41) &&
+          (content.charCodeAt(d + 1) === 32 || content.charCodeAt(d + 1) === 9)
+        ) {
           q = d + 1;
           continue;
         }
@@ -1003,7 +1153,8 @@ export function blockTriggers(content: string, htmlLike: boolean): { table: bool
     let definition = false;
     if (content.charCodeAt(q) === 91) {
       let x = q + 1;
-      while (x < e && content.charCodeAt(x) !== 93 && content.charCodeAt(x) !== 91) x += content.charCodeAt(x) === 92 ? 2 : 1;
+      while (x < e && content.charCodeAt(x) !== 93 && content.charCodeAt(x) !== 91)
+        x += content.charCodeAt(x) === 92 ? 2 : 1;
       definition = x < e && content.charCodeAt(x) === 93 && content.charCodeAt(x + 1) === 58;
     }
     prevDefinition = definition;

@@ -28,9 +28,15 @@ async function main(): Promise<void> {
   }
 
   switch (command) {
-    case 'download': await cmdDownload(args.slice(1)); break;
-    case 'clear-cache': await cmdClearCache(); break;
-    case 'cache-info': await cmdCacheInfo(); break;
+    case 'download':
+      await cmdDownload(args.slice(1));
+      break;
+    case 'clear-cache':
+      await cmdClearCache();
+      break;
+    case 'cache-info':
+      await cmdCacheInfo();
+      break;
     default:
       console.error(`Unknown command: ${command}`);
       process.exit(1);
@@ -47,12 +53,16 @@ async function cmdDownload(args: string[]): Promise<void> {
     process.exit(1);
   }
 
-  const onProgress = quiet ? undefined : (received: number, total: number) => {
-    if (total > 0) {
-      const pct = ((received / total) * 100).toFixed(1);
-      process.stdout.write(`\rDownloading... ${pct}% (${(received / 1e6).toFixed(1)}/${(total / 1e6).toFixed(1)} MB)`);
-    }
-  };
+  const onProgress = quiet
+    ? undefined
+    : (received: number, total: number) => {
+        if (total > 0) {
+          const pct = ((received / total) * 100).toFixed(1);
+          process.stdout.write(
+            `\rDownloading... ${pct}% (${(received / 1e6).toFixed(1)}/${(total / 1e6).toFixed(1)} MB)`,
+          );
+        }
+      };
 
   try {
     // First, ensure model is in cache
@@ -71,7 +81,9 @@ async function cmdDownload(args: string[]): Promise<void> {
     }
 
     if (!quiet) console.log('');
-    console.log(quiet ? join(resolvedDir, 'model_quantized.onnx') : `Model downloaded to: ${resolvedDir}`);
+    console.log(
+      quiet ? join(resolvedDir, 'model_quantized.onnx') : `Model downloaded to: ${resolvedDir}`,
+    );
   } catch (err) {
     console.error(`\nDownload failed: ${err instanceof Error ? err.message : String(err)}`);
     process.exit(1);

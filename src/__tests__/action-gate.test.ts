@@ -21,7 +21,10 @@ describe('action gate / checkAction (#57)', () => {
 
     it('empty allowlist blocks everything (fail closed, not allow-all)', () => {
       const locked = AgentArmor.regexOnly({ allowedActions: [] });
-      const v = locked.checkAction({ tool: 'http.get', args: { url: 'https://api.internal.example.com/x' } });
+      const v = locked.checkAction({
+        tool: 'http.get',
+        args: { url: 'https://api.internal.example.com/x' },
+      });
       expect(v.admissible).toBe(false);
       expect(v.reason).toMatch(/fail closed/);
     });
@@ -34,7 +37,10 @@ describe('action gate / checkAction (#57)', () => {
 
   describe('exact-match admission', () => {
     it('admits a tool matching a rule with no extra constraints absent', () => {
-      const v = armor.checkAction({ tool: 'db.query', args: { sql: 'SELECT 1', mode: 'read-only' } });
+      const v = armor.checkAction({
+        tool: 'db.query',
+        args: { sql: 'SELECT 1', mode: 'read-only' },
+      });
       expect(v.admissible).toBe(true);
       expect(v.matchedRule?.tool).toBe('db.query');
     });
@@ -42,17 +48,29 @@ describe('action gate / checkAction (#57)', () => {
 
   describe('host constraint', () => {
     it('admits an allowed exact host', () => {
-      const v = armor.checkAction({ tool: 'http.get', args: { url: 'https://api.internal.example.com/v1/data' } });
+      const v = armor.checkAction({
+        tool: 'http.get',
+        args: { url: 'https://api.internal.example.com/v1/data' },
+      });
       expect(v.admissible).toBe(true);
     });
 
     it('admits a wildcard subdomain and its apex', () => {
-      expect(armor.checkAction({ tool: 'http.get', args: { url: 'https://a.trusted.example/x' } }).admissible).toBe(true);
-      expect(armor.checkAction({ tool: 'http.get', args: { url: 'https://trusted.example/x' } }).admissible).toBe(true);
+      expect(
+        armor.checkAction({ tool: 'http.get', args: { url: 'https://a.trusted.example/x' } })
+          .admissible,
+      ).toBe(true);
+      expect(
+        armor.checkAction({ tool: 'http.get', args: { url: 'https://trusted.example/x' } })
+          .admissible,
+      ).toBe(true);
     });
 
     it('blocks a host not in the list', () => {
-      const v = armor.checkAction({ tool: 'http.get', args: { url: 'https://evil.example/exfil' } });
+      const v = armor.checkAction({
+        tool: 'http.get',
+        args: { url: 'https://evil.example/exfil' },
+      });
       expect(v.admissible).toBe(false);
       expect(v.reason).toMatch(/not in the allowlist/);
     });
@@ -79,15 +97,22 @@ describe('action gate / checkAction (#57)', () => {
     });
 
     it('matches a trailing-dot FQDN against the allowlist (I3)', () => {
-      const v = armor.checkAction({ tool: 'http.get', args: { host: 'api.internal.example.com.' } });
+      const v = armor.checkAction({
+        tool: 'http.get',
+        args: { host: 'api.internal.example.com.' },
+      });
       expect(v.admissible).toBe(true);
     });
   });
 
   describe('path constraint', () => {
     it('admits a path inside an allowed glob', () => {
-      expect(armor.checkAction({ tool: 'fs.read', args: { path: './data/users/list.json' } }).admissible).toBe(true);
-      expect(armor.checkAction({ tool: 'fs.read', args: { path: 'logs/app.log' } }).admissible).toBe(true);
+      expect(
+        armor.checkAction({ tool: 'fs.read', args: { path: './data/users/list.json' } }).admissible,
+      ).toBe(true);
+      expect(
+        armor.checkAction({ tool: 'fs.read', args: { path: 'logs/app.log' } }).admissible,
+      ).toBe(true);
     });
 
     it('blocks a relative path outside the allowed globs', () => {
@@ -108,7 +133,10 @@ describe('action gate / checkAction (#57)', () => {
     });
 
     it('blocks path traversal even when the glob would otherwise match (fail closed)', () => {
-      const v = armor.checkAction({ tool: 'fs.read', args: { path: './data/../../../etc/passwd' } });
+      const v = armor.checkAction({
+        tool: 'fs.read',
+        args: { path: './data/../../../etc/passwd' },
+      });
       expect(v.admissible).toBe(false);
       expect(v.reason).toMatch(/traversal is not permitted/);
     });
@@ -121,12 +149,19 @@ describe('action gate / checkAction (#57)', () => {
 
     it('blocks an absolute path even when a ** rule would match (C2)', () => {
       const wide = AgentArmor.regexOnly({ allowedActions: [{ tool: 'fs.read', paths: ['**'] }] });
-      expect(wide.checkAction({ tool: 'fs.read', args: { path: '/etc/passwd' } }).admissible).toBe(false);
-      expect(wide.checkAction({ tool: 'fs.read', args: { path: 'C:\\Windows\\system32' } }).admissible).toBe(false);
+      expect(wide.checkAction({ tool: 'fs.read', args: { path: '/etc/passwd' } }).admissible).toBe(
+        false,
+      );
+      expect(
+        wide.checkAction({ tool: 'fs.read', args: { path: 'C:\\Windows\\system32' } }).admissible,
+      ).toBe(false);
     });
 
     it('blocks percent-encoded traversal (I1)', () => {
-      const v = armor.checkAction({ tool: 'fs.read', args: { path: 'data/%2e%2e/%2e%2e/etc/passwd' } });
+      const v = armor.checkAction({
+        tool: 'fs.read',
+        args: { path: 'data/%2e%2e/%2e%2e/etc/passwd' },
+      });
       expect(v.admissible).toBe(false);
       expect(v.reason).toMatch(/percent-encoding/);
     });
@@ -152,7 +187,9 @@ describe('action gate / checkAction (#57)', () => {
 
     it('blocks URL/stream wrappers like php:// and file:// (I1)', () => {
       const wide = AgentArmor.regexOnly({ allowedActions: [{ tool: 'fs.read', paths: ['**'] }] });
-      expect(wide.checkAction({ tool: 'fs.read', args: { path: 'php://input' } }).admissible).toBe(false);
+      expect(wide.checkAction({ tool: 'fs.read', args: { path: 'php://input' } }).admissible).toBe(
+        false,
+      );
       const v = wide.checkAction({ tool: 'fs.read', args: { path: 'file:///etc/passwd' } });
       expect(v.admissible).toBe(false);
       expect(v.reason).toMatch(/scheme/);
@@ -161,22 +198,31 @@ describe('action gate / checkAction (#57)', () => {
 
   describe('mode constraint (read-only)', () => {
     it('admits an explicit read-only request', () => {
-      expect(armor.checkAction({ tool: 'db.query', args: { mode: 'read-only' } }).admissible).toBe(true);
+      expect(armor.checkAction({ tool: 'db.query', args: { mode: 'read-only' } }).admissible).toBe(
+        true,
+      );
     });
 
     it('admits when no write is signalled', () => {
-      expect(armor.checkAction({ tool: 'db.query', args: { sql: 'SELECT 1' } }).admissible).toBe(true);
+      expect(armor.checkAction({ tool: 'db.query', args: { sql: 'SELECT 1' } }).admissible).toBe(
+        true,
+      );
     });
 
     it('blocks a write under read-only (mode=write)', () => {
-      const v = armor.checkAction({ tool: 'db.query', args: { mode: 'write', sql: 'DELETE FROM t' } });
+      const v = armor.checkAction({
+        tool: 'db.query',
+        args: { mode: 'write', sql: 'DELETE FROM t' },
+      });
       expect(v.admissible).toBe(false);
       expect(v.reason).toMatch(/read-only/);
     });
 
     it('blocks a write under read-only (write:true and readOnly:false)', () => {
       expect(armor.checkAction({ tool: 'db.query', args: { write: true } }).admissible).toBe(false);
-      expect(armor.checkAction({ tool: 'db.query', args: { readOnly: false } }).admissible).toBe(false);
+      expect(armor.checkAction({ tool: 'db.query', args: { readOnly: false } }).admissible).toBe(
+        false,
+      );
     });
 
     it('treats a non-safe HTTP method as a write under read-only (I2)', () => {

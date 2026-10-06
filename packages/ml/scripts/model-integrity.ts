@@ -52,7 +52,7 @@ export function checkModelChecksum(
   byPath: Map<string, HfTreeEntry>,
   expected: string,
   actualDigest: string | undefined,
-  { deep }: { deep: boolean }
+  { deep }: { deep: boolean },
 ): IntegrityReport {
   const failures: string[] = [];
   const notes: string[] = [];
@@ -66,7 +66,7 @@ export function checkModelChecksum(
   if (expected.startsWith('PLACEHOLDER')) {
     failures.push(
       `MODEL_CHECKSUM is still a placeholder in packages/ml/src/constants.ts — ` +
-        `set it to the hosted digest ${actualDigest ?? '(unavailable)'} before publishing.`
+        `set it to the hosted digest ${actualDigest ?? '(unavailable)'} before publishing.`,
     );
     return { failures, notes };
   }
@@ -74,7 +74,7 @@ export function checkModelChecksum(
   if (!actualDigest) {
     failures.push(
       `"${MODEL_FILENAME}" is not stored in LFS, so no oid is available to compare. ` +
-        `Re-run with --deep to hash the bytes directly.`
+        `Re-run with --deep to hash the bytes directly.`,
     );
     return { failures, notes };
   }
@@ -84,7 +84,7 @@ export function checkModelChecksum(
       `checksum mismatch on "${MODEL_FILENAME}"${deep ? ' (downloaded bytes)' : ''}:\n` +
         `    hosted  : ${actualDigest}\n` +
         `    expected: ${expected}  (packages/ml/src/constants.ts)\n` +
-        `    Either the hosted artifact changed, or a retrain updated HF without updating the constant.`
+        `    Either the hosted artifact changed, or a retrain updated HF without updating the constant.`,
     );
     return { failures, notes };
   }
@@ -92,7 +92,7 @@ export function checkModelChecksum(
   notes.push(
     deep
       ? `${MODEL_FILENAME} digest verified over ${model.size.toLocaleString()} downloaded bytes`
-      : `${MODEL_FILENAME} checksum matches (${model.size.toLocaleString()} bytes)`
+      : `${MODEL_FILENAME} checksum matches (${model.size.toLocaleString()} bytes)`,
   );
   return { failures, notes };
 }
@@ -112,7 +112,7 @@ export function checkLabelMap(hosted: Record<string, string>): IntegrityReport {
   if (hostedCount !== LABELS.length) {
     failures.push(
       `label_map.json has ${hostedCount} labels, package expects ${LABELS.length}. ` +
-        `A label-space change requires a retrain and a MODEL_VERSION bump, not just a checksum update.`
+        `A label-space change requires a retrain and a MODEL_VERSION bump, not just a checksum update.`,
     );
     return { failures, notes };
   }
@@ -129,7 +129,7 @@ export function checkLabelMap(hosted: Record<string, string>): IntegrityReport {
         mismatched
           .map((m) => `    index ${m.index}: hosted "${m.hosted}" vs package "${m.label}"`)
           .join('\n') +
-        `\n    Index order defines what each ONNX output means — a mismatch mislabels silently.`
+        `\n    Index order defines what each ONNX output means — a mismatch mislabels silently.`,
     );
     return { failures, notes };
   }
@@ -149,7 +149,7 @@ export function checkTokenizer(byPath: Map<string, HfTreeEntry>): IntegrityRepor
   if (tokenizer.size < MIN_TOKENIZER_BYTES) {
     failures.push(
       `tokenizer.json is only ${tokenizer.size} bytes — implausibly small for a WordPiece vocab, ` +
-        `suggesting a truncated or failed upload.`
+        `suggesting a truncated or failed upload.`,
     );
   } else {
     notes.push(`tokenizer.json present (${tokenizer.size.toLocaleString()} bytes)`);

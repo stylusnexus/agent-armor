@@ -20,7 +20,12 @@ import {
 const isKeyChar = (c: number) => isWordChar(c) || c === 45;
 /** `[A-Za-z0-9/+=]` */
 const isBase64Char = (c: number) =>
-  (c >= 48 && c <= 57) || (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c === 47 || c === 43 || c === 61;
+  (c >= 48 && c <= 57) ||
+  (c >= 65 && c <= 90) ||
+  (c >= 97 && c <= 122) ||
+  c === 47 ||
+  c === 43 ||
+  c === 61;
 
 const PLACEHOLDER_WORDS = /EXAMPLE|example|xxxx|XXXX|your|YOUR|placeholder|redacted|REDACTED/g;
 
@@ -81,13 +86,56 @@ function keyMatcher(regex: string, prefix: string, fuzzAtoms: string[]): Pattern
 export const OPENAI_KEY_MATCHER = keyMatcher(
   String.raw`\bsk-(?:proj-)?(?![A-Za-z0-9_-]*(?:EXAMPLE|example|xxxx|XXXX|your|YOUR|placeholder|redacted|REDACTED))[A-Za-z0-9_-]{20,}\b`,
   'sk-',
-  ['sk-', 'sk-proj-', 'sk-ant-', 'sk-sk-', '-', '_', 'a', 'A', '0', 'abcdefghij', 'ABCDEFGHIJKLMNOPQRST', 'EXAMPLE', 'example', 'xxxx', 'your', 'placeholder', 'redacted', ' ', '.', '"', '\n'],
+  [
+    'sk-',
+    'sk-proj-',
+    'sk-ant-',
+    'sk-sk-',
+    '-',
+    '_',
+    'a',
+    'A',
+    '0',
+    'abcdefghij',
+    'ABCDEFGHIJKLMNOPQRST',
+    'EXAMPLE',
+    'example',
+    'xxxx',
+    'your',
+    'placeholder',
+    'redacted',
+    ' ',
+    '.',
+    '"',
+    '\n',
+  ],
 );
 
 export const ANTHROPIC_KEY_MATCHER = keyMatcher(
   String.raw`\bsk-ant-(?:api\d{2}-)?(?![A-Za-z0-9_-]*(?:EXAMPLE|example|xxxx|XXXX|your|YOUR|placeholder|redacted|REDACTED))[A-Za-z0-9_-]{20,}\b`,
   'sk-ant-',
-  ['sk-ant-', 'sk-ant-api03-', 'api03-', 'api0-', 'sk-', '-', '_', 'a', 'A', '0', 'abcdefghij', 'ABCDEFGHIJKLMNOPQRST', 'EXAMPLE', 'xxxx', 'YOUR', 'redacted', ' ', '.', '"', '\n'],
+  [
+    'sk-ant-',
+    'sk-ant-api03-',
+    'api03-',
+    'api0-',
+    'sk-',
+    '-',
+    '_',
+    'a',
+    'A',
+    '0',
+    'abcdefghij',
+    'ABCDEFGHIJKLMNOPQRST',
+    'EXAMPLE',
+    'xxxx',
+    'YOUR',
+    'redacted',
+    ' ',
+    '.',
+    '"',
+    '\n',
+  ],
 );
 
 /**
@@ -99,7 +147,25 @@ export const JWT_MATCHER: PatternMatcher = {
   regex: String.raw`\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b`,
   flags: 'g',
   extractGroup: 0,
-  fuzzAtoms: ['eyJ', 'eyJ-', 'eyj', '.', '..', '-', '_', 'a', 'A', '0', 'abcdefghij', 'abcdefghijk', 'eyJhbGciOiJIUzI1NiJ9', ' ', '\n', '"', 'é'],
+  fuzzAtoms: [
+    'eyJ',
+    'eyJ-',
+    'eyj',
+    '.',
+    '..',
+    '-',
+    '_',
+    'a',
+    'A',
+    '0',
+    'abcdefghij',
+    'abcdefghijk',
+    'eyJhbGciOiJIUzI1NiJ9',
+    ' ',
+    '\n',
+    '"',
+    'é',
+  ],
   match(content) {
     const hits: MatcherHit[] = [];
     const start = /\beyJ/g;
@@ -114,7 +180,11 @@ export const JWT_MATCHER: PatternMatcher = {
       if (!m) break;
       const s = m.index;
       const e1 = firstRunEnd(s + 3);
-      if (e1 - (s + 3) < 10 || content.charCodeAt(e1) !== 46 || !content.startsWith('eyJ', e1 + 1)) {
+      if (
+        e1 - (s + 3) < 10 ||
+        content.charCodeAt(e1) !== 46 ||
+        !content.startsWith('eyJ', e1 + 1)
+      ) {
         pos = s + 1;
         continue;
       }
@@ -151,7 +221,28 @@ export const AWS_SECRET_MATCHER: PatternMatcher = {
   regex: String.raw`aws_?secret_?access_?key\s*[=:]\s*["']?(?![A-Za-z0-9/+=]*EXAMPLE)([A-Za-z0-9/+=]{40})\b`,
   flags: 'gi',
   extractGroup: 0,
-  fuzzAtoms: ['aws_secret_access_key', 'AWSSECRETACCESSKEY', 'awssecretaccesskey', 'aws_secretaccess_key', '=', ':', ' = ', '"', "'", '/', '+', 'a'.repeat(40), 'A'.repeat(39), 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYzEXAMPLEKEY', 'example', 'EXAMPLE', 'x', '-', ' ', '\n'],
+  fuzzAtoms: [
+    'aws_secret_access_key',
+    'AWSSECRETACCESSKEY',
+    'awssecretaccesskey',
+    'aws_secretaccess_key',
+    '=',
+    ':',
+    ' = ',
+    '"',
+    "'",
+    '/',
+    '+',
+    'a'.repeat(40),
+    'A'.repeat(39),
+    'wJalrXUtnFEMI/K7MDENG/bPxRfiCYzEXAMPLEKEY',
+    'example',
+    'EXAMPLE',
+    'x',
+    '-',
+    ' ',
+    '\n',
+  ],
   match(content) {
     const hits: MatcherHit[] = [];
     const head = /aws_?secret_?access_?key\s*[=:]\s*["']?/gi;
@@ -165,7 +256,11 @@ export const AWS_SECRET_MATCHER: PatternMatcher = {
       const valueStart = m.index + m[0].length;
       const end = runEnd(valueStart);
       const example = nextExample(valueStart);
-      if ((example >= 0 && example < end) || end - valueStart < 40 || !isWordBoundary(content, valueStart + 40)) {
+      if (
+        (example >= 0 && example < end) ||
+        end - valueStart < 40 ||
+        !isWordBoundary(content, valueStart + 40)
+      ) {
         pos = m.index + 1;
         continue;
       }
@@ -187,7 +282,26 @@ export const META_TAG_MATCHER: PatternMatcher = {
   regex: String.raw`<meta\s+[^>]*content\s*=\s*["']([^"']{50,})["'][^>]*>`,
   flags: 'gi',
   extractGroup: 1,
-  fuzzAtoms: ['<meta ', '<META\n', '<meta', 'content', 'CONTENT', ' = ', '=', '"', "'", '>', '<', 'x'.repeat(49), 'y'.repeat(50), 'z'.repeat(60), ' ', '\n', 'name', 'ignore previous instructions'],
+  fuzzAtoms: [
+    '<meta ',
+    '<META\n',
+    '<meta',
+    'content',
+    'CONTENT',
+    ' = ',
+    '=',
+    '"',
+    "'",
+    '>',
+    '<',
+    'x'.repeat(49),
+    'y'.repeat(50),
+    'z'.repeat(60),
+    ' ',
+    '\n',
+    'name',
+    'ignore previous instructions',
+  ],
   match(content) {
     const hits: MatcherHit[] = [];
     const n = content.length;
@@ -252,7 +366,28 @@ export const SYSTEM_OVERRIDE_MATCHER: PatternMatcher = {
   regex: String.raw`(?:SYSTEM|CONTEXT|INSTRUCTION)\s+(?:OVERRIDE|UPDATE|CHANGE)\s*[:\-]?\s*.{10,}`,
   flags: 'gm',
   extractGroup: 0,
-  fuzzAtoms: ['SYSTEM', 'CONTEXT', 'INSTRUCTION', 'OVERRIDE', 'UPDATE', 'CHANGE', 'system', ' ', '  ', '\n', '\r', ' ', '\t', ':', '-', ': ', ' - ', 'abcdefghij', 'do the thing now', 'x'],
+  fuzzAtoms: [
+    'SYSTEM',
+    'CONTEXT',
+    'INSTRUCTION',
+    'OVERRIDE',
+    'UPDATE',
+    'CHANGE',
+    'system',
+    ' ',
+    '  ',
+    '\n',
+    '\r',
+    ' ',
+    '\t',
+    ':',
+    '-',
+    ': ',
+    ' - ',
+    'abcdefghij',
+    'do the thing now',
+    'x',
+  ],
   match(content) {
     const hits: MatcherHit[] = [];
     const n = content.length;

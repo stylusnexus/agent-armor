@@ -18,19 +18,20 @@ last_handoff: 2026-08-05T23:05
 next_up: []
 blockers: []
 ---
+
 # Launch Infra & Adoption
 
 Pre-launch credibility polish (CI gates the security fuzz test doesn't run yet, README/site drift) plus the biggest adoption lever identified in the 2026-07-07 backlog grooming: a CLI with SARIF output for CI/pre-commit integration. Also covers generated API docs and automated npm publishing.
 
 ## Issues
 
-| # | Title | Assignee | Status |
-|---|---|---|---|
-| #64 | ci: run action-gate fuzz, lint, ML package tests, and build in CI | — | ✅ Shipped |
-| #65 | chore(docs): fix README/site drift and add a doc-consistency gate to CI | — | ✅ Shipped |
-| #66 | feat: agentarmor CLI with JSON/SARIF output for CI scanning | — | ✅ Shipped |
-| #67 | docs: generated API reference (TypeDoc) published to agentarmor.dev | — | ✅ Shipped |
-| #70 | ci: automated npm publish with provenance via release-please (trusted publishing) | — | ✅ Shipped, blockers cleared, and **proven end-to-end** (v0.2.13 2026-07-09, v0.2.14 2026-08-05) |
+| #   | Title                                                                             | Assignee | Status                                                                                           |
+| --- | --------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------ |
+| #64 | ci: run action-gate fuzz, lint, ML package tests, and build in CI                 | —        | ✅ Shipped                                                                                       |
+| #65 | chore(docs): fix README/site drift and add a doc-consistency gate to CI           | —        | ✅ Shipped                                                                                       |
+| #66 | feat: agentarmor CLI with JSON/SARIF output for CI scanning                       | —        | ✅ Shipped                                                                                       |
+| #67 | docs: generated API reference (TypeDoc) published to agentarmor.dev               | —        | ✅ Shipped                                                                                       |
+| #70 | ci: automated npm publish with provenance via release-please (trusted publishing) | —        | ✅ Shipped, blockers cleared, and **proven end-to-end** (v0.2.13 2026-07-09, v0.2.14 2026-08-05) |
 
 ## Session log
 
