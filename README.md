@@ -134,17 +134,17 @@ Versions 0.2.1 to 0.2.17 can report a very large input as clean ([GHSA-vr4h-8mw3
 
 ### Eval Suite
 
-241 curated samples (152 adversarial, 89 benign) covering all 12 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
+244 curated samples (152 adversarial, 92 benign) covering all 12 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
 
 | Strictness   | Detection Rate (regex) | False Positive Rate |
 | ------------ | ---------------------- | ------------------- |
 | Permissive   | 90.1%                  | 0.0%                |
 | **Balanced** | **94.1%**              | **0.0%**            |
-| Strict       | 94.1%                  | 0.0%                |
+| Strict       | 94.7%                  | 0.0%                |
 
 The 0.0% false-positive figure covers every benign sample except 11 **known false positives** (`acceptedFlagAt` in `scripts/eval/samples.ts`): honest text that quotes an attack or tells an assistant to run a command, such as a security paper quoting an exfiltration instruction. They flag at every strictness, are reported separately by `npm run eval`, and are excluded from the rate. The gate still fails on any other benign sample that flags.
 
-The eval suite includes 14 adversarial samples drawn from real-world incidents (2025-2026): MCP tool poisoning, RAG vector DB saturation, covert exfiltration via image proxies, supply chain prompt injection, memory poisoning, HITL dialog forgery, and the July 2026 OpenAI sandbox escape (credential reuse, C2 over public paste services, package-proxy egress, cross-environment persistence). Regex catches 6 of these; the remaining 8 measure the gap that the [ML classifier](#ml-classifier-optional) and unshipped detectors close. **These headline numbers move down whenever we add a blind spot we can't yet catch — that is deliberate.** `scripts/eval/thresholds.json` records every floor change and why. On the original 49 adversarial samples, regex detection is 100% at balanced strictness.
+The eval suite includes 14 adversarial samples drawn from real-world incidents (2025-2026): MCP tool poisoning, RAG vector DB saturation, covert exfiltration via image proxies, supply chain prompt injection, memory poisoning, HITL dialog forgery, and the July 2026 OpenAI sandbox escape (credential reuse, C2 over public paste services, package-proxy egress, cross-environment persistence). Regex catches 6 of these at balanced (7 at strict); the remaining 8 measure the gap that the [ML classifier](#ml-classifier-optional) and unshipped detectors close. **These headline numbers move down whenever we add a blind spot we can't yet catch — that is deliberate.** `scripts/eval/thresholds.json` records every floor change and why. On the original 49 adversarial samples, regex detection is 100% at balanced strictness.
 
 Sources: [WASP benchmark](https://arxiv.org/abs/2312.02119) (Evtimov et al.), [HackAPrompt](https://arxiv.org/abs/2311.16119) (Schulhoff et al., 2023), [Greshake et al. (2023)](https://arxiv.org/abs/2302.12173), the [DeepMind paper](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438), and incident reports from [Invariant Labs](https://invariantlabs.ai/blog), [Unit 42](https://unit42.paloaltonetworks.com), [Snyk Labs](https://labs.snyk.io), [Legit Security](https://www.legitsecurity.com/blog/camoleak), and [Socket Research](https://socket.dev/blog). Benign samples include security blog posts, legitimate HTML, CI/CD docs, MCP tool descriptions, agent interaction logs, and procurement policy emails.
 
@@ -168,15 +168,15 @@ Run it: `npx tsx examples/real-world-validation.ts`
 
 ## Attack Categories Covered
 
-| Category                  | Target       | Status  | What It Detects                                                                                                                                                                            |
-| ------------------------- | ------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Content Injection**     | Perception   | Shipped | Hidden HTML/CSS instructions, metadata injection, dynamic cloaking artifacts, syntactic masking, steganographic payloads (ASCII smuggling)                                                 |
-| **Behavioural Control**   | Action       | Shipped | Embedded jailbreak sequences, data exfiltration patterns, sub-agent spawning traps                                                                                                         |
-| **Cognitive State**       | Memory       | Shipped | RAG knowledge poisoning, latent memory poisoning, contextual learning manipulation                                                                                                         |
-| **Semantic Manipulation** | Reasoning    | Shipped | Biased framing/priming, oversight evasion, persona hyperstition                                                                                                                            |
-| **Systemic**              | Multi-Agent  | Planned | Congestion traps, interdependence cascades, tacit collusion, compositional fragments, sybil attacks                                                                                        |
-| **Human-in-the-Loop**     | Overseer     | Planned | Approval fatigue induction, social engineering via compromised agent                                                                                                                       |
-| **Transport Integrity**   | Supply Chain | Partial | Credential exposure (AC-2) shipped; tool-call tampering (AC-1), dependency substitution (AC-1.a), response anomaly screening planned ([Liu et al. 2026](https://arxiv.org/abs/2604.08407)) |
+| Category                  | Target       | Status  | What It Detects                                                                                                                                                                               |
+| ------------------------- | ------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Content Injection**     | Perception   | Shipped | Hidden HTML/CSS instructions, metadata injection, dynamic cloaking artifacts, syntactic masking, steganographic payloads (ASCII smuggling)                                                    |
+| **Behavioural Control**   | Action       | Shipped | Embedded jailbreak sequences, data exfiltration patterns, sub-agent spawning traps                                                                                                            |
+| **Cognitive State**       | Memory       | Shipped | RAG knowledge poisoning, latent memory poisoning, contextual learning manipulation                                                                                                            |
+| **Semantic Manipulation** | Reasoning    | Shipped | Biased framing/priming, oversight evasion, persona hyperstition                                                                                                                               |
+| **Systemic**              | Multi-Agent  | Planned | Congestion traps, interdependence cascades, tacit collusion, compositional fragments, sybil attacks                                                                                           |
+| **Human-in-the-Loop**     | Overseer     | Planned | Approval fatigue induction, social engineering via compromised agent                                                                                                                          |
+| **Transport Integrity**   | Supply Chain | Partial | Credential exposure (AC-2) and dependency substitution (AC-1.a) shipped; tool-call tampering (AC-1), response anomaly screening planned ([Liu et al. 2026](https://arxiv.org/abs/2604.08407)) |
 
 ## Configuration
 
@@ -522,6 +522,8 @@ Phrase matching is English only, so an override written in another language isn'
 
   Matched secrets are **redacted in `Threat.evidence`** (`AKIA[REDACTED 20 chars]`), so a scan can't leak the credential it just found into CI logs, SARIF reports, or audit records. Sanitization is unaffected — it removes the secret from the content itself.
 
+- **DependencySubstitutionDetector** — Flags package installs that skip the trusted registry ([Liu et al. 2026](https://arxiv.org/abs/2604.08407), AC-1.a): custom index flags (`--extra-index-url`, `--index-url`, `--registry`, `pip install -i`), config commands and variables that set the index (`pip config set global.index-url`, `npm config set registry`, `PIP_INDEX_URL`, `GOPROXY`), installs from a raw URL or git source, and a package resolver redirected to a proxy with an egress reason (the July 2026 Artifactory escape path). It reports at `strict` only: private registries, git installs and internal-mirror guides are normal, and a regex cannot tell a mirror guide from the attack that borrows its wording. It does not keep a typosquat dictionary or look packages up. Matched text is replaced with a warning in sanitized output.
+
   Published example keys (`AKIAIOSFODNN7EXAMPLE`), placeholders (`sk-your-key-here`), and masked references (`AKIA****`) are excluded by design. Low-confidence formats that are common in API documentation — bare bearer tokens and JWTs — surface only at `strict`.
 
 ## Performance
@@ -594,7 +596,7 @@ armor.loadPatterns(latestPatterns);
 armor.loadPatterns(myCustomPatterns);
 
 // Check current pattern version
-console.log(armor.patternVersion); // '0.9.5'
+console.log(armor.patternVersion); // '0.9.6'
 ```
 
 ## Framework Agnostic
@@ -634,7 +636,7 @@ npm run build && npx tsx examples/rag-pipeline.ts
 
 ## Roadmap & Research Opportunities
 
-Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy, plus the first detector in the Transport Integrity category (Liu et al. 2026). Here's what's shipped, what's next, and where the open questions are.
+Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy, plus the first detectors in the Transport Integrity category (Liu et al. 2026). Here's what's shipped, what's next, and where the open questions are.
 
 ### Shipped
 
@@ -642,7 +644,7 @@ Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy, plus t
 - **Cognitive State** (3 detectors) and **Semantic Manipulation** (3 detectors) since v0.2.0
 - **Pre-execution action gate** — deterministic allowlist admissibility check (`checkAction()`)
 - ML classifier (DeBERTa-v3-small, ONNX) as optional companion package
-- Pattern database v0.9.5 with 106 pattern entries
+- Pattern database v0.9.6 with 110 pattern entries
 
 ### In Progress
 

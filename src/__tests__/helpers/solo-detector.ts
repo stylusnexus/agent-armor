@@ -16,6 +16,7 @@ const SOLO_FLAGS = {
   'biased-framing': ['semanticManipulation', 'biasedFraming'],
   'oversight-evasion': ['semanticManipulation', 'oversightEvasion'],
   'persona-hyperstition': ['semanticManipulation', 'personaHyperstition'],
+  'dependency-substitution': ['transportIntegrity', 'dependencySubstitution'],
 } as const;
 
 export type SoloDetectorId = keyof typeof SOLO_FLAGS;
