@@ -44,7 +44,7 @@ npm run test:run
 
 - Implement the `Detector` interface defined in `src/types/index.ts`
 - Register your detector in `AgentArmor`
-- Add unit tests and eval samples covering your detector
+- Add a test file for the detector, `src/__tests__/<detector-id>.test.ts`, and eval samples. Run the detector alone with `soloDetector(id)` from `src/__tests__/helpers/solo-detector.ts` (add your detector to the helper's `SOLO_FLAGS`). Cover payloads flagged as the detector's own type, benign near-misses that stay clean, sanitize output, and the detector turned off with `withoutDetector(id)`. See `hidden-html.test.ts` for the shape.
 
 ## Code Style
 
