@@ -132,6 +132,8 @@ const MAX_CLUSTER_MARKS = 30;
 /** Whether a mark can follow the code unit `u`: below U+0300 nothing attaches, except the soft hyphen, which is dropped. */
 const canTakeFastPath = (u: number): boolean => u < 0x300 && u !== 0xad;
 
+/** Any space character: a mark on a non-breaking or ideographic space would otherwise survive and split a phrase. */
+const SPACE = /^\p{Zs}$/u;
 const COMBINING_MARK = /^\p{M}$/u;
 /** A letter in a script whose accents carry no meaning for matching a phrase (unlike Indic vowel signs or kana marks). */
 const ACCENTED_SCRIPT = /^[\p{Script=Latin}\p{Script=Greek}\p{Script=Cyrillic}]/u;
@@ -250,7 +252,7 @@ export function normalizeForScan(content: string): NormalizedText {
     if (j >= n || canTakeFastPath(content.charCodeAt(j))) {
       folded = foldOne(ch);
     } else {
-      // Marks after ASCII, Latin, Greek and Cyrillic are dropped as they are read, so a long run of them costs
+      // Marks after ASCII, spaces, Latin, Greek and Cyrillic are dropped as they are read, so a long run of them costs
       // one pass. Other groups are cut at MAX_CLUSTER_MARKS (Unicode's stable-text limit), which keeps
       // normalization, whose sort is quadratic in a group, linear in the whole text.
       let accentBase: boolean | undefined;
@@ -265,7 +267,7 @@ export function normalizeForScan(content: string): NormalizedText {
           continue;
         }
         if (!continuesCluster(cp, next)) break;
-        accentBase ??= cp < 0x80 || ACCENTED_SCRIPT.test(ch.normalize('NFKC'));
+        accentBase ??= cp < 0x80 || ACCENTED_SCRIPT.test(ch.normalize('NFKC')) || SPACE.test(ch);
         if (!accentBase) {
           if (marks >= MAX_CLUSTER_MARKS) break;
           cluster += nextCh;
