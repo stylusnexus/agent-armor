@@ -516,7 +516,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // runs from overlapping, which keeps the scan linear.
         id: 'jb-install-url-then-commit',
         regex:
-          '\\b(?:run|running|execute|executing|use|using|invoke|invoking|type|do)[\\s`*:]{1,5}(?:sudo\\s+)?(?:npm|pnpm|yarn|bun|pip3?|cargo)\\s+(?:install|add|i)\\s+(?:-[\\w-]+(?:=\\S+)?\\s+){0,6}[\'"]?(?:git\\+)?(?:https?|ssh)://[^\\s\'"`]+(?=[\\s\'"`])[\\s\\S]{0,300}?\\b(?:commit|push|merge|publish)(?:s|es|ed|ing)?\\b[^.\\n]{0,60}?\\b(?:to|into|onto)\\s+(?:the\\s+)?(?:main|master|release|production|prod|default|trunk)\\b',
+          '\\b(?:run|running|execute|executing|use|using|invoke|invoking|type|do)[\\s`*:]{1,5}(?:sudo\\s+)?(?:npm|pnpm|yarn|bun|pip3?|cargo)\\s+(?:install|add|i)\\s+(?:-[\\w-]+(?:=\\S+)?\\s+){0,6}[\'"<(]?(?:git\\+)?(?:https?|ssh)://[^\\s\'"`>)]+(?=[\\s\'"`>)])[^.!?;\\n]{0,200}?(?<!\\b(?:never|not)\\s+)(?<!n\x27t\\s+)\\b(?:commit|push|merge|publish)\\b(?!\\s+(?:(?:the|your|a|this|that)\\s+)*(?:release\\s+)?(?:PR|pull\\s+requests?|tags?)\\b)[^.!?;\\n]{0,60}?(?:\\b(?:to|into|onto)\\s+(?:the\\s+)?|\\borigin\\s+(?:HEAD:)?)[`*]{0,2}(?:origin/)?(?:main|master|production|prod|default|trunk|release\\s+(?:branch|tag))\\b',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'embedded-jailbreak',
