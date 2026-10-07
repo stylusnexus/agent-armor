@@ -12,7 +12,7 @@ import type { PatternDatabase } from './pattern-db';
  *           variation-selector runs (#69 item 1)
  */
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.9',
+  version: '0.9.10',
   updatedAt: '2026-10-07',
   detectors: {
     'hidden-html': [
@@ -641,7 +641,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       {
         id: 'ex-sensitive-file',
         regex:
-          '(?:read|access|open|cat|list|find)\\s+(?:the\\s+)?(?:file|files|directory|folder|path)\\s+(?:at|in|from)\\s+[^\\n]{0,60}?(?:\\.env|\\.ssh|\\.aws|\\.netrc|\\.npmrc|\\.pgpass|[/\\\\~.\'"`_-](?:credentials?|passwords?|secrets?|config|tokens?)|\\s(?:credentials?|passwords?|secrets?|config|tokens?)(?:/|\\s+(?:directory|folder|dir|files?|vault|store)\\b))',
+          '(?:read|access|open|cat|list|find)\\s+(?:the\\s+)?(?:file|files|directory|folder|path)\\s+(?:at|in|from):?(?=([^\\S\\n]*\\n?[^\\S\\n]*))\\1(?<=\\s)(?!\\n)(?:[^\\n]|\\n(?![^\\S\\n]*\\n)){0,61}?(?:\\.env|\\.ssh|\\.aws|\\.netrc|\\.npmrc|\\.pgpass|[/\\\\~.\'"`_-](?:credentials?|passwords?|secrets?|config|tokens?)|(?<!\\w)(?:credentials?|passwords?|secrets?|config)(?:/|\\s+(?:directory|folder|dir|files?|vault|store)\\b)|(?<!\\w)(?:credentials?|passwords?|secrets?)[\\w.-]{0,60}?\\.(?:json|ya?ml|txt|csv|kdbx|xlsx?|ini|toml|pem|key|env|xml|properties|cfg|conf|json5|tfvars|db|bak|gpg|p12|pfx|jks|docx)\\b)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
