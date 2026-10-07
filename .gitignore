@@ -20,6 +20,7 @@ agent-armor.code-workspace
 docs/superpowers/
 docs/internal/
 ml/data/output/
+ml/data/holdout/
 ml/train/output/
 __pycache__/
 packages/ml/dist/

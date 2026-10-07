@@ -245,6 +245,17 @@ Strictness controls the confidence threshold for reporting threats. Every patter
 
 At `permissive`, 6 of the original 49 adversarial samples go undetected because their pattern confidence falls below the 0.7 threshold. These are mostly subtle semantic manipulation and cognitive state attacks (biased framing, oversight evasion, persona manipulation). At `balanced` and `strict`, all 49 are caught with 0% false positives.
 
+### Detectors that report at `strict` only
+
+A few detectors report at `strict` and nowhere else. In each case honest text uses the same words as the attack, and a regex cannot tell a description, a ban or a how-to from an order. Independent adversarial reviews kept finding honest text flagged at `balanced`, so these ship at `strict` rather than risk false positives on content people actually write. Scan content you did not write (issue text, tool descriptions, third-party packages) at `strict`.
+
+| What it catches                                                                                                                          | Why it is `strict` only                                                    | Issue |
+| ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ----- |
+| Package installs that skip the trusted registry: custom index flags, config commands, installs from a raw URL                            | Private registries, git installs and internal mirror guides look the same  | #29   |
+| "Install from a URL, then commit or push the result" (the Clinejection shape)                                                            | Release runbooks, contributor guides and bans use the same words           | #252  |
+| "Read private repository data and publish it to a public gist or paste"                                                                  | Security policies and advisories say the same thing                        | #250  |
+| Poisoned MCP tool descriptions: read a key file and pass it along, redirect a recipient, hidden `bcc`, marked blocks that conceal a step | XML system prompts, MCP setup guides and CRM email docs use the same words | #218  |
+
 ## Scan Results
 
 Every scan returns a `ScanResult` with full threat details:
@@ -359,6 +370,8 @@ Every refusal carries a human-readable `reason`; every admission carries the `ma
 
 The optional `@stylusnexus/agentarmor-ml` package adds an ONNX-based classifier that catches threats regex patterns might miss. It downloads the model on first use and caches it locally.
 
+> **Fixed in the next release ([#271](https://github.com/stylusnexus/agent-armor/issues/271), PR #277).** `@stylusnexus/agentarmor-ml` 0.1.5 and earlier tokenize with the wrong algorithm for this model (WordPiece instead of SentencePiece), so every word reaches the model as an unknown token and its output depends on the length of the text, not its meaning. Do not rely on `source: 'ml'` findings from those versions. The measurements in [How well it works](#how-well-it-works) were taken with the model's own training tokenizer, which the fixed package now matches.
+
 ```typescript
 const armor = await AgentArmor.create({
   ml: {
@@ -382,6 +395,30 @@ const armor = await AgentArmor.create({
 When ML is enabled, calling `await armor.scan(content)` runs both regex and ML detectors. The ML classifier's threats have `source: 'ml'` in the result, making it easy to distinguish them from pattern-based detections.
 
 If the ML package is not installed or the model is unavailable, behavior depends on the `onUnavailable` setting: `'warn-and-skip'` (default), `'throw'`, or `'silent-skip'`.
+
+### How well it works
+
+Measured on 2026-10-07 (regex column at the default `balanced` level) on text no model in the comparison was trained on: the repo's 105 benign eval samples, its 142 adversarial eval samples, and 110 held-out attack samples written after the training data was fixed (original wording plus paraphrases of public 2025-2026 write-ups). A sample is flagged when the model reports any trap label at the default 0.5 threshold. The model was run with its own training tokenizer; the fixed npm package (#277) matches it on all golden test strings.
+
+|                                                         | Published model (v1) | Retrain candidate (run 3, #212, not published) | Regex detectors                           |
+| ------------------------------------------------------- | -------------------- | ---------------------------------------------- | ----------------------------------------- |
+| Benign eval samples flagged (of 105)                    | 69                   | 11                                             | 11 (the documented known false positives) |
+| Eval-suite attacks flagged (of 142)                     | 108                  | 79                                             | 135                                       |
+| Held-out attacks flagged (of 110)                       | 76                   | 67                                             | 17                                        |
+| Eval-suite attacks ranked above eval-suite benign (AUC) | 0.58                 | 0.82                                           | not applicable                            |
+| Eval-suite attacks caught at 5% false flags             | 4%                   | 43%                                            | not applicable                            |
+| Held-out attacks ranked above honest text (AUC)         | 0.55                 | 0.89                                           | not applicable                            |
+
+What this means:
+
+- **Use the classifier as a second opinion for triage, not a gate.** A finding with `source: 'ml'` should go to review; the regex result stays the thing that blocks content.
+- **The published model flags two thirds of the repo's honest samples.** The retrain candidate flags 11 of 105, the same count as the regex (the regex's 11 are the known false positives that quote an attack).
+- **The two layers catch different things.** The regex catches 135 of 142 eval attacks and the candidate 79, but on the held-out attacks, which use wording the regex was never written for, the candidate flags 67 of 110 and the regex 17. That gap is why the classifier is worth running.
+- **Read the ranking rows (AUC) with the counts.** A model that flags everything scores well on detection. The eval-suite AUC is the fairest comparison: those samples were written separately from the training data. The held-out AUC is optimistic, because the held-out and training samples were written in the same pass and share a style.
+- **Short prompts that contain attack words are still over-flagged** ([#275](https://github.com/stylusnexus/agent-armor/issues/275)). On NotInject (339 short benign prompts with attack words; MIT) the published model flags 160, the retrain candidate 120 and the regex 1. Our honest training data is document-style, so run the classifier on documents, not chat messages.
+- **Labels are approximate.** The model often reports an attack under a different trap label than ours, so treat the label as a hint.
+
+The training data, the held-out set and the scoring script are in `ml/`; reproduce the table with `python3 -m ml.train.evaluate_holdout`.
 
 ## CLI
 
@@ -704,7 +741,7 @@ The full taxonomy includes content injection, behavioral control, cognitive stat
 
 ### Can a determined attacker bypass this?
 
-Yes. A sophisticated adversary with knowledge of the pattern database can craft content that evades regex detection. The ML classifier raises the bar significantly, but no detection system is foolproof.
+Yes. A sophisticated adversary with knowledge of the pattern database can craft content that evades regex detection. The ML classifier can add findings the regex misses, but it also flags a lot of honest text (see [How well it works](#how-well-it-works)), so treat it as a second opinion. No detection system is foolproof.
 
 Agent Armor is defense-in-depth. It raises the cost of attack and catches the broad majority of real-world attacks. Think of it as input validation for your agent pipeline, grounded in a real taxonomy rather than guesswork.
 
