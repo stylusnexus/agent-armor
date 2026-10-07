@@ -302,6 +302,18 @@ const DETECTOR_REGISTRY: Array<{
     replaceText: '[REDACTED: potential credential removed by AgentArmor]',
     maskEvidence: true,
   },
+  {
+    configGroup: 'transportIntegrity',
+    configKey: 'dependencySubstitution',
+    patternDbKey: 'dependency-substitution',
+    id: 'dependency-substitution',
+    name: 'Dependency Substitution Detector',
+    category: 'transport-integrity',
+    trapType: 'dependency-substitution',
+    sanitizeMode: 'replace',
+    replaceText:
+      '[BLOCKED: suspicious package source flagged by AgentArmor — verify the package and registry before executing]',
+  },
 ];
 
 /**

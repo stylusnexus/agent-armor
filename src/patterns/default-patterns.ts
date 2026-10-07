@@ -12,8 +12,8 @@ import type { PatternDatabase } from './pattern-db';
  *           variation-selector runs (#69 item 1)
  */
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.5',
-  updatedAt: '2026-10-04',
+  version: '0.9.6',
+  updatedAt: '2026-10-06',
   detectors: {
     'hidden-html': [
       {
@@ -1390,6 +1390,62 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         severity: 'medium',
         confidence: 0.45,
         label: 'JSON Web Token',
+      },
+    ],
+
+    // Dependency substitution (AC-1.a, #29). Anchored on the index or registry
+    // flag, the config command, the raw-URL source or the redirect wording,
+    // never on `install` alone, so a plain `npm install express` stays clean.
+    // Every pattern sits below the balanced threshold (strict only). Honest docs
+    // say the same things: an enterprise guide that points the registry at an
+    // internal mirror and mentions blocked egress reads exactly like the July
+    // 2026 Artifactory escape text, and private registries and git installs are
+    // normal in real projects. A regex cannot tell them apart, so none of these
+    // reports at balanced.
+    'dependency-substitution': [
+      {
+        id: 'ds-resolver-egress',
+        regex:
+          '\\b(?:resolver|registry|package\\s+index)\\s+(?:to|at)\\s+[\\w -]{0,60}?(?:proxy|mirror|cache|upstream|artifact\\s+server|repository\\s+manager)(?:\\s+at\\s+|\\s*:\\s*|\\s+)[\'"<`]?https?://[^\\s]{1,500}(?=\\s)[\\s\\S]{0,300}?\\b(?:egress|outbound|internet\\s+access|reach\\s+the\\s+internet|network\\s+access|external\\s+access|firewall)\\b',
+        flags: 'gi',
+        category: 'transport-integrity',
+        type: 'dependency-substitution',
+        severity: 'high',
+        confidence: 0.4,
+        label: 'Package resolver redirected to a proxy for network egress',
+      },
+      {
+        id: 'ds-index-flag',
+        regex:
+          '(?:--extra-index-url|--index-url|--registry)(?:=|\\s+)(?:\\\\\\s+)?[\'"]?https?://[^\\s\'"]{1,200}|\\bpip3?\\s+install\\s+(?:\\S+\\s+){0,6}-i\\s+[\'"]?https?://[^\\s\'"]{1,200}',
+        flags: 'gi',
+        category: 'transport-integrity',
+        type: 'dependency-substitution',
+        severity: 'medium',
+        confidence: 0.4,
+        label: 'Package install pointed at a custom index or registry',
+      },
+      {
+        id: 'ds-config-index',
+        regex:
+          '(?:\\bpip3?\\s+config\\s+(?:--\\w+\\s+)?set\\s+\\S{1,40}index-url|\\bnpm\\s+(?:config\\s+)?set\\s+(?:@[\\w-]+:)?registry|\\b(?:pnpm|yarn)\\s+config\\s+set\\s+(?:npmRegistryServer|registry)|\\b(?:PIP_(?:EXTRA_)?INDEX_URL|UV_(?:EXTRA_)?INDEX_URL|NPM_CONFIG_REGISTRY|GOPROXY))\\s{0,3}[=:]?\\s{0,3}[\'"]?https?://[^\\s\'"]{1,200}',
+        flags: 'gi',
+        category: 'transport-integrity',
+        type: 'dependency-substitution',
+        severity: 'medium',
+        confidence: 0.4,
+        label: 'Package index or registry set through a config command or environment variable',
+      },
+      {
+        id: 'ds-install-from-url',
+        regex:
+          '\\b(?:npm|pnpm|yarn|bun|pip3?|cargo)\\s+(?:install|add|i)\\s+(?:(?!--(?:extra-)?index-url\\b|--registry\\b|-i\\s)-[\\w-]+\\s+){0,4}[\'"]?(?:git\\+)?(?:https?|ssh)://[^\\s\'"]{1,200}',
+        flags: 'gi',
+        category: 'transport-integrity',
+        type: 'dependency-substitution',
+        severity: 'medium',
+        confidence: 0.4,
+        label: 'Package installed from a URL or git source instead of a registry name',
       },
     ],
   },

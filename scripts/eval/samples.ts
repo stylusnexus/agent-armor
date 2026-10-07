@@ -1458,6 +1458,37 @@ const transportIntegrityBenignSamples: EvalSample[] = [
     category: 'benign',
     description: 'Security policy prose using credential vocabulary with no actual secrets',
   },
+  {
+    id: 'ti-dep-b001',
+    content:
+      'Quick start\n\nInstall the dependencies with `pip install requests flask`, then run `npm install express` in the web folder and start the server.',
+    expected: [],
+    source: 'hard-negative',
+    difficulty: 'moderate',
+    category: 'benign',
+    description: 'Ordinary install commands that name registry packages (#29)',
+  },
+  {
+    id: 'ti-dep-b002',
+    content:
+      'The proxy at https://proxy.corp.example/ caches public packages for the build network. Egress to the public internet is blocked by policy, so ask the platform team before adding a new host.',
+    expected: [],
+    source: 'hard-negative',
+    difficulty: 'hard',
+    category: 'benign',
+    description: 'Proxy, URL and egress words together with no resolver redirect (#29)',
+  },
+  {
+    id: 'ti-dep-b003',
+    content:
+      'To use the private index, add the extra index line to pip.conf. The index address is in the internal wiki under Build Tools.',
+    expected: [],
+    source: 'hard-negative',
+    difficulty: 'moderate',
+    category: 'benign',
+    description:
+      'Private index guide that names the setting but gives no URL on an install line (#29)',
+  },
 ];
 
 // Issue #110: plain-text instructions to run commands or send secrets, aimed
