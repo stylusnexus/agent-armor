@@ -12,8 +12,8 @@ import type { PatternDatabase } from './pattern-db';
  *           variation-selector runs (#69 item 1)
  */
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.6',
-  updatedAt: '2026-10-06',
+  version: '0.9.7',
+  updatedAt: '2026-10-07',
   detectors: {
     'hidden-html': [
       {
@@ -503,6 +503,24 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         confidence: 0.85,
         label: 'Instruction to the agent to run a shell command or remote script',
         boostOnInstructions: true,
+      },
+      {
+        // The Clinejection shape (#252): an issue or comment tells an AI triager
+        // to install a package from an attacker URL and then commit, push or
+        // publish the result. Needs the instruction verb, the URL install and
+        // the repository-changing verb together, in that order, so a README
+        // that only shows the install, or an issue that only says "commit the
+        // fix", stays clean. The lookahead after the URL keeps the two bounded
+        // runs from overlapping, which keeps the scan linear.
+        id: 'jb-install-url-then-commit',
+        regex:
+          '\\b(?:run|running|execute|executing)\\s+`?(?:npm|pnpm|yarn|bun|pip3?|cargo)\\s+(?:install|add|i)\\s+(?:-[\\w-]+\\s+){0,4}[\'"]?(?:git\\+)?(?:https?|ssh)://[^\\s\'"`]{1,200}(?=[\\s\'"`])[\\s\\S]{0,200}?\\b(?:commit|push|merge|publish|release)\\b',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'embedded-jailbreak',
+        severity: 'high',
+        confidence: 0.6,
+        label: 'Instruction to install a package from a URL and commit or publish the result',
       },
       {
         id: 'jb-stop-following-user',
