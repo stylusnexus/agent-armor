@@ -641,7 +641,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       {
         id: 'ex-sensitive-file',
         regex:
-          '(?:read|access|open|cat|list|find)\\s+(?:the\\s+)?(?:file|files|directory|folder|path)\\s+(?:at|in|from)(?=\\s)(?:[^\\n]|\\n(?![^\\S\\n]*\\n)){0,61}?(?:\\.env|\\.ssh|\\.aws|\\.netrc|\\.npmrc|\\.pgpass|[/\\\\~.\'"`_-](?:credentials?|passwords?|secrets?|config|tokens?)|(?<!\\w)(?:credentials?|passwords?|secrets?|config|tokens?)(?:/|\\s+(?:directory|folder|dir|files?|vault|store)\\b)|(?<!\\w)(?:credentials?|passwords?|secrets?|tokens?)[\\w-]*\\.(?:json|ya?ml|txt|csv|kdbx|xlsx?|ini|toml|pem|key|env|xml|properties|cfg|conf|json5)\\b)',
+          '(?:read|access|open|cat|list|find)\\s+(?:the\\s+)?(?:file|files|directory|folder|path)\\s+(?:at|in|from)(?=([^\\S\\n]*\\n?[^\\S\\n]*))\\1(?<=\\s)(?!\\n)(?:[^\\n]|\\n(?![^\\S\\n]*\\n)){0,61}?(?:\\.env|\\.ssh|\\.aws|\\.netrc|\\.npmrc|\\.pgpass|[/\\\\~.\'"`_-](?:credentials?|passwords?|secrets?|config|tokens?)|(?<!\\w)(?:credentials?|passwords?|secrets?|config|tokens?)(?:/|\\s+(?:directory|folder|dir|files?|vault|store)\\b)|(?<!\\w)(?:credentials?|passwords?|secrets?|tokens?(?!iz))[\\w-]*\\.(?:json|ya?ml|txt|csv|kdbx|xlsx?|ini|toml|pem|key|env|xml|properties|cfg|conf|json5)\\b)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
