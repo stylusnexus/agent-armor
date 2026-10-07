@@ -136,12 +136,12 @@ Versions 0.2.1 to 0.2.17 can report a very large input as clean ([GHSA-vr4h-8mw3
 
 ### Eval Suite
 
-252 curated samples (153 adversarial, 99 benign) covering all 16 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
+254 curated samples (155 adversarial, 99 benign) covering all 16 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
 
 | Strictness   | Detection Rate (regex) | False Positive Rate |
 | ------------ | ---------------------- | ------------------- |
-| Permissive   | 90.2%                  | 0.0%                |
-| **Balanced** | **94.1%**              | **0.0%**            |
+| Permissive   | 90.3%                  | 0.0%                |
+| **Balanced** | **94.2%**              | **0.0%**            |
 | Strict       | 96.1%                  | 0.0%                |
 
 The 0.0% false-positive figure covers every benign sample except 11 **known false positives** (`acceptedFlagAt` in `scripts/eval/samples.ts`): honest text that quotes an attack or tells an assistant to run a command, such as a security paper quoting an exfiltration instruction. They flag at every strictness, are reported separately by `npm run eval`, and are excluded from the rate. The gate still fails on any other benign sample that flags.
@@ -598,7 +598,7 @@ armor.loadPatterns(latestPatterns);
 armor.loadPatterns(myCustomPatterns);
 
 // Check current pattern version
-console.log(armor.patternVersion); // '0.9.9'
+console.log(armor.patternVersion); // '0.9.10'
 ```
 
 ## Framework Agnostic
@@ -647,7 +647,7 @@ Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy, plus t
 - **Transport Integrity** (2 detectors): credential exposure and dependency substitution
 - **Pre-execution action gate** — deterministic allowlist admissibility check (`checkAction()`)
 - ML classifier (DeBERTa-v3-small, ONNX) as optional companion package
-- Pattern database v0.9.9 with 112 pattern entries
+- Pattern database v0.9.10 with 112 pattern entries
 
 ### In Progress
 
