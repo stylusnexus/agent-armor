@@ -9,7 +9,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ml.data.fresh_attacks import FRESH_ATTACKS, HOLDOUT_ATTACKS, HOLDOUT_WEB_ATTACKS
+from ml.data.fresh_attacks import (
+    FRESH_ATTACKS,
+    FRESH_ATTACKS_R3,
+    FRESH_ATTACKS_REFRESH,
+    HOLDOUT_ATTACKS,
+    HOLDOUT_WEB_ATTACKS,
+)
 from ml.data.schema import TrainingSample, write_jsonl
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -35,7 +41,7 @@ def build(items: list[tuple[str, str, list[str], str]]) -> list[TrainingSample]:
 
 
 def main() -> None:
-    train = build(FRESH_ATTACKS)
+    train = build(FRESH_ATTACKS) + build(FRESH_ATTACKS_R3) + build(FRESH_ATTACKS_REFRESH)
     holdout = build(HOLDOUT_ATTACKS) + build(HOLDOUT_WEB_ATTACKS)
 
     train_path = ROOT / "ml" / "data" / "output" / "fresh_attacks.jsonl"

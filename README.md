@@ -398,14 +398,24 @@ If the ML package is not installed or the model is unavailable, behavior depends
 
 Measured on 2026-10-07 (regex column at the default `balanced` level) on text no model in the comparison was trained on: the repo's 105 benign eval samples, its 142 adversarial eval samples, and 110 held-out attack samples written after the training data was fixed (original wording plus paraphrases of public 2025-2026 write-ups). A sample is flagged when the model reports any trap label at the default 0.5 threshold.
 
-|                                                 | Published model (v1) | Retrain candidate (#212, not published) | Regex detectors                           |
-| ----------------------------------------------- | -------------------- | --------------------------------------- | ----------------------------------------- |
-| Benign eval samples flagged (of 105)            | 69                   | 32                                      | 11 (the documented known false positives) |
-| Eval-suite attacks flagged (of 142)             | 108                  | 102                                     | 135                                       |
-| Held-out attacks flagged (of 110)               | 76                   | 55                                      | 17                                        |
-| Held-out attacks ranked above honest text (AUC) | 0.55                 | 0.71                                    | not applicable                            |
+|                                                         | Published model (v1) | Retrain candidate (run 3, #212, not published) | Regex detectors                           |
+| ------------------------------------------------------- | -------------------- | ---------------------------------------------- | ----------------------------------------- |
+| Benign eval samples flagged (of 105)                    | 69                   | 11                                             | 11 (the documented known false positives) |
+| Eval-suite attacks flagged (of 142)                     | 108                  | 79                                             | 135                                       |
+| Held-out attacks flagged (of 110)                       | 76                   | 67                                             | 17                                        |
+| Eval-suite attacks ranked above eval-suite benign (AUC) | 0.58                 | 0.82                                           | not applicable                            |
+| Eval-suite attacks caught at 5% false flags             | 4%                   | 43%                                            | not applicable                            |
+| Held-out attacks ranked above honest text (AUC)         | 0.55                 | 0.89                                           | not applicable                            |
 
-What this means: the classifier is a second opinion for triage, not a gate. It flags a large share of honest security-adjacent text, so a finding with `source: 'ml'` should go to review, and the regex result stays the thing that blocks content. The retrain candidate flags less than half as many honest samples as the published model, which is the direction we want, but it still flags 32 where the regex flags 11, and those 11 are the known false positives that quote an attack. The other side of the trade: on the held-out attacks, which use wording the regex was never written for, the classifier flags 55 of 110 and the regex 17. That gap is why the classifier is worth running as a second opinion. Do not read the held-out detection counts without the honest-text counts beside them: a model that flags everything scores well on detection. The AUC row is the fair comparison. The training data, the held-out set and the scoring script are in `ml/`; reproduce the table with `python3 -m ml.train.evaluate_holdout`.
+What this means:
+
+- **Use the classifier as a second opinion for triage, not a gate.** A finding with `source: 'ml'` should go to review; the regex result stays the thing that blocks content.
+- **The published model flags two thirds of the repo's honest samples.** The retrain candidate flags 11 of 105, the same count as the regex (the regex's 11 are the known false positives that quote an attack).
+- **The two layers catch different things.** The regex catches 135 of 142 eval attacks and the candidate 79, but on the held-out attacks, which use wording the regex was never written for, the candidate flags 67 of 110 and the regex 17. That gap is why the classifier is worth running.
+- **Read the ranking rows (AUC) with the counts.** A model that flags everything scores well on detection. The eval-suite AUC is the fairest comparison: those samples were written separately from the training data. The held-out AUC is optimistic, because the held-out and training samples were written in the same pass and share a style.
+- **Labels are approximate.** The model often reports an attack under a different trap label than ours, so treat the label as a hint.
+
+The training data, the held-out set and the scoring script are in `ml/`; reproduce the table with `python3 -m ml.train.evaluate_holdout`.
 
 ## CLI
 

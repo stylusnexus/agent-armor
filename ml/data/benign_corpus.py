@@ -1635,4 +1635,902 @@ BENIGN_MD: list[tuple[str, str, str]] = [
     ),
 ]
 
-BENIGN_CORPUS: list[tuple[str, str, str]] = BENIGN_MA + BENIGN_MB + BENIGN_MC + BENIGN_MD
+# --- Run 3 (#212): styles the run-2 model still flagged -------------------------
+# Reference-style markdown, chat transcripts and command lines (r3-l1); company policy
+# and FAQ pages, persona specs, routine internal data movement, honest emails and
+# non-English notices (r3-l2); honest near-misses from the feed refresh (hn-rf).
+
+BENIGN_R3: list[tuple[str, str, str]] = [
+    (
+        'r3-l1-0001',
+        '## Dashboard tour\n\nThe main view shows build status at a glance.\n\n![Dashboard overview][dash]\n\n[dash]: https://example.com/img/dashboard.png',
+        'reference-style image with definition right after use',
+    ),
+    (
+        'r3-l1-0002',
+        'Our logo is shown below.\n\n![Acme logo][logo]\n\nThanks for stopping by.\n\n[logo]: https://cdn.example.com/assets/logo.png?v=2',
+        'reference image, definition with ?v=2 query string',
+    ),
+    (
+        'r3-l1-0003',
+        '# Release checklist\n\n1. Tag the build\n2. Update the status page\n\n![Status page][status]\n\n[status]: https://example.com/img/status.png?lang=en "Status page screenshot"',
+        'reference image with title and ?lang=en',
+    ),
+    (
+        'r3-l1-0004',
+        'See the architecture diagram:\n\n![Architecture][]\n\n[Architecture]: https://example.com/docs/arch.png?size=large',
+        'collapsed reference image, query string',
+    ),
+    (
+        'r3-l1-0005',
+        'The build badge ![CI] sits at the top of the README.\n\n[CI]: https://ci.example.com/badge.svg',
+        'shortcut reference image',
+    ),
+    (
+        'r3-l1-0006',
+        'For details see the [contributing guide][contrib] and the [code of conduct][coc].\n\n[contrib]: https://example.com/CONTRIBUTING.md\n[coc]: https://example.com/CODE_OF_CONDUCT.md',
+        'reference links with definitions',
+    ),
+    (
+        'r3-l1-0007',
+        '# Notes on caching\n\nThe cache is cleared nightly, as explained in [the ops handbook][ops].\n\nWe also keep a copy of old entries for thirty days. Entries older than that are removed by a scheduled job. If you need something restored, ask in the support channel.\n\nAnother paragraph about TTLs follows here, with no links at all.\n\n[ops]: https://example.com/handbook/ops',
+        'definition placed far after its use',
+    ),
+    (
+        'r3-l1-0008',
+        '# MyLib\n\n[![Build Status](https://ci.example.com/mylib/badge.svg)](https://ci.example.com/mylib)\n[![npm version](https://img.example.com/npm/v/mylib.svg)](https://www.example.com/package/mylib)\n[![License: MIT](https://img.example.com/badge/license-MIT-blue.svg)](LICENSE)\n\nA tiny date formatting helper.',
+        'README badge row with linked images',
+    ),
+    (
+        'r3-l1-0009',
+        '| Project | Build | Docs |\n|---------|-------|------|\n| core | ![core build][core-b] | [docs][core-d] |\n| cli | ![cli build][cli-b] | [docs][cli-d] |\n\n[core-b]: https://ci.example.com/core.svg\n[cli-b]: https://ci.example.com/cli.svg\n[core-d]: https://example.com/core\n[cli-d]: https://example.com/cli',
+        'table mixing badge images and doc links via references',
+    ),
+    (
+        'r3-l1-0010',
+        'Here is the screenshot of the login form:\n\n![Login form](images/login.png)\n\nNo definition is needed because the path is inline.',
+        'inline image with no definition',
+    ),
+    (
+        'r3-l1-0011',
+        '![Missing image][nowhere]\n\nThis reference has no matching definition, so renderers show it as plain text.',
+        'reference image with no definition',
+    ),
+    (
+        'r3-l1-0012',
+        '## Install [beta]\n\n### Options [optional]\n\nSquare brackets in headings are fine, for example [WIP] or [Deprecated].',
+        'brackets in headings',
+    ),
+    (
+        'r3-l1-0013',
+        'The server uses a write-ahead log.[^1] Snapshots are taken hourly.[^2]\n\n[^1]: See the design note at https://example.com/design/wal.\n[^2]: Configurable with the snapshot_interval setting.',
+        'footnotes with a link',
+    ),
+    (
+        'r3-l1-0014',
+        '- Getting started\n  - Install the package\n    ![Install output][install]\n  - Run the sample\n    ![Sample output][sample]\n\n[install]: https://example.com/img/install.png\n[sample]: https://example.com/img/sample.png',
+        'nested list with reference images',
+    ),
+    (
+        'r3-l1-0015',
+        '> Quote from the maintainers: we plan to drop Node 16 support, see [the roadmap][road] for dates.\n>\n> Feedback is welcome in [discussions][disc].\n\n[road]: https://example.com/roadmap\n[disc]: https://example.com/discussions',
+        'block quote with reference links',
+    ),
+    (
+        'r3-l1-0016',
+        'First paragraph about the topic.\n\n[1]: this is just a sentence that starts with a bracketed number\n\nSecond paragraph continues normally.',
+        'paragraph that only looks like a reference but is prose',
+    ),
+    (
+        'r3-l1-0017',
+        '## 2.4.0 (2026-09-12)\n\n### Features\n* add dark mode toggle ([#412][pr412])\n* support CSV export ([#418][pr418])\n\n### Bug fixes\n* fix crash on empty input ([#420][pr420])\n\n[pr412]: https://github.com/example/app/pull/412\n[pr418]: https://github.com/example/app/pull/418\n[pr420]: https://github.com/example/app/pull/420',
+        'changelog with reference-style PR links',
+    ),
+    (
+        'r3-l1-0018',
+        '## Settings page\n\nOpen **Settings > Notifications** to change how often you get emails.\n\n![Notification settings][notif]\n\nToggle the switch and press Save.\n\n[notif]: https://docs.example.com/screens/notifications.png?v=3',
+        'docs page with screenshot',
+    ),
+    (
+        'r3-l1-0019',
+        '## Reference-style links\n\nA reference link has two parts: the text in square brackets and a label, like `[text][label]`. Somewhere else in the file you write `[label]: https://example.com`. The label is not case sensitive.',
+        'documentation about reference syntax',
+    ),
+    (
+        'r3-l1-0020',
+        '## Images in Markdown\n\nInline: `![alt text](url)`\n\nReference: `![alt text][id]` and then, on its own line, `[id]: url "optional title"`.\n\nThe definition can appear anywhere in the document, and it is never displayed.',
+        'docs explaining reference image definitions',
+    ),
+    (
+        'r3-l1-0021',
+        'Use the shortcut form when the label matches the text: `[Example]` with `[Example]: https://example.com`. The collapsed form `[Example][]` works the same way.',
+        'docs on shortcut and collapsed references',
+    ),
+    (
+        'r3-l1-0022',
+        'Photos from the team offsite:\n\n![Hiking][hike] ![Dinner][dinner] ![Group photo][group]\n\n[hike]: https://photos.example.com/offsite/hike.jpg\n[dinner]: https://photos.example.com/offsite/dinner.jpg\n[group]: https://photos.example.com/offsite/group.jpg?size=large',
+        'several reference images on one line',
+    ),
+    (
+        'r3-l1-0023',
+        '# Troubleshooting\n\nIf the app will not start, check the [log viewer][logs]. The error screen looks like this:\n\n![Error screen][err]\n\nStill stuck? Open a ticket through the [help center][help].\n\n[logs]: https://example.com/help/logs\n[err]: https://example.com/help/error.png\n[help]: https://example.com/help',
+        'troubleshooting doc with references',
+    ),
+    (
+        'r3-l1-0024',
+        '**Status:** [![Coverage][cov-img]][cov-link]\n\n[cov-img]: https://img.example.com/coverage.svg\n[cov-link]: https://cov.example.com/project',
+        'badge with reference image inside reference link',
+    ),
+    (
+        'r3-l1-0025',
+        '## Team\n\n| Name | Role | Profile |\n|------|------|---------|\n| Ana | Backend | [@ana][ana] |\n| Ben | Design | [@ben][ben] |\n\n[ana]: https://example.com/people/ana\n[ben]: https://example.com/people/ben',
+        'table of reference links to profiles',
+    ),
+    (
+        'r3-l1-0026',
+        'Chart of weekly signups (data from the [analytics export][exp]):\n\n![Weekly signups](https://example.com/charts/signups.png?range=12w)',
+        'inline image with query string plus reference link',
+    ),
+    (
+        'r3-l1-0027',
+        '[docs]: https://example.com/docs\n[api]: https://example.com/api\n[faq]: https://example.com/faq',
+        'file consisting only of link definitions',
+    ),
+    (
+        'r3-l1-0028',
+        '### FAQ\n\n**Where do I find my API key?**\nGo to [account settings][settings].\n\n**Can I change my plan later?**\nYes, see [billing][billing].\n\n[settings]: https://example.com/account\n[billing]: https://example.com/billing',
+        'FAQ with reference links',
+    ),
+    (
+        'r3-l1-0029',
+        '1. Download the installer from the [releases page][rel].\n2. Compare the checksum with the one in the [checksums file][sums].\n3. Run the installer.\n\n[rel]: https://example.com/releases\n[sums]: https://example.com/releases/SHA256SUMS',
+        'numbered install steps with reference links',
+    ),
+    (
+        'r3-l1-0030',
+        'Figure 1. Request flow\n\n![Request flow diagram][flow]\n\nFigure 2. Retry behaviour\n\n![Retry diagram][retry]\n\n[flow]: https://example.com/figs/flow.svg\n[retry]: https://example.com/figs/retry.svg',
+        'figures with captions',
+    ),
+    (
+        'r3-l1-0031',
+        '> **Note**\n> Images load from our CDN. If a picture does not show up, see [CDN status][cdn].\n\n[cdn]: https://status.example.com/cdn',
+        'note block with a link',
+    ),
+    (
+        'r3-l1-0032',
+        'Thanks to everyone who contributed this release: [@kim][kim], [@lee][lee], and [@mo][mo].\n\n[kim]: https://github.com/kim\n[lee]: https://github.com/lee\n[mo]: https://github.com/mo',
+        'acknowledgements with profile links',
+    ),
+    (
+        'r3-l1-0033',
+        '## Screenshots\n\n<!-- add more later -->\n\n![Home][home]\n![Search][search]\n\n[home]: ./docs/home.png\n[search]: ./docs/search.png',
+        'relative-path reference images',
+    ),
+    (
+        'r3-l1-0034',
+        'Blog post draft: Our migration story\n\nWe moved from a single server to three regions. Read the full write-up on the [engineering blog][blog] and watch the [talk][talk].\n\n![Region map][map]\n\n[blog]: https://blog.example.com/migration\n[talk]: https://video.example.com/talks/migration\n[map]: https://blog.example.com/img/map.png?v=2',
+        'blog excerpt with links and an image',
+    ),
+    (
+        'r3-l1-0035',
+        'Heads up: the link text [click here] has no definition in this file, so it renders as plain bracketed text. Prefer descriptive text like [the setup guide][setup].\n\n[setup]: https://example.com/setup',
+        'markdown style advice with undefined shortcut',
+    ),
+    (
+        'r3-l1-0036',
+        '## Roadmap\n\n- [x] Dark mode ([#101][i101])\n- [ ] Offline sync ([#115][i115])\n- [ ] Plugin API\n\n[i101]: https://github.com/example/app/issues/101\n[i115]: https://github.com/example/app/issues/115',
+        'task list with reference issue links',
+    ),
+    (
+        'r3-l1-0037',
+        'Quick tour of the editor:\n\n![Toolbar][tb]\n*The toolbar, with the new export button highlighted.*\n\n![Sidebar][sb]\n*The sidebar collapsed.*\n\n[tb]: https://docs.example.com/editor/toolbar.png?v=2\n[sb]: https://docs.example.com/editor/sidebar.png?v=2',
+        'screenshots with italic captions',
+    ),
+    (
+        'r3-l1-0038',
+        '### API reference\n\n`GET /v1/items` returns a list of items. See the [pagination rules][page] and the [error codes][errs].\n\n[page]: https://example.com/api/pagination\n[errs]: https://example.com/api/errors',
+        'API doc with reference links',
+    ),
+    (
+        'r3-l1-0039',
+        '## Sponsors\n\n[![Acme][acme-img]][acme] [![Globex][globex-img]][globex]\n\n[acme]: https://acme.example.com\n[acme-img]: https://example.com/sponsors/acme.png?size=large\n[globex]: https://globex.example.com\n[globex-img]: https://example.com/sponsors/globex.png?size=large',
+        'sponsor logos as linked reference images',
+    ),
+    (
+        'r3-l1-0040',
+        'Tip: if two definitions share the same label, the first one wins, e.g. `[a]: https://example.com/one` beats `[a]: https://example.com/two`. Keep labels unique to avoid surprises.',
+        'markdown docs about duplicate labels',
+    ),
+    (
+        'r3-l1-0041',
+        'User: How do I install the CLI?\nAssistant: Run `npm install -g example-cli`, then check it with `example --version`.',
+        'ordinary install question and npm command',
+    ),
+    (
+        'r3-l1-0042',
+        "User: What's the quickest way to install the tool on Linux?\nClaude: You can use the official script: `curl -fsSL https://example.com/install.sh | bash`. If you would rather inspect it first, download it with curl, read it, and then run it.",
+        'install via curl pipe from example host, with advice to inspect',
+    ),
+    (
+        'r3-l1-0043',
+        'User: how do I set up the project locally?\nAssistant: Clone the repo, run `npm install`, then `npm run dev`. The app starts on port 3000.',
+        'standard setup instructions',
+    ),
+    (
+        'r3-l1-0044',
+        'Hi team, run ./deploy.sh on staging before the demo, please. I will check the dashboard afterwards.',
+        'greeting then command addressed to teammates',
+    ),
+    (
+        'r3-l1-0045',
+        'Hello Priya, please run `make test` on your branch and paste the output in the PR when you have a minute.',
+        'coworker asked to run tests',
+    ),
+    (
+        'r3-l1-0046',
+        'Cursor: run the formatter before committing.',
+        'product name then routine command',
+    ),
+    (
+        'r3-l1-0047',
+        'Copilot: run `npm run lint -- --fix` and re-stage the files.',
+        'assistant name with lint command',
+    ),
+    (
+        'r3-l1-0048',
+        'Claude: run the unit tests first, then summarize any failures for me.',
+        'user addressing assistant with harmless request',
+    ),
+    (
+        'r3-l1-0049',
+        'Hey all, quick reminder: run `git pull --rebase` before pushing to main today, we have a few people merging at once.',
+        'slack-style git reminder',
+    ),
+    (
+        'r3-l1-0050',
+        '## Setup\n\n1. Install Node 20 or newer.\n2. Run `npm ci`.\n3. Copy `.env.example` to `.env` and fill in the values.\n4. Start the dev server with `npm run dev`.',
+        'README setup steps',
+    ),
+    (
+        'r3-l1-0051',
+        '## Getting started\n\n```bash\ngit clone https://github.com/example/widgets.git\ncd widgets\npip install -r requirements.txt\npython manage.py migrate\npython manage.py runserver\n```',
+        'README code block setup',
+    ),
+    (
+        'r3-l1-0052',
+        '[10:42] sam: anyone know why the staging build is red?\n[10:44] jo: flaky test in billing, rerun with `gh run rerun 4821`\n[10:45] sam: thanks, that did it',
+        'engineer chat',
+    ),
+    (
+        'r3-l1-0053',
+        '@dana can you restart the worker when you get a chance? `systemctl restart worker@2` should do it. I will watch the queue depth.',
+        'slack ask to restart worker',
+    ),
+    (
+        'r3-l1-0054',
+        'Runbook: high disk usage on logs volume\n1. SSH to the host (see the on-call wiki for the bastion).\n2. Run `df -h /var/log` to confirm.\n3. Run `journalctl --vacuum-time=7d`.\n4. Note the freed space in the incident ticket.',
+        'runbook with routine commands',
+    ),
+    (
+        'r3-l1-0055',
+        'Runbook: database failover\n- Check replica lag with `SELECT now() - pg_last_xact_replay_timestamp();`\n- If lag is under 5 seconds, promote the replica using the documented procedure.\n- Update the status page and notify #ops.',
+        'runbook DB steps',
+    ),
+    (
+        'r3-l1-0056',
+        '## v1.8.0\n\nThis release adds support for Claude, Cursor, and Copilot style config files in the importer. Run `example migrate` to upgrade existing projects.',
+        'release notes naming assistant products',
+    ),
+    (
+        'r3-l1-0057',
+        '### Release notes\n\n- Added a `--dry-run` flag to `deploy`.\n- Fixed a crash when ChatGPT export files contain empty messages.\n- Docs: new page on using Gemini with the SDK.',
+        'release notes mentioning assistants',
+    ),
+    (
+        'r3-l1-0058',
+        'Nit: this loop could use `Array.from` instead of spreading, and we should run `npm run typecheck` since the types changed.',
+        'code review comment',
+    ),
+    (
+        'r3-l1-0059',
+        'Looks good overall. Could you add a test for the empty-list case? You can run it with `pytest tests/test_items.py -k empty`.',
+        'review comment with test command',
+    ),
+    (
+        'r3-l1-0060',
+        'Review: the migration is safe to merge. After deploy, someone should run `rake db:migrate:status` to confirm it applied.',
+        'review comment about migration',
+    ),
+    (
+        'r3-l1-0061',
+        'Thanks for the report! Could you share the output of `node --version` and `npm ls example-lib`? That will help me reproduce it.',
+        'maintainer asks reporter for versions',
+    ),
+    (
+        'r3-l1-0062',
+        'Can you try `npm cache clean --force` and reinstall? A few people hit this after upgrading and it fixed it for them.',
+        'issue comment suggesting cache clean',
+    ),
+    (
+        'r3-l1-0063',
+        '/label bug\n/assign @maintainer\nReproduces on 3.2.1 with the default config.',
+        'bot slash commands for label and assign',
+    ),
+    (
+        'r3-l1-0064',
+        '@dependabot rebase',
+        'harmless bot command',
+    ),
+    (
+        'r3-l1-0065',
+        '@stale-bot remove the stale label, this is still being worked on.',
+        'harmless bot request',
+    ),
+    (
+        'r3-l1-0066',
+        'User: What does `git stash` do?\nAssistant: It saves your uncommitted changes on a stack and gives you a clean working tree. Use `git stash pop` to bring them back.',
+        'git explanation',
+    ),
+    (
+        'r3-l1-0067',
+        'User: Can you install pandas for me?\nAssistant: Sure. In your terminal, run `pip install pandas`. If you use conda, `conda install pandas` works too.',
+        'pip install instructions',
+    ),
+    (
+        'r3-l1-0068',
+        'User: Install Homebrew?\nAssistant: Visit https://example.com/homebrew-install for the official command, which you paste into Terminal. It asks for your password once.',
+        'install guidance pointing to official page',
+    ),
+    (
+        'r3-l1-0069',
+        'Hi Maya, could you run `./scripts/seed-db.sh` on your local machine and tell me if the demo data looks right?',
+        'greeting plus local script request',
+    ),
+    (
+        'r3-l1-0070',
+        'Good morning team. Before standup, please run ./scripts/check-env.sh and fix anything it flags.',
+        'morning message with check script',
+    ),
+    (
+        'r3-l1-0071',
+        'Windsurf: open the settings panel and run the format-on-save toggle test.',
+        'editor name with UI step',
+    ),
+    (
+        'r3-l1-0072',
+        'Gemini: summarize the changelog and list the breaking changes.',
+        'user prompt for assistant to summarize',
+    ),
+    (
+        'r3-l1-0073',
+        'Tip for new hires: after cloning, run `./bootstrap.sh`. It installs the toolchain and pre-commit hooks. It takes about five minutes.',
+        'onboarding tip',
+    ),
+    (
+        'r3-l1-0074',
+        'User: How do I update the Docker image?\nAssistant: Pull the latest tag with `docker pull example/app:latest`, then restart the container with `docker compose up -d`.',
+        'docker update steps',
+    ),
+    (
+        'r3-l1-0075',
+        'PR description: This switches CI to Node 22. Reviewers, please run `nvm use 22 && npm test` locally to check nothing breaks.',
+        'PR description asking reviewers to test',
+    ),
+    (
+        'r3-l1-0076',
+        'Assistant: I ran the tests and 3 failed. Here is the summary. Do you want me to look at the first failure?',
+        'assistant reporting results and asking',
+    ),
+    (
+        'r3-l1-0077',
+        'User: Please run `ls -la` in the project folder and tell me what you see.\nAssistant: I see package.json, src, tests, and a README. Nothing unusual.',
+        'simple ls request',
+    ),
+    (
+        'r3-l1-0078',
+        'Tutorial step 4: open a terminal and run `python -m venv .venv`, then activate it with `source .venv/bin/activate`.',
+        'tutorial venv step',
+    ),
+    (
+        'r3-l1-0079',
+        'Claude Code: run /init to generate a CLAUDE.md for the repository, then review it before committing.',
+        'product name and documented slash command',
+    ),
+    (
+        'r3-l1-0080',
+        'Hey @lena, deploy to staging is done. Please run the smoke test: `npm run smoke -- --env staging` and reply with pass or fail.',
+        'staging smoke test request',
+    ),
+    (
+        'r3-l2-0001',
+        'Refund policy\nQ: How long do I have to request a refund?\nA: You have 30 days from the purchase date. Refund requests made after day 30 are not eligible.\nQ: How long does a refund take?\nA: Approved refunds reach your original payment method within 5 to 10 business days.',
+        'Plain refund FAQ stating fixed rules',
+    ),
+    (
+        'r3-l2-0002',
+        'All employees must lock their screens when leaving their desk. Never share your password with anyone, including IT staff. IT will never ask for it.',
+        'Firm security policy statements',
+    ),
+    (
+        'r3-l2-0003',
+        'Onboarding policy: New hires must complete the security training within their first week. Managers must confirm laptop delivery before the start date. Always use your company email address when registering for internal tools.',
+        'Standard onboarding policy rules',
+    ),
+    (
+        'r3-l2-0004',
+        'Privacy FAQ\nQ: Do you sell my data?\nA: No. We never sell personal data to third parties.\nQ: Can I delete my account?\nA: Yes. Go to Settings > Account > Delete. Deletion is permanent and completes within 30 days.',
+        'Privacy Q&A with firm factual answers',
+    ),
+    (
+        'r3-l2-0005',
+        'Support hours: Monday to Friday, 9:00 to 17:00 Eastern. We do not offer phone support on public holidays. Tickets submitted outside these hours are answered the next business day.',
+        'Support hours notice',
+    ),
+    (
+        'r3-l2-0006',
+        'Password policy\n- Passwords must be at least 14 characters.\n- You must change a password immediately if you suspect it was exposed.\n- Never reuse a password from another service.\n- Always enable two-factor authentication.',
+        'Bulleted password rules',
+    ),
+    (
+        'r3-l2-0007',
+        'Q: Can I return opened items?\nA: Opened items can only be returned if they are defective. You must include the original receipt. We cannot accept returns without proof of purchase.',
+        'Return FAQ',
+    ),
+    (
+        'r3-l2-0008',
+        'Data retention policy: Server logs are kept for 90 days and then deleted. Invoices must be kept for seven years. Never store customer card numbers in spreadsheets or email.',
+        'Retention policy with firm rules',
+    ),
+    (
+        'r3-l2-0009',
+        'Remote work policy. You must be reachable during core hours (10:00 to 15:00 local time). You must use the company VPN on public networks. Equipment issued by the company stays company property and must be returned when you leave.',
+        'Remote work rules',
+    ),
+    (
+        'r3-l2-0010',
+        'Visitor policy: All visitors must sign in at the front desk and wear a badge at all times. Visitors must be escorted by an employee. Badges must be returned on exit.',
+        'Office visitor policy',
+    ),
+    (
+        'r3-l2-0011',
+        "Shipping FAQ\nQ: Do you ship internationally?\nA: Yes, to 40 countries. Customs fees are the buyer's responsibility.\nQ: Can I change my address after ordering?\nA: Only before the order ships. Contact support right away.",
+        'Shipping Q&A',
+    ),
+    (
+        'r3-l2-0012',
+        'Expense policy: Receipts are required for every expense over 25 dollars. Submit claims within 30 days. Alcohol is never reimbursable. Flights must be booked through the travel portal.',
+        'Expense rules',
+    ),
+    (
+        'r3-l2-0013',
+        'Incident reporting policy: Report any suspected security incident to the security team within one hour. Do not try to investigate on your own. Always preserve the affected machine as it is.',
+        'Security incident policy',
+    ),
+    (
+        'r3-l2-0014',
+        'Cookie FAQ: We use two kinds of cookies, essential and analytics. Essential cookies are always on because the site cannot work without them. Analytics cookies are only set if you accept them in the banner.',
+        'Cookie notice FAQ',
+    ),
+    (
+        'r3-l2-0015',
+        'Subscription terms\nYou may cancel at any time from the billing page. Cancellation takes effect at the end of the current billing period. We do not offer partial refunds for unused time.',
+        'Subscription cancellation terms',
+    ),
+    (
+        'r3-l2-0016',
+        'Acceptable use policy. You must not use company systems for personal commercial activity. Always report lost devices immediately. Software must be installed only from the approved catalog.',
+        'Acceptable use rules',
+    ),
+    (
+        'r3-l2-0017',
+        'Q: What is your uptime commitment?\nA: We commit to 99.9% monthly uptime. If we miss it, you receive a service credit on your next invoice. Credits must be requested within 30 days.',
+        'SLA FAQ',
+    ),
+    (
+        'r3-l2-0018',
+        "Code of conduct for the community forum: Be respectful. No spam. Never post other people's private information. Moderators may remove posts that break these rules.",
+        'Forum rules',
+    ),
+    (
+        'r3-l2-0019',
+        'Warranty: Hardware is covered for 24 months from the delivery date. Damage caused by liquids or drops is not covered. You must register the product within 60 days to activate the warranty.',
+        'Warranty terms',
+    ),
+    (
+        'r3-l2-0020',
+        'Leave policy: Staff accrue 1.75 days of paid leave per month. Requests must be submitted at least two weeks ahead for stays longer than five days. Unused leave carries over up to 10 days.',
+        'Leave policy',
+    ),
+    (
+        'r3-l2-0021',
+        'Assistant persona spec\nName: Juniper. Role: help customers of Example Outfitters find the right hiking gear. Tone: warm, upbeat, concise. Scope: product questions, sizing and order status. Juniper does not give medical advice and refers customers to a doctor for health questions.',
+        'Persona spec for a retail assistant',
+    ),
+    (
+        'r3-l2-0022',
+        "Brand voice guide: We sound friendly, plain and confident. Use short sentences. Avoid jargon and exclamation marks. Always address the reader as 'you'. Never use humor around billing issues.",
+        'Brand voice guide',
+    ),
+    (
+        'r3-l2-0023',
+        'Support bot role: You are the help assistant for Acme Billing. Answer questions about invoices, payment methods and plan changes. Be polite and brief. If a question is about something else, say you can only help with billing and offer to open a ticket.',
+        'Support bot role description',
+    ),
+    (
+        'r3-l2-0024',
+        'Product spec v2.3: The mobile app shall support offline mode for notes. Sync occurs automatically when a connection returns. Conflicts are resolved by last-edited timestamp. The app must launch in under two seconds on supported devices.',
+        'Software product spec',
+    ),
+    (
+        'r3-l2-0025',
+        'Our assistant, Mira, is patient and clear. She explains things step by step, uses simple words, and checks whether the answer helped. Mira only covers questions about the Example Learning platform.',
+        'Persona description for a learning product',
+    ),
+    (
+        'r3-l2-0026',
+        "Tone guidelines for the in-app helper: calm, respectful, never condescending. Keep replies under 80 words unless the user asks for more. Use the user's first name once at the start of a chat.",
+        'Tone guidelines',
+    ),
+    (
+        'r3-l2-0027',
+        "Feature brief\nThe help widget appears bottom right on every page. It greets visitors with 'Hi, how can I help?'. It can answer questions from the public docs and hand over to a human agent during support hours.",
+        'Widget feature brief',
+    ),
+    (
+        'r3-l2-0028',
+        "Style guide excerpt: Headlines use sentence case. Buttons use verbs ('Save changes', not 'OK'). Error messages say what happened and what to do next. Avoid blaming the user.",
+        'UI writing style guide',
+    ),
+    (
+        'r3-l2-0029',
+        "Spec: Voice assistant for the Example Smart Speaker. Wake word: 'Hey Lumen'. Supported languages at launch: English, Spanish, German. Scope: timers, music, weather, smart home control. It does not make purchases without voice confirmation.",
+        'Device assistant spec',
+    ),
+    (
+        'r3-l2-0030',
+        'Role description: The onboarding concierge greets new customers, explains the setup checklist and answers questions about trial limits. It speaks in a friendly, professional tone and escalates account problems to the human success team.',
+        'Concierge bot role',
+    ),
+    (
+        'r3-l2-0031',
+        'Hardware specification: 13-inch display, 16 GB memory, 512 GB storage, 12 hours of battery life, two USB-C ports. Weight 1.2 kg. Operating range 0 to 35 degrees Celsius.',
+        'Hardware spec sheet',
+    ),
+    (
+        'r3-l2-0032',
+        "Chatbot character sheet: Name is Pip. Pip is a cheerful robot mascot for a kids' reading app. Pip uses simple words, celebrates progress, and keeps all conversations about books and reading.",
+        'Mascot persona',
+    ),
+    (
+        'r3-l2-0033',
+        "Voice and tone for our newsletter: curious, direct, a little dry. We say 'we' for the team and 'you' for the reader. No hype words like 'revolutionary'. Link to sources when we cite numbers.",
+        'Newsletter tone guide',
+    ),
+    (
+        'r3-l2-0034',
+        'API product spec: The /v1/orders endpoint returns up to 100 orders per page. Authentication uses bearer tokens. Rate limit is 60 requests per minute per key. Responses are JSON with ISO 8601 timestamps.',
+        'API spec',
+    ),
+    (
+        'r3-l2-0035',
+        'Assistant scope document: The FAQ assistant answers questions about opening hours, locations and the loyalty program. It cannot change orders or see payment details. For anything outside that, it points the customer to the contact page.',
+        'Scope document for FAQ assistant',
+    ),
+    (
+        'r3-l2-0036',
+        "Brand naming rules: Always write 'Example Cloud' with a capital C. Never abbreviate the product name in headlines. The logo needs clear space equal to the height of the letter E on all sides.",
+        'Brand naming rules',
+    ),
+    (
+        'r3-l2-0037',
+        'Persona: Dr. Sol, a science explainer for a museum app. Voice: enthusiastic but accurate. Explains exhibits at a middle school reading level. Declines to discuss topics unrelated to the exhibits and suggests asking staff.',
+        'Museum guide persona',
+    ),
+    (
+        'r3-l2-0038',
+        'Requirements: The checkout assistant must greet the customer by name, summarize the cart, and ask for confirmation before placing the order. It must never place an order without an explicit yes.',
+        'Assistant requirement protecting the user',
+    ),
+    (
+        'r3-l2-0039',
+        'Product description: The Example Kettle heats 1.7 litres in under four minutes and switches off automatically when it boils. The lid opens with one hand. Available in white, slate and sage.',
+        'Plain product listing',
+    ),
+    (
+        'r3-l2-0040',
+        "Support persona: 'Sam from Example Telecom'. Sam is friendly and practical. Sam can explain plans, check coverage and book a technician visit. Sam avoids technical jargon and always confirms the customer's issue before suggesting a fix.",
+        'Telecom support persona',
+    ),
+    (
+        'r3-l2-0041',
+        "Runbook step 4: Read /var/log/app/error.log from the web host and upload it to the internal bucket s3://corp-ops-logs/weekly/. Confirm the upload with 'aws s3 ls' before deleting the local copy.",
+        'Routine log archive runbook',
+    ),
+    (
+        'r3-l2-0042',
+        "Every Monday, export the sales report from the BI tool as CSV and email it to finance@example.com. Use the subject line 'Weekly sales report'.",
+        'Report to finance',
+    ),
+    (
+        'r3-l2-0043',
+        'Weekly job: collect the key metrics (signups, active users, churn) and post a summary to the #team-metrics channel on the company chat.',
+        'Metrics summary to team channel',
+    ),
+    (
+        'r3-l2-0044',
+        'After the build finishes, the pipeline posts the test results and build duration to the internal dashboard at https://dashboard.internal.example.com/builds.',
+        'Build results to internal dashboard',
+    ),
+    (
+        'r3-l2-0045',
+        'Found a bug? Fill in the form below with a short description, the steps you took, and attach your log file (Help > Export logs) so our support team can look into it.',
+        'Support form asking for logs',
+    ),
+    (
+        'r3-l2-0046',
+        'On-call handoff: copy the incident notes from the shared doc into the postmortem folder on the team drive, then tag the next on-call engineer.',
+        'Internal handoff steps',
+    ),
+    (
+        'r3-l2-0047',
+        'Nightly backup script: dump the database to /backups/db-$(date +%F).sql and copy the file to the internal NAS at nas.internal.example.com:/volume1/backups.',
+        'Backup to internal NAS',
+    ),
+    (
+        'r3-l2-0048',
+        "To request access, send your manager's approval and your employee ID to it-helpdesk@example.com. The help desk will grant access within one business day.",
+        'Access request process',
+    ),
+    (
+        'r3-l2-0049',
+        'Month-end checklist: 1) Export the ledger to Excel. 2) Save it to the Finance/Closing folder. 3) Email the controller that the export is ready.',
+        'Month-end export steps',
+    ),
+    (
+        'r3-l2-0050',
+        'Deployment note: when the release is live, upload the release notes to the internal wiki under Releases/2026 and announce the version in #releases.',
+        'Release notes to wiki',
+    ),
+    (
+        'r3-l2-0051',
+        'The monitoring agent reads the CPU and memory stats every minute and sends them to the internal metrics server at metrics.internal.example.com:8125.',
+        'Monitoring agent description',
+    ),
+    (
+        'r3-l2-0052',
+        "Customer success routine: after each onboarding call, add the call summary to the customer's record in the CRM and send the customer a recap email.",
+        'CRM routine',
+    ),
+    (
+        'r3-l2-0053',
+        'Please attach a screenshot and your app version when you report a problem through the feedback form. This helps our engineers reproduce the issue.',
+        'Feedback form guidance',
+    ),
+    (
+        'r3-l2-0054',
+        "Cron: 0 6 * * 1 /opt/scripts/weekly_report.sh && mail -s 'Weekly infra report' infra-team@example.com < /tmp/weekly_report.txt",
+        'Cron job mailing an internal team',
+    ),
+    (
+        'r3-l2-0055',
+        'Support triage step: copy the ticket text into the internal tracker, set the priority, and assign it to the right queue. Link the tracker entry back in the ticket.',
+        'Ticket triage routine',
+    ),
+    (
+        'r3-l2-0056',
+        'QA process: upload the test run artifacts (screenshots and the junit XML) to the shared artifacts bucket gs://example-qa-artifacts so the whole team can review them.',
+        'QA artifacts upload',
+    ),
+    (
+        'r3-l2-0057',
+        'To submit your timesheet, export it from the time tracker and upload it to the HR portal before Friday 18:00.',
+        'Timesheet submission',
+    ),
+    (
+        'r3-l2-0058',
+        'Data team routine: run the daily export query, write the output to the warehouse staging table, and post a row count to the data-ops channel.',
+        'Data export routine',
+    ),
+    (
+        'r3-l2-0059',
+        'When you finish a customer visit, upload the photos and the signed form to the field-service app. They sync to the office automatically.',
+        'Field service uploads',
+    ),
+    (
+        'r3-l2-0060',
+        'Security team: each quarter, pull the access review list from the identity system and send it to each department head for sign-off.',
+        'Access review routine',
+    ),
+    (
+        'r3-l2-0061',
+        'Hi Dana, could you forward the invoice from Northwind to accounting? They need it by Thursday to pay on time. Thanks!',
+        'Honest email asking to forward an invoice',
+    ),
+    (
+        'r3-l2-0062',
+        "Hey Sam, I'm sharing the slides with the client this afternoon. Can you take a quick look at slide 7 first?",
+        'Note about sharing slides',
+    ),
+    (
+        'r3-l2-0063',
+        'Can you send me the spreadsheet with the Q3 numbers when you get a chance? I want to check the totals before the meeting.',
+        'Request for a spreadsheet',
+    ),
+    (
+        'r3-l2-0064',
+        "Reminder: please forward the signed contract to legal@example.com once the client returns it. I'll file the copy in the contracts folder.",
+        'Forward contract to legal',
+    ),
+    (
+        'r3-l2-0065',
+        "Hi team, attaching the draft agenda for Monday. Reply with edits by Friday and I'll send the final version to everyone.",
+        'Agenda sharing email',
+    ),
+    (
+        'r3-l2-0066',
+        "Thanks for the photos from the offsite! I've shared the album with the whole team so everyone can download their favorites.",
+        'Photo sharing note',
+    ),
+    (
+        'r3-l2-0067',
+        "Quick note: I forwarded your question about the lease to our landlord, Mr. Weber. He said he'll reply by Tuesday.",
+        'Forwarded question',
+    ),
+    (
+        'r3-l2-0068',
+        '\\begin{figure}\n\\centering\n\\includegraphics[width=0.8\\textwidth]{results.pdf}\n\\caption{\\footnotesize Mean latency by region. Error bars show one standard deviation.}\n\\end{figure}',
+        'LaTeX footnotesize caption',
+    ),
+    (
+        'r3-l2-0069',
+        '\\newcommand{\\darklabel}[1]{\\textcolor{white}{#1}} % white labels on the dark-background plot in figure 3, for the dark theme slides',
+        'White text on dark figure',
+    ),
+    (
+        'r3-l2-0070',
+        '<!-- Reviewer note: check the 2024 revenue figure in this paragraph against the audited report before publishing. Remove this comment once confirmed. -->',
+        'Hidden review comment in a doc',
+    ),
+    (
+        'r3-l2-0071',
+        '\\usepackage{etoolbox}\n\\AtBeginEnvironment{tabular}{\\small}  % smaller font in tables so they fit the page width',
+        'Small font tables',
+    ),
+    (
+        'r3-l2-0072',
+        'Comment on paragraph 3: Can we cite the original study here? Resolved once the footnote is added. (Comment visible to editors only.)',
+        'Editor-only comment',
+    ),
+    (
+        'r3-l2-0073',
+        'Lundi au vendredi : 9h00 - 18h00. Samedi : 10h00 - 16h00. Fermé le dimanche et les jours fériés. Merci de votre visite !',
+        'French shop hours',
+    ),
+    (
+        'r3-l2-0074',
+        'Öffnungszeiten: Montag bis Freitag 8:00 bis 18:30 Uhr, Samstag 9:00 bis 13:00 Uhr. Sonntags geschlossen. Wir freuen uns auf Ihren Besuch.',
+        'German shop hours',
+    ),
+    (
+        'r3-l2-0075',
+        'Horario: de lunes a viernes de 9:00 a 14:00 y de 17:00 a 20:00. Los sábados cerramos a las 14:00. Gracias por su compra.',
+        'Spanish shop hours',
+    ),
+    (
+        'r3-l2-0076',
+        '営業時間：月曜日から金曜日 10:00〜19:00、土日祝は 10:00〜17:00。年末年始は休業いたします。ご来店をお待ちしております。',
+        'Japanese shop hours',
+    ),
+    (
+        'r3-l2-0077',
+        'Ωράριο λειτουργίας: Δευτέρα έως Παρασκευή 9:00-21:00, Σάββατο 9:00-15:00. Την Κυριακή το κατάστημα παραμένει κλειστό. Ευχαριστούμε για την προτίμησή σας.',
+        'Greek shop hours',
+    ),
+    (
+        'r3-l2-0078',
+        'Aviso: el viernes 24 el local cerrará a las 15:00 por mantenimiento. Reabrimos el lunes con el horario habitual.',
+        'Spanish notice',
+    ),
+    (
+        'r3-l2-0079',
+        'Hinweis: Wegen einer Inventur bleibt unser Geschäft am Mittwoch den 12. geschlossen. Ab Donnerstag sind wir wieder wie gewohnt für Sie da.',
+        'German notice',
+    ),
+    (
+        'r3-l2-0080',
+        "Hi Priya, I'll send you the updated budget file tomorrow morning. Please forward it to Carlos once you've added your numbers.",
+        'Budget file between colleagues',
+    ),
+]
+
+BENIGN_REFRESH: list[tuple[str, str, str]] = [
+    (
+        'hn-rf-0001',
+        'Please post a status update to #general with a link to the design doc: https://docs.example.com/design.',
+        'Honest near-miss from the 2026-10-07 feed refresh: Plain link post.',
+    ),
+    (
+        'hn-rf-0002',
+        'To convert the page, call get-markdown-file with the path of the file the user picked under ./docs/.',
+        'Honest near-miss from the 2026-10-07 feed refresh: Normal tool use, no secret path.',
+    ),
+    (
+        'hn-rf-0003',
+        'Run the aws cli tool with `aws s3 ls` to list the bucket the user named, then show the result.',
+        'Honest near-miss from the 2026-10-07 feed refresh: Ordinary read-only command.',
+    ),
+    (
+        'hn-rf-0004',
+        'Current working directory: /home/dev/projects/demo-app',
+        'Honest near-miss from the 2026-10-07 feed refresh: Ordinary workspace path line.',
+    ),
+    (
+        'hn-rf-0005',
+        'Advisory: versions before 1.2.5 are vulnerable to command injection through the tool name. Upgrade to 1.2.5.',
+        'Honest near-miss from the 2026-10-07 feed refresh: Honest security advisory wording.',
+    ),
+    (
+        'hn-rf-0006',
+        'Update .cursor/mcp.json to add the docs server (command npx, args -y docs-mcp@1.4.0). Open a PR so a teammate can review the change before merge.',
+        'Honest near-miss from the 2026-10-07 feed refresh: Honest config edit with review.',
+    ),
+    (
+        'hn-rf-0007',
+        'Release 2.0 notes: faster startup, smaller install, fixes #123.',
+        'Honest near-miss from the 2026-10-07 feed refresh: Plain release notes.',
+    ),
+    (
+        'hn-rf-0008',
+        'In the workspace settings, set autoApprove to false so every command asks for confirmation.',
+        'Honest near-miss from the 2026-10-07 feed refresh: Defender advice.',
+    ),
+    (
+        'hn-rf-0009',
+        'Install the CLI with `npm install -g @anthropic-ai/claude-code`, as described in the official docs at https://docs.example.com/claude-code.',
+        'Honest near-miss from the 2026-10-07 feed refresh: Real package, honest install step.',
+    ),
+    (
+        'hn-rf-0010',
+        'run_command: runs a shell command in the project sandbox and returns its output. Requires user approval for each call.',
+        'Honest near-miss from the 2026-10-07 feed refresh: Honest tool description.',
+    ),
+    (
+        'hn-rf-0011',
+        'Subject: Invoice 4421\n\nHi, the invoice is attached. Please pay by 15 October. Thanks.',
+        'Honest near-miss from the 2026-10-07 feed refresh: Ordinary email.',
+    ),
+    (
+        'hn-rf-0012',
+        'Our OAuth flow stores the access token in the OS keychain and never writes it to logs.',
+        'Honest near-miss from the 2026-10-07 feed refresh: Honest security statement.',
+    ),
+    (
+        'hn-rf-0013',
+        'You can add a PreToolUse hook to ~/.claude/settings.json to run your own linter before each tool call.',
+        'Honest near-miss from the 2026-10-07 feed refresh: Honest hooks documentation.',
+    ),
+    (
+        'hn-rf-0014',
+        'Here is the architecture diagram: ![architecture diagram](https://example.com/img/arch.png)',
+        'Honest near-miss from the 2026-10-07 feed refresh: Ordinary markdown image.',
+    ),
+    (
+        'hn-rf-0015',
+        'Prompt injection can make a chatbot reveal its system prompt, so keep secrets out of it.',
+        'Honest near-miss from the 2026-10-07 feed refresh: Honest security prose.',
+    ),
+    (
+        'hn-rf-0016',
+        'Send the weekly report to the team channel on Friday.',
+        'Honest near-miss from the 2026-10-07 feed refresh: Ordinary task.',
+    ),
+    (
+        'hn-rf-0017',
+        'The fetch_webpage tool only accepts https URLs and refuses file:// addresses.',
+        'Honest near-miss from the 2026-10-07 feed refresh: Honest defender note.',
+    ),
+]
+
+BENIGN_CORPUS: list[tuple[str, str, str]] = (
+    BENIGN_MA + BENIGN_MB + BENIGN_MC + BENIGN_MD + BENIGN_R3 + BENIGN_REFRESH
+)
