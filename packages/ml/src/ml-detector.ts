@@ -43,6 +43,9 @@ interface OrtModule {
   Tensor: new (type: string, data: any, dims: number[]) => any;
 }
 
+/** More than this share of unknown content tokens means the tokenizer does not fit the model. */
+const MAX_UNKNOWN_RATIO = 0.5;
+
 const THRESHOLDS: Record<string, number> = {
   strict: 0.3,
   balanced: 0.5,
@@ -86,6 +89,7 @@ export class MLDetector implements Detector {
   private session: OrtSession;
   private tokenizer: Tokenizer;
   private ort: OrtModule;
+  private warnedUnknown = false;
 
   private constructor(session: OrtSession, tokenizer: Tokenizer, ort: OrtModule) {
     this.session = session;
@@ -111,7 +115,20 @@ export class MLDetector implements Detector {
     const strictness = options?.strictness ?? 'balanced';
     const threshold = THRESHOLDS[strictness] ?? THRESHOLDS.balanced;
 
-    const { inputIds, attentionMask } = this.tokenizer.encode(content, 512);
+    const { inputIds, attentionMask, unknownRatio } = await this.tokenizer.encode(content, 512);
+
+    // Mostly unknown ids means the tokenizer and the model disagree (the failure
+    // behind #271). The output would only reflect the input's length, so drop the
+    // ML result and let the pattern detectors carry the scan.
+    if (unknownRatio > MAX_UNKNOWN_RATIO && content.length > 5) {
+      if (!this.warnedUnknown) {
+        this.warnedUnknown = true;
+        console.warn(
+          `[AgentArmor] ML classifier skipped: ${(unknownRatio * 100).toFixed(0)}% of the tokens are unknown. The tokenizer does not match the model; see https://github.com/stylusnexus/agent-armor/issues/271.`,
+        );
+      }
+      return { threats: [] };
+    }
 
     const feeds: Record<string, any> = {
       input_ids: new this.ort.Tensor('int64', inputIds, [1, 512]),

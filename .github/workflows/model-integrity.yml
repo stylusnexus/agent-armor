@@ -25,7 +25,11 @@ on:
     branches: [main, dev]
     paths:
       - 'packages/ml/src/constants.ts'
+      - 'packages/ml/src/tokenizer.ts'
       - 'packages/ml/scripts/**'
+      - 'packages/ml/__tests__/fixtures/**'
+      - 'packages/ml/package.json'
+      - 'packages/ml/package-lock.json'
       - '.github/workflows/model-integrity.yml'
 
 permissions:
@@ -47,3 +51,21 @@ jobs:
       - run: npm ci
       - name: Verify hosted model matches shipped constants
         run: npm run ${{ inputs.deep && 'check:model:deep' || 'check:model' }}
+      # #271: the tokenizer must give the ids the Python training tokenizer gives,
+      # and the real model must tell an attack from an honest sentence. Both run
+      # against the files hosted on HuggingFace, so drift in the hosted
+      # tokenizer.json (or in the `tokenizers` package) fails here.
+      - name: Download hosted model files
+        run: |
+          mkdir -p "$RUNNER_TEMP/model"
+          for f in model_quantized.onnx tokenizer.json label_map.json; do
+            curl -fL --retry 3 -o "$RUNNER_TEMP/model/$f" \
+              "https://huggingface.co/stylusnexus/agent-armor-classifier/resolve/main/$f"
+          done
+      - name: Tokenizer golden ids and model end to end
+        env:
+          MODEL_DIR: ${{ runner.temp }}/model
+          TOKENIZER_JSON: ${{ runner.temp }}/model/tokenizer.json
+          REQUIRE_TOKENIZER_GOLDEN: '1'
+          REQUIRE_MODEL_E2E: '1'
+        run: npx vitest run __tests__/tokenizer-golden.test.ts __tests__/model-e2e.test.ts
