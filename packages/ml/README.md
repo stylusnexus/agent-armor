@@ -82,7 +82,8 @@ agentarmor-ml clear-cache
 
 ## Inference Details
 
-- Tokenizes input to 512 tokens (WordPiece)
+- Tokenizes input to 512 tokens with the Hugging Face [`tokenizers`](https://www.npmjs.com/package/tokenizers) package, reading the model's own `tokenizer.json` (SentencePiece Unigram). A retrained model needs no code change; a test fails if the ids drift from the Python training tokenizer.
+- If most of an input's tokens are unknown to the tokenizer, the ML result is dropped with a one-time warning and the pattern detectors carry the scan
 - Runs ONNX inference with INT8 quantization via `onnxruntime-node`
 - Applies sigmoid on logits with strictness-based thresholds: `strict=0.3`, `balanced=0.5`, `permissive=0.7`
 - `scan()` (sync) returns empty — ML inference is async-only via `scanAsync()`
@@ -90,6 +91,7 @@ agentarmor-ml clear-cache
 ## Deployment Notes
 
 - **AWS Lambda:** 165MB model + ~40MB onnxruntime = ~205MB, fits the 250MB limit but is tight. Use `modelDir` to bundle the model in your deployment package.
+- **Native tokenizer:** `tokenizers` is a native add-on that ships prebuilt binaries for macOS, Linux (glibc and musl, x64 and arm64) and Windows, about 64 MB in `node_modules` in total and about 5 MB for one platform. For Lambda, delete the other platforms' `.node` files in `node_modules/tokenizers/` (as you already do for `onnxruntime-node`). Only macOS arm64 has been run so far.
 - **Vercel Edge:** Not supported (ONNX runtime requires Node.js native bindings).
 
 ## Requirements

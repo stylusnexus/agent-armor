@@ -121,6 +121,13 @@ KMP_DUPLICATE_LIB_OK=TRUE python3 -m ml.train.export_onnx
 KMP_DUPLICATE_LIB_OK=TRUE python3 -m ml.train.push_to_hub
 ```
 
+Regenerate the tokenizer golden ids from the exported model and commit them (the package test fails if `tokenizer.json` changes without this, #271):
+
+```bash
+KMP_DUPLICATE_LIB_OK=TRUE python3 packages/ml/scripts/gen-tokenizer-fixtures.py ml/train/output/onnx
+cd packages/ml && TOKENIZER_JSON=../../ml/train/output/onnx/tokenizer.json npm test
+```
+
 After pushing, update `MODEL_CHECKSUM` in `packages/ml/src/constants.ts` with the new SHA-256. The push script reads `ml/train/output/eval_report.json` to populate the model card.
 
 ## Model details

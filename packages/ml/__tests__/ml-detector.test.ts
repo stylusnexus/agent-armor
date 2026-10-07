@@ -259,3 +259,47 @@ describe('MLDetector.sanitize', () => {
     expect(detector.sanitize(content, [])).toBe(content);
   });
 });
+
+describe('MLDetector.scanAsync — tokenizer mismatch guard (#271)', () => {
+  function withUnknownRatio(ratio: number) {
+    const made = makeDetector(makeLogits({ 'embedded-jailbreak': logitFor(0.99) }));
+    made.tokenizer.encode.mockReturnValue({
+      inputIds: new BigInt64Array(512),
+      attentionMask: new BigInt64Array(512),
+      unknownRatio: ratio,
+    });
+    return made;
+  }
+
+  it('drops the ML result, without running the model, when most tokens are unknown', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { detector, session } = withUnknownRatio(0.9);
+    const result = await detector.scanAsync('Quick start: install the dependencies.');
+    expect(result.threats).toEqual([]);
+    expect(session.run).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  it('warns once, not on every scan', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { detector } = withUnknownRatio(0.9);
+    await detector.scanAsync('first long enough input');
+    await detector.scanAsync('second long enough input');
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  it('keeps the result when the unknown share is at most half', async () => {
+    const { detector, session } = withUnknownRatio(0.5);
+    const { threats } = await detector.scanAsync('some ordinary text here');
+    expect(session.run).toHaveBeenCalledTimes(1);
+    expect(threats.length).toBeGreaterThan(0);
+  });
+
+  it('does not apply the guard to input of 5 characters or fewer', async () => {
+    const { detector, session } = withUnknownRatio(1);
+    await detector.scanAsync('a b c');
+    expect(session.run).toHaveBeenCalledTimes(1);
+  });
+});

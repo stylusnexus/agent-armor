@@ -17,3 +17,5 @@ packages/ml/node_modules
 .codex
 CHANGELOG.md
 site
+# Golden token ids, written by packages/ml/scripts/gen-tokenizer-fixtures.py
+packages/ml/__tests__/fixtures
