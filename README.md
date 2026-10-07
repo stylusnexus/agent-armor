@@ -89,6 +89,8 @@ Put it in this order. Each step removes the most risk for the least work:
 
 Pick strictness by trust, not by sensitivity: `strict` for content the agent will obey (config files, tool descriptions), `balanced` for tool results and retrieved documents, `permissive` only for content it merely summarizes.
 
+Text that anyone can write and your agent then acts on (issue titles and comments, PR descriptions, inbound email) belongs at `strict` too. At `balanced`, an instruction to install a package from a URL and commit the result is not reported, because honest install guides use the same words. That is the Clinejection attack (eval sample `rw-007`), and `strict` is the only level that catches it today.
+
 Decide on `riskLevel`, not `clean`. Withhold `high` and `critical` content and log the decision (`on.audit`); queue lower findings for review. Don't pass `result.sanitized` to the model yet. See [`examples/recommended-integration.ts`](./examples/recommended-integration.ts) for all of this in one runnable file.
 
 ## Install
