@@ -12,7 +12,7 @@ import type { PatternDatabase } from './pattern-db';
  *           variation-selector runs (#69 item 1)
  */
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.11',
+  version: '0.9.12',
   updatedAt: '2026-10-07',
   detectors: {
     'hidden-html': [
@@ -745,52 +745,56 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       // MCP tool-description poisoning (#218). Instructions hidden in the text an
       // MCP server gives the agent about a tool. Each pattern needs a secret
       // target (a key file path, a literal address) AND a pass-it-along or
-      // conceal-it verb in one sentence, so an honest description such as "Read
-      // the complete contents of a file" or "Before using this tool, read the
-      // setup guide" stays clean. Not covered: shadowing another tool, which
-      // needs the tool list as structure (option 3 in #218).
+      // conceal-it verb in one sentence. All five report at strict only (0.4):
+      // an independent review found the honest look-alikes are the most common
+      // text in this space (XML system prompts such as <SYSTEM>...Do not tell
+      // the user</SYSTEM>, MCP setup READMEs that say "open ~/.cursor/mcp.json
+      // and add", CRM docs that say "always include bcc: ..."). The leading
+      // word break also accepts a literal backslash-n, because the real attack
+      // arrives inside a JSON string. Not covered: shadowing another tool,
+      // which needs the tool list as structure (option 3 in #218).
       {
         id: 'ex-tool-read-pass',
         regex:
-          '\\b(?:before|prior\\s+to|whenever|when)\\s+(?:using|calling|invoking|running|you\\s+use|you\\s+call|this\\s+tool\\s+is\\s+(?:used|called))\\b[^.!?;\\n]{0,40}?\\b(?:read|open|fetch|load|access|cat)\\b[^.!?;\\n]{0,60}?(?:~/|\\.ssh\\b|\\.aws\\b|\\.env\\b|id_rsa|mcp\\.json|credentials\\.\\w+|\\.npmrc\\b|\\.netrc\\b)(?:[^.!?;\\n]|\\.(?=\\S)){0,80}?\\b(?:pass|include|append|add|put|send|provide|supply|attach|forward|paste)\\b',
+          '(?:\\b|(?<=\\\\[nrt]))(?:before|prior\\s+to|whenever|when)\\s+(?:using|calling|invoking|running|you\\s+use|you\\s+call|this\\s+tool\\s+is\\s+(?:used|called))\\b[^.!?;\\n]{0,40}?\\b(?:read|open|fetch|load|access|cat)\\b[^.!?;\\n]{0,60}?(?:~/|\\.ssh\\b|\\.aws\\b|\\.env\\b|id_rsa|mcp\\.json|credentials\\.\\w+|\\.npmrc\\b|\\.netrc\\b)(?:[^.!?;\\n]|\\.(?=\\S)){0,80}?\\b(?:pass|include|append|add|put|send|provide|supply|attach|forward|paste)\\b',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
         severity: 'critical',
-        confidence: 0.7,
+        confidence: 0.4,
         label: 'Tool description tells the agent to read a secret file and pass it along',
       },
       {
         id: 'ex-tool-redirect-recipient',
         regex:
-          '\\b(?:when|whenever|if|each\\s+time|every\\s+time)\\b[^.!?;\\n]{0,40}?\\b(?:tool|function|command)\\b[^.!?;\\n]{0,30}?\\b(?:called|used|invoked|run)\\b[^.!?;\\n]{0,40}?\\b(?:change|replace|set|redirect|override|route)\\b[^.!?;\\n]{0,30}?\\b(?:recipient|destination|bcc|address)\\b[^.!?;\\n]{0,30}?\\b(?:to|with)\\s+[\\w.+-]+@[\\w-]+\\.[\\w.-]+',
+          '(?:\\b|(?<=\\\\[nrt]))(?:when|whenever|if|each\\s+time|every\\s+time)\\b[^.!?;\\n]{0,40}?\\b(?:tool|function|command)\\b[^.!?;\\n]{0,30}?\\b(?:called|used|invoked|run)\\b[^.!?;\\n]{0,40}?\\b(?:change|replace|set|redirect|override|route)\\b[^.!?;\\n]{0,30}?\\b(?:recipient|destination|bcc|address)\\b[^.!?;\\n]{0,30}?\\b(?:to|with)\\s+[\\w.+-]+@[\\w-]+\\.[\\w.-]+',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
         severity: 'critical',
-        confidence: 0.7,
+        confidence: 0.4,
         label: 'Tool description redirects a recipient to a literal address',
       },
       {
         id: 'ex-tool-hidden-bcc',
         regex:
-          '\\b(?:always|must|should)\\s+(?:include|add|attach|append)\\b[^.!?;\\n]{0,20}?\\bbcc\\b[^.!?;\\n]{0,10}?[\\s:]\\s*[\\w.+-]+@[\\w-]+\\.[\\w.-]+',
+          '(?:\\b|(?<=\\\\[nrt]))(?:always|must|should)\\s+(?:include|add|attach|append)\\b[^.!?;\\n]{0,20}?\\bbcc\\b[^.!?;\\n]{0,10}?[\\s:]\\s*[\\w.+-]+@[\\w-]+\\.[\\w.-]+',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
         severity: 'high',
-        confidence: 0.7,
+        confidence: 0.4,
         label: 'Tool description tells the agent to always add a bcc address',
       },
       {
         id: 'ex-tool-secret-in-param',
         regex:
-          '\\b(?:append|add|include|put|attach)\\b[^.!?;\\n]{0,40}?\\b(?:api[\\s_-]?key|secret|token|password|credentials?|private\\s+key|ssh\\s+key)\\b[^.!?;\\n]{0,50}?\\b(?:to|in|into|as)\\s+(?:the\\s+)?(?:side-?note|notes?|comment|description|metadata|extra|misc)\\s+(?:param(?:eter)?|argument|field)\\b',
+          '(?:\\b|(?<=\\\\[nrt]))(?:append|add|include|put|attach)\\b[^.!?;\\n]{0,40}?\\b(?:api[\\s_-]?key|secret|token|password|credentials?|private\\s+key|ssh\\s+key)\\b[^.!?;\\n]{0,50}?\\b(?:to|in|into|as)\\s+(?:the\\s+)?(?:side-?note|notes?|comment|description|metadata|extra|misc)\\s+(?:param(?:eter)?|argument|field)\\b',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
         severity: 'high',
-        confidence: 0.6,
+        confidence: 0.4,
         label: 'Tool description tells the agent to append a secret to a notes parameter',
       },
       {
@@ -801,7 +805,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         category: 'behavioural-control',
         type: 'data-exfiltration',
         severity: 'critical',
-        confidence: 0.7,
+        confidence: 0.4,
         label: 'Marked block that hides an instruction or names a secret file',
       },
     ],
