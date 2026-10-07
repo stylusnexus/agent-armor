@@ -510,11 +510,13 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // publish the result. Needs the instruction verb, the URL install and
         // the repository-changing verb together, in that order, so a README
         // that only shows the install, or an issue that only says "commit the
-        // fix", stays clean. The lookahead after the URL keeps the two bounded
+        // fix", stays clean. The commit word must also name a protected target
+        // (main, release, production): install docs say "commit the lockfile"
+        // or "push the tag" all the time. The lookahead after the URL keeps the
         // runs from overlapping, which keeps the scan linear.
         id: 'jb-install-url-then-commit',
         regex:
-          '\\b(?:run|running|execute|executing)\\s+`?(?:npm|pnpm|yarn|bun|pip3?|cargo)\\s+(?:install|add|i)\\s+(?:-[\\w-]+\\s+){0,4}[\'"]?(?:git\\+)?(?:https?|ssh)://[^\\s\'"`]{1,200}(?=[\\s\'"`])[\\s\\S]{0,200}?\\b(?:commit|push|merge|publish|release)\\b',
+          '\\b(?:run|running|execute|executing|use|using|invoke|invoking|type|do)[\\s`*:]{1,5}(?:sudo\\s+)?(?:npm|pnpm|yarn|bun|pip3?|cargo)\\s+(?:install|add|i)\\s+(?:-[\\w-]+(?:=\\S+)?\\s+){0,6}[\'"]?(?:git\\+)?(?:https?|ssh)://[^\\s\'"`]+(?=[\\s\'"`])[\\s\\S]{0,300}?\\b(?:commit|push|merge|publish)(?:s|es|ed|ing)?\\b[^.\\n]{0,60}?\\b(?:to|into|onto)\\s+(?:the\\s+)?(?:main|master|release|production|prod|default|trunk)\\b',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'embedded-jailbreak',
