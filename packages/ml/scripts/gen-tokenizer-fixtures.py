@@ -26,6 +26,12 @@ FIXTURES = HERE.parent / "__tests__" / "fixtures"
 MAX_LENGTH = 512
 
 
+def npm_tokenizers_version() -> str:
+    """The `tokenizers` npm version the TypeScript package is pinned to."""
+    pkg = json.loads((HERE.parent / "package.json").read_text())
+    return pkg["dependencies"]["tokenizers"]
+
+
 def main() -> None:
     if len(sys.argv) != 2:
         sys.exit("usage: gen-tokenizer-fixtures.py <model-dir containing tokenizer.json>")
@@ -42,6 +48,7 @@ def main() -> None:
         "tokenizer_sha256": hashlib.sha256(tok_path.read_bytes()).hexdigest(),
         "transformers_version": transformers.__version__,
         "tokenizers_version": tokenizers.__version__,
+        "tokenizers_npm_version": npm_tokenizers_version(),
         "max_length": MAX_LENGTH,
         "ids": ids,
     }

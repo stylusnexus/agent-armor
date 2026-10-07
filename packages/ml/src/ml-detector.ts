@@ -10,6 +10,7 @@ interface DetectorOptions {
 
 interface DetectorResult {
   threats: Threat[];
+  skipped?: { reason: string };
 }
 
 interface Threat {
@@ -89,7 +90,6 @@ export class MLDetector implements Detector {
   private session: OrtSession;
   private tokenizer: Tokenizer;
   private ort: OrtModule;
-  private warnedUnknown = false;
 
   private constructor(session: OrtSession, tokenizer: Tokenizer, ort: OrtModule) {
     this.session = session;
@@ -100,8 +100,10 @@ export class MLDetector implements Detector {
   /** Loads the ONNX session and tokenizer from resolved {@link ModelArtifacts}. */
   static async create(artifacts: ModelArtifacts): Promise<MLDetector> {
     const ort = (await import('onnxruntime-node')) as unknown as OrtModule;
-    const session = await ort.InferenceSession.create(artifacts.modelPath);
+    // Load the tokenizer first: it can reject the model directory, and a session
+    // created before that would be left open.
     const tokenizer = await Tokenizer.fromFile(artifacts.tokenizerPath);
+    const session = await ort.InferenceSession.create(artifacts.modelPath);
     return new MLDetector(session, tokenizer, ort);
   }
 
@@ -119,15 +121,15 @@ export class MLDetector implements Detector {
 
     // Mostly unknown ids means the tokenizer and the model disagree (the failure
     // behind #271). The output would only reflect the input's length, so drop the
-    // ML result and let the pattern detectors carry the scan.
+    // ML result and let the pattern detectors carry the scan. The skip is
+    // reported in the result; AgentArmor turns it into one on.warn event.
     if (unknownRatio > MAX_UNKNOWN_RATIO && content.length > 5) {
-      if (!this.warnedUnknown) {
-        this.warnedUnknown = true;
-        console.warn(
-          `[AgentArmor] ML classifier skipped: ${(unknownRatio * 100).toFixed(0)}% of the tokens are unknown. The tokenizer does not match the model; see https://github.com/stylusnexus/agent-armor/issues/271.`,
-        );
-      }
-      return { threats: [] };
+      return {
+        threats: [],
+        skipped: {
+          reason: `${(unknownRatio * 100).toFixed(0)}% of the tokens are unknown, so the tokenizer does not match the model (see https://github.com/stylusnexus/agent-armor/issues/271)`,
+        },
+      };
     }
 
     const feeds: Record<string, any> = {

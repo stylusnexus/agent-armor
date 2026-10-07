@@ -67,6 +67,66 @@ describe('diagnostics events — on.warn', () => {
   });
 });
 
+describe('skipped detector results (#278)', () => {
+  function skippingDetector() {
+    return {
+      id: 'ml-classifier',
+      name: 'Skipping detector',
+      category: 'content-injection' as const,
+      version: '1',
+      scan: () => ({ threats: [] }),
+      scanAsync: async () => ({ threats: [], skipped: { reason: 'tokens unreadable' } }),
+      sanitize: (content: string) => content,
+    };
+  }
+
+  it('lists the skip in stats.detectorsSkipped and fires on.warn once', async () => {
+    const onWarn = vi.fn();
+    const armor = await AgentArmor.create({
+      customDetectors: [skippingDetector()],
+      on: { warn: onWarn },
+    });
+    const first = await armor.scan('some ordinary content');
+    await armor.scan('some other content');
+    expect(first.stats.detectorsSkipped).toEqual([
+      { detectorId: 'ml-classifier', reason: 'tokens unreadable' },
+    ]);
+    expect(onWarn).toHaveBeenCalledTimes(1);
+    expect(onWarn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining('tokens unreadable'),
+        context: { detectorId: 'ml-classifier' },
+      }),
+    );
+  });
+
+  it('leaves detectorsSkipped out when nothing was skipped', async () => {
+    const armor = await AgentArmor.create({});
+    const result = await armor.scan('some ordinary content');
+    expect(result.stats).not.toHaveProperty('detectorsSkipped');
+  });
+});
+
+describe('ml.onUnavailable fallback (#279)', () => {
+  it('warns and skips when onUnavailable is explicitly undefined', async () => {
+    const onWarn = vi.fn();
+    const armor = await AgentArmor.create({
+      ml: { enabled: true, onUnavailable: undefined },
+      on: { warn: onWarn },
+    });
+    expect(onWarn).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining('ML classifier unavailable') }),
+    );
+    expect((await armor.scan('safe content')).clean).toBe(true);
+  });
+
+  it("still throws when onUnavailable is 'throw'", async () => {
+    await expect(
+      AgentArmor.create({ ml: { enabled: true, onUnavailable: 'throw' } }),
+    ).rejects.toThrow('ML classifier unavailable');
+  });
+});
+
 describe('diagnostics events — on.error', () => {
   it('routes a detector-threw error through on.error instead of console.warn, with the real Error attached', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
