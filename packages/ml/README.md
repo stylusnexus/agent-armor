@@ -36,8 +36,8 @@ result.threats.filter((t) => t.source === 'ml');
 
 On first use, the model (~165MB quantized ONNX) is downloaded from HuggingFace and cached locally:
 
-- **macOS:** `~/Library/Caches/agentarmor/v1/`
-- **Linux:** `~/.cache/agentarmor/v1/`
+- **macOS:** `~/Library/Caches/agentarmor/v2/`
+- **Linux:** `~/.cache/agentarmor/v2/`
 - **Custom:** Set `AGENTARMOR_CACHE_DIR` or pass `ml.modelDir` in config
 
 Subsequent runs load from cache with no network calls.

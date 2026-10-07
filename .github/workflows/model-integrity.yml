@@ -58,9 +58,12 @@ jobs:
       - name: Download hosted model files
         run: |
           mkdir -p "$RUNNER_TEMP/model"
+          # The revision the package downloads from (HF_REVISION in constants.ts).
+          rev=$(sed -n "s/^export const HF_REVISION = '\(.*\)';/\1/p" src/constants.ts)
+          test -n "$rev"
           for f in model_quantized.onnx tokenizer.json label_map.json; do
             curl -fL --retry 3 -o "$RUNNER_TEMP/model/$f" \
-              "https://huggingface.co/stylusnexus/agent-armor-classifier/resolve/main/$f"
+              "https://huggingface.co/stylusnexus/agent-armor-classifier/resolve/$rev/$f"
           done
       - name: Tokenizer golden ids and model end to end
         env:

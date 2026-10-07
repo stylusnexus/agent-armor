@@ -1,8 +1,15 @@
 import { homedir, platform } from 'os';
 import { join } from 'path';
 
-export const MODEL_VERSION = 'v1';
+export const MODEL_VERSION = 'v2';
 export const HF_REPO_ID = 'stylusnexus/agent-armor-classifier';
+/**
+ * The Hugging Face branch or tag the package downloads from. Pinned so that a
+ * newer model pushed to `main` cannot break the checksum of an older package
+ * version. A retrain publishes to a new revision and bumps this with
+ * MODEL_VERSION and MODEL_CHECKSUM in one change.
+ */
+export const HF_REVISION = 'v2';
 export const MODEL_FILENAME = 'model_quantized.onnx';
 
 export const REQUIRED_MODEL_FILES = [
@@ -13,7 +20,7 @@ export const REQUIRED_MODEL_FILES = [
 
 export const OPTIONAL_MODEL_FILES = ['tokenizer_config.json', 'special_tokens_map.json'] as const;
 
-export const MODEL_CHECKSUM = '5d4c8551c958f398181c60239aebedbaa4ed5b641d1645904d2de9c2d02bd41f';
+export const MODEL_CHECKSUM = '476dbda9820498de799a76ae786e170c928da71d0451db45793185fab38ff1c7';
 
 export const LABELS = [
   'hidden-html',
