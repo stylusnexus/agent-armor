@@ -12,7 +12,7 @@ import type { PatternDatabase } from './pattern-db';
  *           variation-selector runs (#69 item 1)
  */
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.7',
+  version: '0.9.8',
   updatedAt: '2026-10-07',
   detectors: {
     'hidden-html': [
@@ -722,6 +722,25 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         confidence: 0.85,
         label: 'Instruction to send the contents of a secret file',
         boostOnInstructions: true,
+      },
+      {
+        // The GitHub MCP shape (#250, Invariant Labs, May 2025): an instruction
+        // to read private repository data and publish it to a public gist or
+        // paste. Strict only (0.4). Security policies, advisories and training
+        // text say the same thing ("agents are not allowed to...", "the attack
+        // caused the agent to...", "never copy private repo code to a public
+        // gist"), and a regex cannot tell a description or a ban from an order.
+        // "public repository" is not a destination here: fork and contributor
+        // guides say "clone the private repo, then open a PR on the public one".
+        id: 'ex-private-repo-public',
+        regex:
+          '(?<!\\b(?:never|not)\\s+)(?<!n\x27t\\s+)\\b(?:read|copy|dump|export|collect|gather|clone|get|fetch|pull|grab|list|send)(?:s|ing)?\\b[^.!?;\\n]{0,80}?\\bprivate\\s+(?:repos?|repositor(?:y|ies))\\b[^.!?;\\n]{0,160}?(?:\\bpublic\\s+(?:gist|paste|pastebin)\\b|\\b(?:to|on)\\s+(?:a\\s+)?(?:pastebin|paste\\s+site)\\b|\\b(?:create|post|publish|upload|put)\\w*\\b[^.!?;\\n]{0,40}?\\bgist\\b)',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'critical',
+        confidence: 0.4,
+        label: 'Instruction to read private repository data and publish it publicly',
       },
     ],
 
