@@ -139,12 +139,12 @@ Versions 0.2.1 to 0.2.17 can report a very large input as clean ([GHSA-vr4h-8mw3
 | Strictness   | Detection Rate (regex) | False Positive Rate |
 | ------------ | ---------------------- | ------------------- |
 | Permissive   | 90.1%                  | 0.0%                |
-| **Balanced** | **94.7%**              | **0.0%**            |
+| **Balanced** | **94.1%**              | **0.0%**            |
 | Strict       | 95.4%                  | 0.0%                |
 
 The 0.0% false-positive figure covers every benign sample except 11 **known false positives** (`acceptedFlagAt` in `scripts/eval/samples.ts`): honest text that quotes an attack or tells an assistant to run a command, such as a security paper quoting an exfiltration instruction. They flag at every strictness, are reported separately by `npm run eval`, and are excluded from the rate. The gate still fails on any other benign sample that flags.
 
-The eval suite includes 14 adversarial samples drawn from real-world incidents (2025-2026): MCP tool poisoning, RAG vector DB saturation, covert exfiltration via image proxies, supply chain prompt injection, memory poisoning, HITL dialog forgery, and the July 2026 OpenAI sandbox escape (credential reuse, C2 over public paste services, package-proxy egress, cross-environment persistence). Regex catches 7 of these at balanced (8 at strict); the remaining 7 measure the gap that the [ML classifier](#ml-classifier-optional) and unshipped detectors close. **These headline numbers move down whenever we add a blind spot we can't yet catch — that is deliberate.** `scripts/eval/thresholds.json` records every floor change and why. On the original 49 adversarial samples, regex detection is 100% at balanced strictness.
+The eval suite includes 14 adversarial samples drawn from real-world incidents (2025-2026): MCP tool poisoning, RAG vector DB saturation, covert exfiltration via image proxies, supply chain prompt injection, memory poisoning, HITL dialog forgery, and the July 2026 OpenAI sandbox escape (credential reuse, C2 over public paste services, package-proxy egress, cross-environment persistence). Regex catches 6 of these at balanced (8 at strict); the remaining 8 measure the gap that the [ML classifier](#ml-classifier-optional) and unshipped detectors close. **These headline numbers move down whenever we add a blind spot we can't yet catch — that is deliberate.** `scripts/eval/thresholds.json` records every floor change and why. On the original 49 adversarial samples, regex detection is 100% at balanced strictness.
 
 Sources: [WASP benchmark](https://arxiv.org/abs/2312.02119) (Evtimov et al.), [HackAPrompt](https://arxiv.org/abs/2311.16119) (Schulhoff et al., 2023), [Greshake et al. (2023)](https://arxiv.org/abs/2302.12173), the [DeepMind paper](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438), and incident reports from [Invariant Labs](https://invariantlabs.ai/blog), [Unit 42](https://unit42.paloaltonetworks.com), [Snyk Labs](https://labs.snyk.io), [Legit Security](https://www.legitsecurity.com/blog/camoleak), and [Socket Research](https://socket.dev/blog). Benign samples include security blog posts, legitimate HTML, CI/CD docs, MCP tool descriptions, agent interaction logs, and procurement policy emails.
 
@@ -512,7 +512,7 @@ Phrase matching is English only, so an override written in another language isn'
 
 ### Behavioural Control (Shipped)
 
-- **JailbreakPatternDetector** — Pattern-matches against known jailbreak templates (DAN, role-play bypasses, educational framing exploits, developer mode claims), plus an instruction to install a package from a raw URL or git source and then commit, push, merge or publish the result (the Clinejection shape)
+- **JailbreakPatternDetector** — Pattern-matches against known jailbreak templates (DAN, role-play bypasses, educational framing exploits, developer mode claims), plus, at `strict` only, an instruction to install a package from a raw URL or git source and then commit, push, merge or publish the result to a protected branch (the Clinejection shape)
 - **ExfiltrationDetector** — Flags instructions that attempt to locate, encode, and transmit context data to external endpoints It also catches markdown images that leak data through the image URL: inline `![](url?data=...)` and reference-style `![alt][ref]` / `![ref][]` / `![ref]` with a `[ref]: url?data=...` definition before or after the image, at any distance, following CommonMark's rules for labels (nested and escaped brackets, line breaks, `\r` line endings, Unicode case folding).
 - **SubAgentSpawningDetector** — Detects instructions that try to instantiate new agents, escalate tool permissions, or inject pipeline steps
 
