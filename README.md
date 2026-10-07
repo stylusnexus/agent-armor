@@ -370,7 +370,7 @@ Every refusal carries a human-readable `reason`; every admission carries the `ma
 
 The optional `@stylusnexus/agentarmor-ml` package adds an ONNX-based classifier that catches threats regex patterns might miss. It downloads the model on first use and caches it locally.
 
-> **Known issue ([#271](https://github.com/stylusnexus/agent-armor/issues/271)).** As of 2026-10-07 the package's tokenizer does not implement the model's SentencePiece (Unigram) tokenization, so every word reaches the model as an unknown token and its output depends on the length of the text, not its meaning. Do not rely on `source: 'ml'` findings until #271 is fixed. The measurements in [How well it works](#how-well-it-works) were taken with the model's own training tokenizer, so they describe the model, not what the npm package currently returns.
+> **Fixed in the next release ([#271](https://github.com/stylusnexus/agent-armor/issues/271), PR #277).** `@stylusnexus/agentarmor-ml` 0.1.5 and earlier tokenize with the wrong algorithm for this model (WordPiece instead of SentencePiece), so every word reaches the model as an unknown token and its output depends on the length of the text, not its meaning. Do not rely on `source: 'ml'` findings from those versions. The measurements in [How well it works](#how-well-it-works) were taken with the model's own training tokenizer, which the fixed package now matches.
 
 ```typescript
 const armor = await AgentArmor.create({
@@ -398,7 +398,7 @@ If the ML package is not installed or the model is unavailable, behavior depends
 
 ### How well it works
 
-Measured on 2026-10-07 (regex column at the default `balanced` level) on text no model in the comparison was trained on: the repo's 105 benign eval samples, its 142 adversarial eval samples, and 110 held-out attack samples written after the training data was fixed (original wording plus paraphrases of public 2025-2026 write-ups). A sample is flagged when the model reports any trap label at the default 0.5 threshold. The model was run with its own training tokenizer, not through the npm package (#271).
+Measured on 2026-10-07 (regex column at the default `balanced` level) on text no model in the comparison was trained on: the repo's 105 benign eval samples, its 142 adversarial eval samples, and 110 held-out attack samples written after the training data was fixed (original wording plus paraphrases of public 2025-2026 write-ups). A sample is flagged when the model reports any trap label at the default 0.5 threshold. The model was run with its own training tokenizer; the fixed npm package (#277) matches it on all golden test strings.
 
 |                                                         | Published model (v1) | Retrain candidate (run 3, #212, not published) | Regex detectors                           |
 | ------------------------------------------------------- | -------------------- | ---------------------------------------------- | ----------------------------------------- |
