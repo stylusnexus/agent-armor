@@ -10,6 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from ml.data.benign_corpus import BENIGN_CORPUS
+from ml.data.benign_triggers import BENIGN_TRIGGERS
 from ml.data.schema import TrainingSample, write_jsonl
 
 # ---------------------------------------------------------------------------
@@ -692,6 +693,7 @@ ALL_HARD_NEGATIVES: list[tuple[str, str, str]] = (
     + NEAR_MISS_SYNTACTIC_MASKING
     + NEAR_MISS_RECENT_SHAPES
     + BENIGN_CORPUS
+    + BENIGN_TRIGGERS
 )
 
 
