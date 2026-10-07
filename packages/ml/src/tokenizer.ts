@@ -107,7 +107,7 @@ export class Tokenizer {
       mod = (await import('tokenizers')) as unknown as HfTokenizersModule;
     } catch (err) {
       throw new AgentArmorModelError(
-        'UNSUPPORTED_TOKENIZER',
+        'TOKENIZER_LOAD_FAILED',
         `Could not load the "tokenizers" package (a native add-on with prebuilt binaries for macOS, Linux and Windows): ${err instanceof Error ? err.message : String(err)}`,
         err instanceof Error ? err : undefined,
       );

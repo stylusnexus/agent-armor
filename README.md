@@ -271,6 +271,7 @@ interface ScanResult {
     detectorsRun: number;
     threatsFound: number;
     highestSeverity: 'low' | 'medium' | 'high' | 'critical' | null;
+    detectorsSkipped?: { detectorId: string; reason: string }[]; // only when a detector could not judge the input
   };
 }
 
@@ -474,11 +475,11 @@ const armor = AgentArmor.regexOnly({
 });
 ```
 
-| Event             | Fires when                                                                                                                                                                        |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `warn`            | A known, expected degraded condition (e.g. ML classifier unavailable under `onUnavailable: 'warn-and-skip'`, `session.accumulation` requested but not available in the regex SDK) |
-| `error`           | A detector's `scan()`/`scanAsync()` threw and was caught — includes the real `Error` object                                                                                       |
-| `detectorSkipped` | A detector wasn't loaded — `reason: 'config-disabled'` (a config toggle is off) or `'no-patterns'` (the loaded pattern database has no entries for it)                            |
+| Event             | Fires when                                                                                                                                                                                                                                                                                                |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `warn`            | A known, expected degraded condition (e.g. ML classifier unavailable under `onUnavailable: 'warn-and-skip'`, `session.accumulation` requested but not available in the regex SDK, an ML result skipped because the tokenizer could not read the input; the skip also appears in `stats.detectorsSkipped`) |
+| `error`           | A detector's `scan()`/`scanAsync()` threw and was caught — includes the real `Error` object                                                                                                                                                                                                               |
+| `detectorSkipped` | A detector wasn't loaded — `reason: 'config-disabled'` (a config toggle is off) or `'no-patterns'` (the loaded pattern database has no entries for it)                                                                                                                                                    |
 
 `onUnavailable` on the ML config is unchanged and still controls _whether_ to throw/warn/skip when the ML classifier is unavailable — `on.warn` controls _where_ that warning goes.
 
