@@ -370,6 +370,8 @@ Every refusal carries a human-readable `reason`; every admission carries the `ma
 
 The optional `@stylusnexus/agentarmor-ml` package adds an ONNX-based classifier that catches threats regex patterns might miss. It downloads the model on first use and caches it locally.
 
+> **Known issue ([#271](https://github.com/stylusnexus/agent-armor/issues/271)).** As of 2026-10-07 the package's tokenizer does not implement the model's SentencePiece (Unigram) tokenization, so every word reaches the model as an unknown token and its output depends on the length of the text, not its meaning. Do not rely on `source: 'ml'` findings until #271 is fixed. The measurements in [How well it works](#how-well-it-works) were taken with the model's own training tokenizer, so they describe the model, not what the npm package currently returns.
+
 ```typescript
 const armor = await AgentArmor.create({
   ml: {
@@ -396,7 +398,7 @@ If the ML package is not installed or the model is unavailable, behavior depends
 
 ### How well it works
 
-Measured on 2026-10-07 (regex column at the default `balanced` level) on text no model in the comparison was trained on: the repo's 105 benign eval samples, its 142 adversarial eval samples, and 110 held-out attack samples written after the training data was fixed (original wording plus paraphrases of public 2025-2026 write-ups). A sample is flagged when the model reports any trap label at the default 0.5 threshold.
+Measured on 2026-10-07 (regex column at the default `balanced` level) on text no model in the comparison was trained on: the repo's 105 benign eval samples, its 142 adversarial eval samples, and 110 held-out attack samples written after the training data was fixed (original wording plus paraphrases of public 2025-2026 write-ups). A sample is flagged when the model reports any trap label at the default 0.5 threshold. The model was run with its own training tokenizer, not through the npm package (#271).
 
 |                                                         | Published model (v1) | Retrain candidate (run 3, #212, not published) | Regex detectors                           |
 | ------------------------------------------------------- | -------------------- | ---------------------------------------------- | ----------------------------------------- |
@@ -413,6 +415,7 @@ What this means:
 - **The published model flags two thirds of the repo's honest samples.** The retrain candidate flags 11 of 105, the same count as the regex (the regex's 11 are the known false positives that quote an attack).
 - **The two layers catch different things.** The regex catches 135 of 142 eval attacks and the candidate 79, but on the held-out attacks, which use wording the regex was never written for, the candidate flags 67 of 110 and the regex 17. That gap is why the classifier is worth running.
 - **Read the ranking rows (AUC) with the counts.** A model that flags everything scores well on detection. The eval-suite AUC is the fairest comparison: those samples were written separately from the training data. The held-out AUC is optimistic, because the held-out and training samples were written in the same pass and share a style.
+- **Short prompts that contain attack words are still over-flagged** ([#275](https://github.com/stylusnexus/agent-armor/issues/275)). On NotInject (339 short benign prompts with attack words; MIT) the published model flags 160, the retrain candidate 120 and the regex 1. Our honest training data is document-style, so run the classifier on documents, not chat messages.
 - **Labels are approximate.** The model often reports an attack under a different trap label than ours, so treat the label as a hint.
 
 The training data, the held-out set and the scoring script are in `ml/`; reproduce the table with `python3 -m ml.train.evaluate_holdout`.
