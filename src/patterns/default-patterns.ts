@@ -12,8 +12,8 @@ import type { PatternDatabase } from './pattern-db';
  *           variation-selector runs (#69 item 1)
  */
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.6',
-  updatedAt: '2026-10-06',
+  version: '0.9.7',
+  updatedAt: '2026-10-07',
   detectors: {
     'hidden-html': [
       {
@@ -503,6 +503,26 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         confidence: 0.85,
         label: 'Instruction to the agent to run a shell command or remote script',
         boostOnInstructions: true,
+      },
+      {
+        // The Clinejection shape (#252): an issue or comment tells an AI triager
+        // to install a package from an attacker URL and then commit, push or
+        // publish the result. Strict only (0.4). Honest text says the same
+        // thing in a different mood ("if it works we will merge it into main",
+        // "never push to main", an advisory quoting the attack), and three
+        // red-team passes kept finding new honest cases at balanced. A regex
+        // cannot tell a description from an order, so this does not report at
+        // balanced. The lookahead after the URL keeps the runs from
+        // overlapping, which keeps the scan linear.
+        id: 'jb-install-url-then-commit',
+        regex:
+          '\\b(?:run|running|execute|executing|use|using|invoke|invoking|type|do)[\\s`*:]{1,5}(?:sudo\\s+)?(?:npm|pnpm|yarn|bun|pip3?|cargo)\\s+(?:install|add|i)\\s+(?:-[\\w-]+(?:=\\S+)?\\s+){0,6}[\'"<(]?(?:git\\+)?(?:https?|ssh)://[^\\s\'"`>)]+(?=[\\s\'"`>)])[^.!?;\\n]{0,200}?(?<!\\b(?:never|not)\\s+)(?<!n\x27t\\s+)\\b(?:commit|push|merge|publish)\\b(?!\\s+(?:(?:the|your|a|this|that)\\s+)*(?:release\\s+)?(?:PR|pull\\s+requests?|tags?)\\b)[^.!?;\\n]{0,60}?(?:\\b(?:to|into|onto)\\s+(?:the\\s+)?|\\borigin\\s+(?:HEAD:)?)[`*]{0,2}(?:origin/)?(?:main|master|production|prod|default|trunk|release\\s+(?:branch|tag))\\b',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'embedded-jailbreak',
+        severity: 'high',
+        confidence: 0.4,
+        label: 'Instruction to install a package from a URL and commit or publish the result',
       },
       {
         id: 'jb-stop-following-user',
