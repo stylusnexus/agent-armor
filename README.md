@@ -245,6 +245,17 @@ Strictness controls the confidence threshold for reporting threats. Every patter
 
 At `permissive`, 6 of the original 49 adversarial samples go undetected because their pattern confidence falls below the 0.7 threshold. These are mostly subtle semantic manipulation and cognitive state attacks (biased framing, oversight evasion, persona manipulation). At `balanced` and `strict`, all 49 are caught with 0% false positives.
 
+### Detectors that report at `strict` only
+
+A few detectors report at `strict` and nowhere else. In each case honest text uses the same words as the attack, and a regex cannot tell a description, a ban or a how-to from an order. Independent adversarial reviews kept finding honest text flagged at `balanced`, so these ship at `strict` rather than risk false positives on content people actually write. Scan content you did not write (issue text, tool descriptions, third-party packages) at `strict`.
+
+| What it catches                                                                                                                          | Why it is `strict` only                                                    | Issue |
+| ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ----- |
+| Package installs that skip the trusted registry: custom index flags, config commands, installs from a raw URL                            | Private registries, git installs and internal mirror guides look the same  | #29   |
+| "Install from a URL, then commit or push the result" (the Clinejection shape)                                                            | Release runbooks, contributor guides and bans use the same words           | #252  |
+| "Read private repository data and publish it to a public gist or paste"                                                                  | Security policies and advisories say the same thing                        | #250  |
+| Poisoned MCP tool descriptions: read a key file and pass it along, redirect a recipient, hidden `bcc`, marked blocks that conceal a step | XML system prompts, MCP setup guides and CRM email docs use the same words | #218  |
+
 ## Scan Results
 
 Every scan returns a `ScanResult` with full threat details:
@@ -382,6 +393,19 @@ const armor = await AgentArmor.create({
 When ML is enabled, calling `await armor.scan(content)` runs both regex and ML detectors. The ML classifier's threats have `source: 'ml'` in the result, making it easy to distinguish them from pattern-based detections.
 
 If the ML package is not installed or the model is unavailable, behavior depends on the `onUnavailable` setting: `'warn-and-skip'` (default), `'throw'`, or `'silent-skip'`.
+
+### How well it works
+
+Measured on 2026-10-07 (regex column at the default `balanced` level) on text no model in the comparison was trained on: the repo's 105 benign eval samples, its 142 adversarial eval samples, and 110 held-out attack samples written after the training data was fixed (original wording plus paraphrases of public 2025-2026 write-ups). A sample is flagged when the model reports any trap label at the default 0.5 threshold.
+
+|                                                 | Published model (v1) | Retrain candidate (#212, not published) | Regex detectors                           |
+| ----------------------------------------------- | -------------------- | --------------------------------------- | ----------------------------------------- |
+| Benign eval samples flagged (of 105)            | 69                   | 32                                      | 11 (the documented known false positives) |
+| Eval-suite attacks flagged (of 142)             | 108                  | 102                                     | 135                                       |
+| Held-out attacks flagged (of 110)               | 76                   | 55                                      | 17                                        |
+| Held-out attacks ranked above honest text (AUC) | 0.55                 | 0.71                                    | not applicable                            |
+
+What this means: the classifier is a second opinion for triage, not a gate. It flags a large share of honest security-adjacent text, so a finding with `source: 'ml'` should go to review, and the regex result stays the thing that blocks content. The retrain candidate flags less than half as many honest samples as the published model, which is the direction we want, but it still flags 32 where the regex flags 11, and those 11 are the known false positives that quote an attack. The other side of the trade: on the held-out attacks, which use wording the regex was never written for, the classifier flags 55 of 110 and the regex 17. That gap is why the classifier is worth running as a second opinion. Do not read the held-out detection counts without the honest-text counts beside them: a model that flags everything scores well on detection. The AUC row is the fair comparison. The training data, the held-out set and the scoring script are in `ml/`; reproduce the table with `python3 -m ml.train.evaluate_holdout`.
 
 ## CLI
 
@@ -704,7 +728,7 @@ The full taxonomy includes content injection, behavioral control, cognitive stat
 
 ### Can a determined attacker bypass this?
 
-Yes. A sophisticated adversary with knowledge of the pattern database can craft content that evades regex detection. The ML classifier raises the bar significantly, but no detection system is foolproof.
+Yes. A sophisticated adversary with knowledge of the pattern database can craft content that evades regex detection. The ML classifier can add findings the regex misses, but it also flags a lot of honest text (see [How well it works](#how-well-it-works)), so treat it as a second opinion. No detection system is foolproof.
 
 Agent Armor is defense-in-depth. It raises the cost of attack and catches the broad majority of real-world attacks. Think of it as input validation for your agent pipeline, grounded in a real taxonomy rather than guesswork.
 
