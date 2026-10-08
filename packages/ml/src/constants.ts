@@ -20,7 +20,7 @@ export const REQUIRED_MODEL_FILES = [
 
 export const OPTIONAL_MODEL_FILES = ['tokenizer_config.json', 'special_tokens_map.json'] as const;
 
-export const MODEL_CHECKSUM = '476dbda9820498de799a76ae786e170c928da71d0451db45793185fab38ff1c7';
+export const MODEL_CHECKSUM = '4f3e912ab7f6ef7fba679590738b7f00b6d3bfe0cafa09982463211f20b0d42f';
 
 export const LABELS = [
   'hidden-html',

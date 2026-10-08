@@ -142,40 +142,40 @@ defense against prompt injection.
 
 ## Training data
 
-Hand-written and model-drafted attack samples, honest documents that discuss
-security (so the model learns that talking about attacks is not an attack),
-samples converted from the Agent Armor eval suite, and public attack datasets.
-The held-out attacks and the NotInject benchmark below were never trained on.
+Hand-written and model-drafted attack samples (English and Chinese), honest
+text that discusses security or merely contains words an attack classifier keys
+on (so the model learns that those words alone are not an attack), samples
+converted from the Agent Armor eval suite, and public attack datasets. The
+held-out attacks and the NotInject benchmark below were never trained on.
 
 """
     card += _split_table()
     card += """
 ## Evaluation
 
-Run on 2026-10-07 through the npm package (INT8 ONNX model, its tokenizer), at
+Run on 2026-10-08 through the npm package (INT8 ONNX model, its tokenizer), at
 the default 0.5 threshold, on text this model was not trained on: the repo's
 105 benign and 142 adversarial eval samples, 110 held-out attacks written after
-the training data was fixed, and NotInject (339 short benign prompts that
-contain attack words; MIT).
+the training data was fixed, 47 held-out Chinese attacks, and NotInject (339
+short benign prompts that contain attack words, 255 English and 84 Chinese; MIT).
 
 | At 0.5 | Previous model (v1) | This revision | Regex detectors |
 |---|---|---|---|
-| Benign eval samples flagged (of 105) | 69 | 9 | 11 |
-| Eval-suite attacks flagged (of 142) | 107 | 79 | 135 |
-| Held-out attacks flagged (of 110) | 74 | 69 | 17 |
-| NotInject prompts flagged (of 339) | 165 | 117 | 1 |
+| Benign eval samples flagged (of 105) | 69 | 21 | 11 |
+| NotInject prompts flagged (of 339) | 165 | 38 | 1 |
+| Eval-suite attacks flagged (of 142) | 107 | 117 | 135 |
+| Held-out attacks flagged (of 110) | 74 | 87 | 17 |
 
-This revision flags far fewer honest samples but also catches fewer attacks than
-v1 (v1 catches 48 eval-suite attacks this one misses). Used together with the
-regex detectors it reaches 140 of 142 eval attacks and 75 of 110 held-out
-attacks (v1 plus regex: 140 and 83), with 18 of 105 honest eval samples flagged
-(v1 plus regex: 70). Ranking quality on the eval suite (area under the ROC
-curve, attacks against honest samples) is 0.81 against 0.59 for v1. The
-held-out ranking figure is optimistic, because the held-out and training samples
-share a drafting style. Counts come from small sets, so treat differences of a
+Ranking quality on the eval suite (area under the ROC curve, attacks against
+honest samples) is 0.89 against 0.59 for v1; the held-out ranking figure (0.86)
+is optimistic, because the held-out and training samples share a drafting style.
+Used together with the regex detectors it catches 90 of 110 held-out attacks and
+flags 29 of 105 honest eval samples. The honest eval samples it still flags are
+mostly documents that quote an attack. It flags 11 of 84 Chinese and 27 of 255
+English NotInject prompts and catches 47 of 47 held-out Chinese attacks; other
+languages are unmeasured. Counts come from small sets, so treat differences of a
 few samples as noise.
 
-"""
     if eval_report:
         per_label = eval_report.get("per_label", {})
         card += "### In-distribution test split\n\n"
