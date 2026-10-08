@@ -7,6 +7,34 @@ This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor 
 <!-- New entries are generated automatically by release-please from Conventional
 Commit messages on merge to main. Do not edit unreleased entries by hand. -->
 
+## [0.2.23](https://github.com/stylusnexus/agent-armor/compare/v0.2.22...v0.2.23) (2026-10-08)
+
+
+### Added
+
+* **detectors:** add dependency substitution ([#256](https://github.com/stylusnexus/agent-armor/issues/256)) ([ff28258](https://github.com/stylusnexus/agent-armor/commit/ff282587fc8464e8fd31b6b90cac881d8817c02e))
+* **detectors:** flag poisoned MCP tool descriptions ([#265](https://github.com/stylusnexus/agent-armor/issues/265)) ([c6858a3](https://github.com/stylusnexus/agent-armor/commit/c6858a3a90dc95f2e763fb227020ddd88adae298))
+
+
+### Fixed
+
+* **ml:** pin the model revision, fix model card ([aef8fea](https://github.com/stylusnexus/agent-armor/commit/aef8fea479a5b161b4200c5c7cff2b2a25aea11b))
+* **ml:** read text with the model's tokenizer ([42a6d74](https://github.com/stylusnexus/agent-armor/commit/42a6d74f371232e44dba8b1235094776e5256e3e)), closes [#271](https://github.com/stylusnexus/agent-armor/issues/271)
+* **ml:** report a skipped ML result in the scan ([5afbc4f](https://github.com/stylusnexus/agent-armor/commit/5afbc4f2115ef66f73721191167af0de94ee19e1)), closes [#278](https://github.com/stylusnexus/agent-armor/issues/278) [#279](https://github.com/stylusnexus/agent-armor/issues/279)
+* **patterns:** catch install-from-URL then commit ([#259](https://github.com/stylusnexus/agent-armor/issues/259)) ([bf952d4](https://github.com/stylusnexus/agent-armor/commit/bf952d49b9d48a05a3f89d6b0452a521d723fbb1))
+* **patterns:** catch private repo to public gist ([#261](https://github.com/stylusnexus/agent-armor/issues/261)) ([6f3baab](https://github.com/stylusnexus/agent-armor/commit/6f3baabfc558798bd84a64da2c1bc74b002bfe9b)), closes [#250](https://github.com/stylusnexus/agent-armor/issues/250)
+* **patterns:** flag bare sensitive file names again ([#264](https://github.com/stylusnexus/agent-armor/issues/264)) ([639d510](https://github.com/stylusnexus/agent-armor/commit/639d5101c818eaa8b11de958bb39a0699579ab5f))
+* **patterns:** stop flagging token docs as file reads ([#263](https://github.com/stylusnexus/agent-armor/issues/263)) ([7d79b9f](https://github.com/stylusnexus/agent-armor/commit/7d79b9f718120fdc683fd35f7cb70d3fa1379c79)), closes [#262](https://github.com/stylusnexus/agent-armor/issues/262)
+
+
+### Documentation
+
+* **ml:** state the classifier's limits on its npm page ([2300888](https://github.com/stylusnexus/agent-armor/commit/2300888995113f93bc47960f762c26d8b878bb0b)), closes [#212](https://github.com/stylusnexus/agent-armor/issues/212)
+* **readme:** drop the unverified count in the FAQ ([#258](https://github.com/stylusnexus/agent-armor/issues/258)) ([7bf8656](https://github.com/stylusnexus/agent-armor/commit/7bf8656e044abd368fd88453cb81d43abfd07f00))
+* **readme:** fix the detector count in the FAQ ([#257](https://github.com/stylusnexus/agent-armor/issues/257)) ([99fb488](https://github.com/stylusnexus/agent-armor/commit/99fb48869b8c4c495e529cb41af854e6e176410c))
+* **readme:** scan untrusted issue text at strict ([#260](https://github.com/stylusnexus/agent-armor/issues/260)) ([ff6d5bd](https://github.com/stylusnexus/agent-armor/commit/ff6d5bd634add307bdb331f0a85d4b812439ae6c))
+* **skill:** add clarification on input failure claims and verification process ([4c4f5a2](https://github.com/stylusnexus/agent-armor/commit/4c4f5a26ce52b650224bf829e9583919798551ff))
+
 ## [0.2.22](https://github.com/stylusnexus/agent-armor/compare/v0.2.21...v0.2.22) (2026-10-06)
 
 
