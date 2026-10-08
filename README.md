@@ -413,14 +413,29 @@ Measured on 2026-10-08 through the npm package (the shipped INT8 model and its o
 
 What this means:
 
-- **Use the classifier as a second opinion for triage, not a gate.** A finding with `source: 'ml'` should go to review; the regex result stays the thing that blocks content.
+- **Use the classifier as a second opinion for triage, not a gate, and mostly on short text.** A finding with `source: 'ml'` should go to review; the regex result stays the thing that blocks content. On real documents it flags more than half of ordinary text (see the next table), so it is a poor signal on READMEs, docs and policies.
 - **The published model flags two thirds of the repo's honest samples and half of the NotInject prompts.** The retrain candidate flags 21 of 105 honest eval samples and 38 of 339 NotInject prompts. Of the 21, 3 quote an attack; the rest are ordinary operations documents (credential rotation, incident summaries, CI output, setup steps with URLs) and markdown image links. The regex flags 11.
 - **The two layers catch different things.** The regex catches 135 of 142 eval attacks and the candidate 117, but on the held-out attacks, which use wording the regex was never written for, the candidate flags 87 of 110 and the regex 17. Together they catch 90 of the 110 and flag 29 of the 105 honest samples. That gap is why the classifier is worth running.
 - **Read the ranking rows (AUC) with the counts.** A model that flags everything scores well on detection. Neither AUC is a clean estimate: the eval-suite AUC is somewhat optimistic because those samples choose the checkpoint, and the held-out AUC is optimistic because the held-out and training samples were written in the same pass and share a style.
 - **English and Chinese only.** The candidate flags 11 of the 84 Chinese NotInject prompts and catches 47 of 47 held-out Chinese attacks, but the Chinese honest training text imitates NotInject's style, so treat the Chinese figure as optimistic. In probes, "ignore all previous instructions" in Spanish, German and Russian was not flagged, and 1 of 12 honest texts in other languages was.
 - **Short prompts are mostly fixed, not fully.** The candidate flags 27 of 255 English NotInject prompts, mostly polite formal requests that use words like "ensure" or "command". Differences between retrains of 10 to 20 prompts are noise at this size.
 - **Long text and obfuscation are weak spots.** An attack after about 700 characters of honest text drops below the threshold (the model also reads at most 512 tokens, [#274](https://github.com/stylusnexus/agent-armor/issues/274)); no held-out attack is that long, so the table does not measure it. Leetspeak and word-joiner characters were missed in probes. 14 held-out attacks that the published model flags are missed by both the candidate and the regex, even though regex plus candidate catches more overall (90 against 83).
+- **Real documents are the weak spot.** On 1,000 real documents (see the next table) the candidate flags 57% at the default threshold, more than the published model's 35%, and at a threshold that flags 5% of those documents it catches about 8% to 10% of attacks, where the published model catches 23% to 37%. The retrain improved short prompts and Chinese; it made long, document-style text worse. A retrain with real documents in training is tracked in [#294](https://github.com/stylusnexus/agent-armor/issues/294).
 - **Labels are approximate.** The model often reports an attack under a different trap label than ours, so treat the label as a hint.
+
+#### Real documents (#276)
+
+The honest samples above are mostly text this repo wrote, so they cannot show low false-flag rates. This set is 1,000 real documents from 215 public repositories under MIT, Apache-2.0, BSD or CC0 licenses: READMEs (295), policies such as CONTRIBUTING and SECURITY (232), docs (201), agent instruction files such as AGENTS.md and CLAUDE.md (162), issue and pull request templates (86) and MCP manifests (24). The list, with each file's repository, path, commit and SHA-256, is `ml/data/real_honest_list.jsonl`; the text is fetched at evaluation time and not stored. The model reads the first 512 tokens of each. They are assumed honest and were not reviewed one by one, so a few may contain real injections or text that resembles one. Documents from one repository are not independent, so the intervals resample whole repositories.
+
+|                                                                 | Published model (v1)   | Retrain candidate (run 6) |
+| --------------------------------------------------------------- | ---------------------- | ------------------------- |
+| Real documents flagged at the default 0.5 (of 1,000)            | 354 (35.4%, 32.5-38.4) | 566 (56.6%, 53.5-59.6)    |
+| Flagged at strict 0.3 / permissive 0.7                          | 49.4% / 26.0%          | 63.2% / 48.1%             |
+| Held-out attacks caught at 10% / 5% / 1% false flags (of 110)   | 36 / 25 / 3            | 37 / 9 / 0                |
+| Eval-suite attacks caught at 10% / 5% / 1% false flags (of 142) | 68 / 52 / 3            | 47 / 14 / 3               |
+| Held-out attacks caught at 0.5% / 0.1% false flags              | 2 / 0                  | 0 / 0                     |
+
+The 0.1% rate rests on one document and the 0.5% rate on five, so the bottom row only says that neither model catches attacks at those rates; the 95% intervals are in `ml/train/holdout_report.json` after a run. Reproduce with `python3 -m ml.data.fetch_real_honest` and `python3 -m ml.train.evaluate_holdout --onnx-dir <dir containing model_quantized.onnx and tokenizer.json>`.
 
 The training data, the held-out set and the scoring script are in `ml/`. `python3 -m ml.train.evaluate_holdout` reproduces the table from the PyTorch weights, which differ from the shipped INT8 model by a few samples in each row.
 
