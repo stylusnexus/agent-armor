@@ -1,0 +1,35 @@
+# OpenSSF Scorecard: scores the repository's supply-chain practices and
+# publishes the result for the README badge. Runs on the default branch only,
+# weekly and when branch protection changes. Needs no secrets.
+name: scorecard
+
+on:
+  branch_protection_rule:
+  schedule:
+    - cron: '23 4 * * 1'
+  push:
+    branches: [main]
+
+permissions: read-all
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    permissions:
+      # Publishing the result to the Scorecard API signs it with the job's OIDC token.
+      id-token: write
+      contents: read
+      actions: read
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run Scorecard
+        uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true

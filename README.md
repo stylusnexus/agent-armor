@@ -10,6 +10,7 @@ _Inference is probabilistic. The gate shouldn't be._
 [![npm downloads](https://img.shields.io/npm/dm/@stylusnexus/agentarmor.svg)](https://www.npmjs.com/package/@stylusnexus/agentarmor)
 [![CI](https://github.com/stylusnexus/agent-armor/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/stylusnexus/agent-armor/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/stylusnexus/agent-armor/badge)](https://scorecard.dev/viewer/?uri=github.com/stylusnexus/agent-armor)
 
 **[agentarmor.dev](https://agentarmor.dev)** | **[API Reference](https://agentarmor.dev/api)** | **[npm](https://www.npmjs.com/package/@stylusnexus/agentarmor)** | **[GitHub](https://github.com/stylusnexus/agent-armor)**
 
