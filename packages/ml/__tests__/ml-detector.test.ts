@@ -259,3 +259,70 @@ describe('MLDetector.sanitize', () => {
     expect(detector.sanitize(content, [])).toBe(content);
   });
 });
+
+describe('MLDetector.scanAsync — tokenizer mismatch guard (#271)', () => {
+  function withUnknownRatio(ratio: number) {
+    const made = makeDetector(makeLogits({ 'embedded-jailbreak': logitFor(0.99) }));
+    made.tokenizer.encode.mockReturnValue({
+      inputIds: new BigInt64Array(512),
+      attentionMask: new BigInt64Array(512),
+      unknownRatio: ratio,
+    });
+    return made;
+  }
+
+  it('drops the ML result, without running the model, and reports the skip', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { detector, session } = withUnknownRatio(0.9);
+    const result = await detector.scanAsync('Quick start: install the dependencies.');
+    expect(result.threats).toEqual([]);
+    expect(result.skipped?.reason).toContain('90% of the tokens are unknown');
+    expect(session.run).not.toHaveBeenCalled();
+    // The detector itself no longer prints; AgentArmor routes the warning through on.warn.
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('keeps the result when the unknown share is at most half', async () => {
+    const { detector, session } = withUnknownRatio(0.5);
+    const { threats, skipped } = await detector.scanAsync('some ordinary text here');
+    expect(skipped).toBeUndefined();
+    expect(session.run).toHaveBeenCalledTimes(1);
+    expect(threats.length).toBeGreaterThan(0);
+  });
+
+  it('does not apply the guard to input of 5 characters or fewer', async () => {
+    const { detector, session } = withUnknownRatio(1);
+    await detector.scanAsync('a b c');
+    expect(session.run).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('MLDetector.create — load order (#278)', () => {
+  it('rejects a bad tokenizer before creating the ONNX session', async () => {
+    const { mkdtemp, writeFile, rm } = await import('fs/promises');
+    const { tmpdir } = await import('os');
+    const { join } = await import('path');
+    const dir = await mkdtemp(join(tmpdir(), 'agentarmor-create-test-'));
+    try {
+      const tokenizerPath = join(dir, 'tokenizer.json');
+      await writeFile(tokenizerPath, JSON.stringify({ model: { type: 'WordPiece' } }));
+      const create = vi.fn();
+      vi.doMock('onnxruntime-node', () => ({ InferenceSession: { create }, Tensor: class {} }));
+      vi.resetModules();
+      const { MLDetector: Fresh } = await import('../src/ml-detector');
+      await expect(
+        Fresh.create({
+          modelPath: join(dir, 'model.onnx'),
+          tokenizerPath,
+          labelMapPath: join(dir, 'label_map.json'),
+          modelDir: dir,
+        }),
+      ).rejects.toMatchObject({ code: 'UNSUPPORTED_TOKENIZER' });
+      expect(create).not.toHaveBeenCalled();
+    } finally {
+      vi.doUnmock('onnxruntime-node');
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+});

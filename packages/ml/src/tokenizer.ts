@@ -2,57 +2,68 @@ import { readFile } from 'fs/promises';
 import { AgentArmorModelError } from './errors';
 
 /**
- * Shape of the HuggingFace tokenizer.json we care about.
- * Full spec is much larger; we only read vocab + added_tokens.
- *
- * Both fields are optional here on purpose: this describes a file we did not
- * write and cannot assume is well-formed (users may point `modelDir` at their
- * own directory). `fromFile` validates rather than trusting the annotation.
+ * The slice of the model's `tokenizer.json` that this file checks before
+ * handing it to the Hugging Face tokenizer. Every field is optional because the
+ * file may be hand-assembled or truncated (users can point `modelDir` at their
+ * own directory), so `fromFile` validates rather than trusting the annotation.
  */
 interface TokenizerJson {
-  model?: {
-    vocab?: Record<string, number>;
-  };
-  added_tokens?: Array<{
-    id: number;
-    content: string;
-  }>;
+  model?: { type?: string };
+  added_tokens?: Array<{ id: number; content: string }>;
 }
 
-const DEFAULT_SPECIAL: Record<string, number> = {
-  '[UNK]': 0,
-  '[CLS]': 1,
-  '[SEP]': 2,
-  '[PAD]': 0,
-};
+/** The subset of the `tokenizers` package this wrapper calls. */
+interface HfEncoding {
+  getIds(): number[];
+}
+interface HfTokenizer {
+  disablePadding(): void;
+  disableTruncation(): void;
+  encode(
+    text: string,
+    pair: string | null,
+    options: { addSpecialTokens: boolean },
+  ): Promise<HfEncoding>;
+}
+interface HfTokenizersModule {
+  Tokenizer: { fromFile(path: string): HfTokenizer };
+}
+
+/** Tokenizer families the shipped model has been checked against golden ids for. */
+const SUPPORTED_MODEL_TYPES = ['Unigram'];
+
+const REQUIRED_SPECIAL = ['[PAD]', '[CLS]', '[SEP]', '[UNK]'] as const;
+
+/** Result of {@link Tokenizer.encode}. */
+export interface Encoded {
+  inputIds: BigInt64Array;
+  attentionMask: BigInt64Array;
+  /** Share of the content tokens (everything except [CLS] and [SEP]) that are [UNK]. */
+  unknownRatio: number;
+}
 
 /**
- * Minimal WordPiece tokenizer for ONNX classification inference.
+ * Turns text into the `input_ids` and `attention_mask` int64 tensors the ONNX
+ * classifier expects.
  *
- * Loads a HuggingFace `tokenizer.json` and produces `input_ids` +
- * `attention_mask` as BigInt64Arrays (ONNX Runtime requires int64 tensors).
- *
- * This intentionally covers the 90% case — full HuggingFace tokenizers
- * handle BPE, normalization, pre-tokenization, etc.
+ * Tokenization is done by the Hugging Face `tokenizers` package reading the
+ * model's own `tokenizer.json`, so the ids match what the model saw in training
+ * (the training script uses the same Rust code through Python). This file holds
+ * no tokenization logic of its own. A retrain that ships a new `tokenizer.json`
+ * works without a code change, and the golden-id test in
+ * `__tests__/tokenizer-golden.test.ts` fails if the output ever drifts from the
+ * Python tokenizer.
  */
 export class Tokenizer {
-  private readonly vocab: Map<string, number>;
-  private readonly unkId: number;
-  private readonly clsId: number;
-  private readonly sepId: number;
-  private readonly padId: number;
+  private constructor(
+    private readonly hf: HfTokenizer,
+    private readonly clsId: number,
+    private readonly sepId: number,
+    private readonly padId: number,
+    private readonly unkId: number,
+  ) {}
 
-  private constructor(vocab: Map<string, number>, specialTokens: Record<string, number>) {
-    this.vocab = vocab;
-    this.unkId = specialTokens['[UNK]'] ?? DEFAULT_SPECIAL['[UNK]'];
-    this.clsId = specialTokens['[CLS]'] ?? DEFAULT_SPECIAL['[CLS]'];
-    this.sepId = specialTokens['[SEP]'] ?? DEFAULT_SPECIAL['[SEP]'];
-    this.padId = specialTokens['[PAD]'] ?? DEFAULT_SPECIAL['[PAD]'];
-  }
-
-  /**
-   * Load a tokenizer from a HuggingFace `tokenizer.json` file.
-   */
+  /** Load a tokenizer from the model's `tokenizer.json`. */
   static async fromFile(path: string): Promise<Tokenizer> {
     const raw = await readFile(path, 'utf-8');
 
@@ -67,119 +78,90 @@ export class Tokenizer {
       );
     }
 
-    // A truncated or hand-assembled tokenizer.json used to fail here with a bare
-    // TypeError from deep inside this function, escaping the typed-error contract
-    // every other load path in this package honours. MODEL_NOT_FOUND is the right
-    // code even though the file exists: the correct recovery is the same one — go
-    // get the artifacts again.
-    if (!json.model?.vocab) {
+    const type = json.model?.type;
+    if (!type) {
       throw new AgentArmorModelError(
         'MODEL_NOT_FOUND',
-        `Tokenizer file at ${path} is missing "model.vocab". The model directory is corrupt or incomplete; re-download or point modelDir at a complete set of artifacts.`,
+        `Tokenizer file at ${path} is missing "model.type". The model directory is corrupt or incomplete; re-download or point modelDir at a complete set of artifacts.`,
+      );
+    }
+    if (!SUPPORTED_MODEL_TYPES.includes(type)) {
+      throw new AgentArmorModelError(
+        'UNSUPPORTED_TOKENIZER',
+        `Tokenizer file at ${path} is a "${type}" tokenizer; this version of @stylusnexus/agentarmor-ml only has golden-id coverage for ${SUPPORTED_MODEL_TYPES.join(', ')}. Update the package, or add golden fixtures for the new tokenizer type before using it.`,
       );
     }
 
-    const vocab = new Map<string, number>(Object.entries(json.model.vocab));
-
-    // `added_tokens` absent is tolerated rather than fatal — the special tokens
-    // it usually supplies fall back to DEFAULT_SPECIAL, so the tokenizer is still
-    // usable. Only a missing vocab makes it unusable.
-    const specialTokens: Record<string, number> = { ...DEFAULT_SPECIAL };
-    for (const token of json.added_tokens ?? []) {
-      vocab.set(token.content, token.id);
-      if (token.content in DEFAULT_SPECIAL) {
-        specialTokens[token.content] = token.id;
-      }
+    const special: Record<string, number> = {};
+    for (const token of json.added_tokens ?? []) special[token.content] = token.id;
+    const missing = REQUIRED_SPECIAL.filter((name) => !(name in special));
+    if (missing.length > 0) {
+      throw new AgentArmorModelError(
+        'UNSUPPORTED_TOKENIZER',
+        `Tokenizer file at ${path} does not define the special tokens ${missing.join(', ')}.`,
+      );
     }
 
-    return new Tokenizer(vocab, specialTokens);
+    let mod: HfTokenizersModule;
+    try {
+      mod = (await import('tokenizers')) as unknown as HfTokenizersModule;
+    } catch (err) {
+      throw new AgentArmorModelError(
+        'TOKENIZER_LOAD_FAILED',
+        `Could not load the "tokenizers" package (a native add-on with prebuilt binaries for macOS, Linux and Windows): ${err instanceof Error ? err.message : String(err)}`,
+        err instanceof Error ? err : undefined,
+      );
+    }
+
+    let hf: HfTokenizer;
+    try {
+      hf = mod.Tokenizer.fromFile(path);
+    } catch (err) {
+      throw new AgentArmorModelError(
+        'MODEL_NOT_FOUND',
+        `Tokenizer file at ${path} could not be parsed: ${err instanceof Error ? err.message : String(err)}`,
+        err instanceof Error ? err : undefined,
+      );
+    }
+    // The file may carry its own padding and truncation settings (this one pads
+    // every input to 512). Turn both off and apply them here, so the output does
+    // not depend on whatever the file happens to say.
+    hf.disablePadding();
+    hf.disableTruncation();
+
+    return new Tokenizer(
+      hf,
+      special['[CLS]'],
+      special['[SEP]'],
+      special['[PAD]'],
+      special['[UNK]'],
+    );
   }
 
   /**
-   * Encode text into `input_ids` and `attention_mask` BigInt64Arrays.
-   *
-   * Tokenization:
-   *  1. Lowercase and split on whitespace
-   *  2. WordPiece subword splitting for OOV words
-   *  3. Wrap with [CLS] ... [SEP]
-   *  4. Pad or truncate to `maxLength`
+   * Encode text into `input_ids` and `attention_mask`, padded or cut to exactly
+   * `maxLength` positions. Text that is too long is cut after `maxLength - 1`
+   * ids and ends with [SEP], like the training tokenizer's truncation.
    */
-  encode(
-    text: string,
-    maxLength: number = 512,
-  ): { inputIds: BigInt64Array; attentionMask: BigInt64Array } {
-    const tokens: number[] = [this.clsId];
+  async encode(text: string, maxLength: number = 512): Promise<Encoded> {
+    const encoding = await this.hf.encode(text, null, { addSpecialTokens: true });
+    let ids = encoding.getIds();
 
-    const words = text.toLowerCase().split(/\s+/).filter(Boolean);
-
-    for (const word of words) {
-      const wordTokens = this.wordPieceTokenize(word);
-      tokens.push(...wordTokens);
+    if (ids.length > maxLength) {
+      ids = ids.slice(0, maxLength);
+      ids[maxLength - 1] = this.sepId;
     }
 
-    tokens.push(this.sepId);
-
-    // Truncate content tokens if over maxLength (keep CLS at start, SEP at end)
-    if (tokens.length > maxLength) {
-      tokens.length = maxLength;
-      tokens[maxLength - 1] = this.sepId;
-    }
-
-    const inputIds = new BigInt64Array(maxLength);
+    const inputIds = new BigInt64Array(maxLength).fill(BigInt(this.padId));
     const attentionMask = new BigInt64Array(maxLength);
-
-    for (let i = 0; i < tokens.length; i++) {
-      inputIds[i] = BigInt(tokens[i]);
+    let unknown = 0;
+    for (let i = 0; i < ids.length; i++) {
+      inputIds[i] = BigInt(ids[i]);
       attentionMask[i] = 1n;
+      if (ids[i] === this.unkId) unknown++;
     }
 
-    // Remaining positions stay 0n (pad token = 0, mask = 0)
-    for (let i = tokens.length; i < maxLength; i++) {
-      inputIds[i] = BigInt(this.padId);
-      // attentionMask[i] is already 0n
-    }
-
-    return { inputIds, attentionMask };
-  }
-
-  /**
-   * WordPiece tokenization for a single word.
-   * Tries to greedily match the longest prefix in vocab, then continues
-   * with `##` prefixed subwords. Falls back to [UNK] if no match at all.
-   */
-  private wordPieceTokenize(word: string): number[] {
-    // Fast path: whole word exists in vocab
-    if (this.vocab.has(word)) {
-      return [this.vocab.get(word)!];
-    }
-
-    const tokens: number[] = [];
-    let start = 0;
-
-    while (start < word.length) {
-      let end = word.length;
-      let matched = false;
-
-      while (start < end) {
-        const substr = start === 0 ? word.slice(0, end) : `##${word.slice(start, end)}`;
-
-        if (this.vocab.has(substr)) {
-          tokens.push(this.vocab.get(substr)!);
-          matched = true;
-          break;
-        }
-
-        end--;
-      }
-
-      if (!matched) {
-        // Entire word is unresolvable — return single [UNK]
-        return [this.unkId];
-      }
-
-      start = end;
-    }
-
-    return tokens;
+    const content = Math.max(ids.length - 2, 0);
+    return { inputIds, attentionMask, unknownRatio: content === 0 ? 0 : unknown / content };
   }
 }

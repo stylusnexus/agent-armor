@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { findMatcher } from '../patterns/matchers';
 import { DEFAULT_PATTERNS } from '../patterns/default-patterns';
 import type { PatternEntry } from '../patterns/pattern-db';
 import { spawn } from 'node:child_process';
@@ -138,6 +139,54 @@ function checkPattern(entry: PatternEntry): Promise<string[]> {
     );
   });
 }
+
+/**
+ * One trigger phrase followed by a long run of line breaks or whitespace. The
+ * repeated-fragment checks above send short units over and over; they never send
+ * a single trigger and then a long run, which is where a window that can cross a
+ * line break backtracks (#262: 6.8 s at 200,000 characters).
+ */
+const TRIGGER_PHRASES = [
+  'read the file at',
+  'read the file from',
+  'open the file in',
+  'send the',
+  'ignore all previous',
+  'you must',
+];
+const WHITESPACE_RUNS = ['\n', '\n ', '\t\n', '\r\n'];
+
+describe('one trigger phrase then a long whitespace run (#262)', () => {
+  it('no pattern takes more than 400 ms on 100,000 characters of it', () => {
+    const slow: string[] = [];
+    for (const entry of Object.values(DEFAULT_PATTERNS.detectors).flat()) {
+      // Run it the way PatternDetector does: through its hand-written matcher
+      // when one is bound to the exact regex, otherwise through the regex.
+      const matcher = findMatcher(entry.regex, entry.flags, entry.extractGroup ?? 0);
+      const re = new RegExp(entry.regex, entry.flags);
+      for (const phrase of TRIGGER_PHRASES) {
+        for (const run of WHITESPACE_RUNS) {
+          const input = phrase + ' ' + run.repeat(Math.ceil(100_000 / run.length));
+          const start = performance.now();
+          if (matcher) {
+            matcher.match(input);
+          } else {
+            re.lastIndex = 0;
+            let m: RegExpExecArray | null;
+            while ((m = re.exec(input)) !== null) {
+              if (m[0].length === 0) re.lastIndex++;
+            }
+          }
+          const ms = performance.now() - start;
+          if (ms > 400) {
+            slow.push(`${entry.id}: ${Math.round(ms)}ms on ${JSON.stringify(phrase + run)}`);
+          }
+        }
+      }
+    }
+    expect(slow).toEqual([]);
+  });
+});
 
 describe('shipped patterns stay fast on adversarial input (#175)', () => {
   it(

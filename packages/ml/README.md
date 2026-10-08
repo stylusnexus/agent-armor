@@ -36,8 +36,8 @@ result.threats.filter((t) => t.source === 'ml');
 
 On first use, the model (~165MB quantized ONNX) is downloaded from HuggingFace and cached locally:
 
-- **macOS:** `~/Library/Caches/agentarmor/v1/`
-- **Linux:** `~/.cache/agentarmor/v1/`
+- **macOS:** `~/Library/Caches/agentarmor/v2/`
+- **Linux:** `~/.cache/agentarmor/v2/`
 - **Custom:** Set `AGENTARMOR_CACHE_DIR` or pass `ml.modelDir` in config
 
 Subsequent runs load from cache with no network calls.
@@ -82,14 +82,26 @@ agentarmor-ml clear-cache
 
 ## Inference Details
 
-- Tokenizes input to 512 tokens (WordPiece)
+- Tokenizes input to 512 tokens with the Hugging Face [`tokenizers`](https://www.npmjs.com/package/tokenizers) package, reading the model's own `tokenizer.json` (SentencePiece Unigram). A retrained model needs no code change; a test fails if the ids drift from the Python training tokenizer.
+- If most of an input's tokens are unknown to the tokenizer, the ML result is dropped and the pattern detectors carry the scan. The scan result lists it in `stats.detectorsSkipped`, and `on.warn` fires once
 - Runs ONNX inference with INT8 quantization via `onnxruntime-node`
 - Applies sigmoid on logits with strictness-based thresholds: `strict=0.3`, `balanced=0.5`, `permissive=0.7`
 - `scan()` (sync) returns empty — ML inference is async-only via `scanAsync()`
 
+## Limits
+
+Treat the classifier as a second opinion for triage, not a gate. The regex result stays the thing that blocks content. Measured on 2026-10-08 on the shipped INT8 model (see the [main README](https://github.com/stylusnexus/agent-armor#how-well-it-works) for the full table):
+
+- **False flags.** It flags 21 of 105 honest eval samples (about 20%) and 38 of 339 short NotInject prompts; together with the regex detectors, 29 of 105 honest eval samples. Most flags are ordinary operations documents (credential rotation, incident summaries, CI output, setup steps with URLs) and markdown image links.
+- **Languages.** English and Chinese only. In probes, "ignore all previous instructions" in Spanish, German and Russian was not flagged.
+- **Long text.** The model reads at most 512 tokens, and an attack after about 700 characters of honest text drops below the threshold ([#274](https://github.com/stylusnexus/agent-armor/issues/274)).
+- **Obfuscation.** Leetspeak and word-joiner characters were missed in probes.
+- **Small evaluation sets.** Differences of 10 to 20 samples between model versions are noise.
+
 ## Deployment Notes
 
 - **AWS Lambda:** 165MB model + ~40MB onnxruntime = ~205MB, fits the 250MB limit but is tight. Use `modelDir` to bundle the model in your deployment package.
+- **Native tokenizer:** `tokenizers` is a native add-on that ships prebuilt binaries for macOS, Linux (glibc and musl, x64 and arm64) and Windows, about 64 MB in `node_modules` in total and about 5 MB for one platform. For Lambda, delete the other platforms' `.node` files in `node_modules/tokenizers/` (as you already do for `onnxruntime-node`). Run so far: macOS arm64 (local) and Linux x64 (CI); Windows, linux-arm64, musl and Lambda have not been run.
 - **Vercel Edge:** Not supported (ONNX runtime requires Node.js native bindings).
 
 ## Requirements

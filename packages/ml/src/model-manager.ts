@@ -9,6 +9,7 @@ import {
   DEFAULT_RETRIES,
   DEFAULT_TIMEOUT_MS,
   HF_REPO_ID,
+  HF_REVISION,
   MODEL_CHECKSUM,
   MODEL_FILENAME,
   OPTIONAL_MODEL_FILES,
@@ -173,7 +174,7 @@ export async function downloadFile(
   if (config.modelUrl) {
     baseUrl = config.modelUrl.replace(/\/$/, '');
   } else {
-    baseUrl = `https://huggingface.co/${HF_REPO_ID}/resolve/main`;
+    baseUrl = `https://huggingface.co/${HF_REPO_ID}/resolve/${HF_REVISION}`;
   }
 
   const url = `${baseUrl}/${filename}`;

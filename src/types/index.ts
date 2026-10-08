@@ -140,6 +140,11 @@ export interface ScanResult {
     detectorsRun: number;
     threatsFound: number;
     highestSeverity: Severity | null;
+    /**
+     * Detectors that ran but could not judge this input (see
+     * {@link DetectorResult.skipped}). Present only when at least one did.
+     */
+    detectorsSkipped?: Array<{ detectorId: string; reason: string }>;
   };
 }
 
@@ -250,6 +255,12 @@ export interface DetectorOptions {
 export interface DetectorResult {
   /** Threats this detector found in the scanned content. */
   threats: Threat[];
+  /**
+   * Set when the detector could not judge this input and returned no threats
+   * for that reason (for example the ML classifier skips input its tokenizer
+   * cannot read). Lets the scan report "did not run" rather than "found nothing".
+   */
+  skipped?: { reason: string };
 }
 
 // ---------------------------------------------------------------------------
@@ -263,7 +274,9 @@ export type ModelErrorCode =
   | 'DOWNLOAD_FAILED'
   | 'DOWNLOAD_TIMEOUT'
   | 'DISK_FULL'
-  | 'LOCK_TIMEOUT';
+  | 'LOCK_TIMEOUT'
+  | 'UNSUPPORTED_TOKENIZER'
+  | 'TOKENIZER_LOAD_FAILED';
 
 /** Options controlling how the ML model is downloaded on first use. */
 export interface MLDownloadConfig {

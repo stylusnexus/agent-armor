@@ -22,7 +22,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import { HF_REPO_ID, MODEL_CHECKSUM, MODEL_FILENAME } from '../src/constants';
+import { HF_REPO_ID, HF_REVISION, MODEL_CHECKSUM, MODEL_FILENAME } from '../src/constants';
 import {
   checkLabelMap,
   checkModelChecksum,
@@ -33,8 +33,8 @@ import {
   type IntegrityReport,
 } from './model-integrity';
 
-const TREE_API = `https://huggingface.co/api/models/${HF_REPO_ID}/tree/main`;
-const RESOLVE_BASE = `https://huggingface.co/${HF_REPO_ID}/resolve/main`;
+const TREE_API = `https://huggingface.co/api/models/${HF_REPO_ID}/tree/${HF_REVISION}`;
+const RESOLVE_BASE = `https://huggingface.co/${HF_REPO_ID}/resolve/${HF_REVISION}`;
 
 async function fetchJson<T>(url: string, label: string): Promise<T> {
   const res = await fetch(url, { redirect: 'follow' });

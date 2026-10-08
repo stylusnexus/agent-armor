@@ -5,7 +5,9 @@ export type ModelErrorCode =
   | 'DOWNLOAD_FAILED'
   | 'DOWNLOAD_TIMEOUT'
   | 'DISK_FULL'
-  | 'LOCK_TIMEOUT';
+  | 'LOCK_TIMEOUT'
+  | 'UNSUPPORTED_TOKENIZER'
+  | 'TOKENIZER_LOAD_FAILED';
 
 /** Thrown when the ML model can't be resolved (missing, corrupt, or unreachable). */
 export class AgentArmorModelError extends Error {

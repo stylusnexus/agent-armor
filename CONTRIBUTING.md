@@ -44,7 +44,7 @@ npm run test:run
 
 - Implement the `Detector` interface defined in `src/types/index.ts`
 - Register your detector in `AgentArmor`
-- Add unit tests and eval samples covering your detector
+- Add a test file for the detector, `src/__tests__/<detector-id>.test.ts`, and eval samples. Run the detector alone with `soloDetector(id)` from `src/__tests__/helpers/solo-detector.ts` (add your detector to the helper's `SOLO_FLAGS`). Cover payloads flagged as the detector's own type, benign near-misses that stay clean, sanitize output, and the detector turned off with `withoutDetector(id)`. See `hidden-html.test.ts` for the shape.
 
 ## Code Style
 
@@ -89,8 +89,24 @@ For contributors working on the ML-based detectors:
 pip install -r requirements-ml.txt
 ```
 
-- Training data generation scripts live in `ml/`
-- See `ml/` for model training and export workflows
+Every ML command needs `KMP_DUPLICATE_LIB_OK=TRUE` on Apple Silicon. The data pipeline, in order:
+
+```bash
+python3 -m ml.data.seed_from_eval          # eval samples -> seed.jsonl (validation only)
+python3 -m ml.data.generate_synthetic      # templated attacks, including the recent shapes
+python3 -m ml.data.generate_hard_negatives # honest text that uses attack vocabulary
+python3 -m ml.data.generate_fresh_attacks  # fresh attacks (training) and the held-out set
+python3 -m ml.data.generate_zh_attacks     # Chinese attacks (training); honest Chinese is in benign_triggers_zh.jsonl
+python3 -m ml.data.validate                # dedupe and split into train, val, test
+```
+
+- **Honest samples** live in `ml/data/benign_corpus.py` and `ml/data/generate_hard_negatives.py`. Add honest text that shares an attack's wording (setup guides, runbooks, bans, advisories). A classifier trained on few honest samples flags almost everything.
+- **Honest text with trigger words** (`ml/data/benign_triggers*.jsonl`, #275): honest sentences that contain words a classifier over-reacts to, written from scratch, in English, Chinese and a formal imperative register. Add drafts with `python3 -m ml.data.build_benign_triggers --drafts DIR --out benign_triggers_NAME.jsonl --notinject FILE.parquet`, which drops drafts close to the held-out attacks, the eval suite, NotInject or the training data. NotInject (MIT) is for evaluation only: never copy its prompts or phrasing into training data, and do not paste its examples into prompts for people or agents who write training text.
+- **Attack samples** live in `ml/data/fresh_attacks.py` and `ml/data/generate_synthetic.py`. Write them in your own words; copy nothing from a source with a restrictive license. Name the source in the description when a sample paraphrases a public write-up.
+- **The held-out set** (`HOLDOUT_*` in `ml/data/fresh_attacks.py`) is never written to the training files. Do not move samples from it into training: it is the only measurement of generalization. Add new held-out samples, not training ones, when you want a stricter test. The Chinese held-out attacks are in `ml/data/holdout/holdout_zh_attacks.jsonl`.
+- **Scoring a model:** `python3 -m ml.train.evaluate_holdout [--model-dir DIR]` reports detection and false flags on sets the model was not trained on, plus a ranking number (AUC) that does not depend on the threshold. Compare models with that, not with the test-set F1: the test set is re-shuffled whenever the data changes, so an older model may have trained on rows that are now in it.
+- **Label order is fixed** (`LABELS` in `packages/ml/src/constants.ts`). Reordering or adding a label changes what every output means and fails `npm run check:model`. A trap type outside the 13 labels (credential exposure, steganographic payload, dependency substitution) is skipped when seeding, not labelled benign.
+- Retraining and publishing the model is a maintainer step: see the `retrain` skill in `.agents/skills/agent-armor-tools/`.
 
 ## Commit Messages
 

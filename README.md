@@ -89,6 +89,8 @@ Put it in this order. Each step removes the most risk for the least work:
 
 Pick strictness by trust, not by sensitivity: `strict` for content the agent will obey (config files, tool descriptions), `balanced` for tool results and retrieved documents, `permissive` only for content it merely summarizes.
 
+Text that anyone can write and your agent then acts on (issue titles and comments, PR descriptions, inbound email) belongs at `strict` too. At `balanced`, an instruction to install a package from a URL and commit the result is not reported, because honest install guides use the same words. That is the Clinejection attack (eval sample `rw-007`), and `strict` is the only level that catches it today.
+
 Decide on `riskLevel`, not `clean`. Withhold `high` and `critical` content and log the decision (`on.audit`); queue lower findings for review. Don't pass `result.sanitized` to the model yet. See [`examples/recommended-integration.ts`](./examples/recommended-integration.ts) for all of this in one runnable file.
 
 ## Install
@@ -134,17 +136,17 @@ Versions 0.2.1 to 0.2.17 can report a very large input as clean ([GHSA-vr4h-8mw3
 
 ### Eval Suite
 
-241 curated samples (152 adversarial, 89 benign) covering all 12 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
+260 curated samples (155 adversarial, 105 benign) covering all 16 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
 
 | Strictness   | Detection Rate (regex) | False Positive Rate |
 | ------------ | ---------------------- | ------------------- |
-| Permissive   | 90.1%                  | 0.0%                |
-| **Balanced** | **94.1%**              | **0.0%**            |
-| Strict       | 94.1%                  | 0.0%                |
+| Permissive   | 90.3%                  | 0.0%                |
+| **Balanced** | **94.2%**              | **0.0%**            |
+| Strict       | 96.8%                  | 0.0%                |
 
 The 0.0% false-positive figure covers every benign sample except 11 **known false positives** (`acceptedFlagAt` in `scripts/eval/samples.ts`): honest text that quotes an attack or tells an assistant to run a command, such as a security paper quoting an exfiltration instruction. They flag at every strictness, are reported separately by `npm run eval`, and are excluded from the rate. The gate still fails on any other benign sample that flags.
 
-The eval suite includes 14 adversarial samples drawn from real-world incidents (2025-2026): MCP tool poisoning, RAG vector DB saturation, covert exfiltration via image proxies, supply chain prompt injection, memory poisoning, HITL dialog forgery, and the July 2026 OpenAI sandbox escape (credential reuse, C2 over public paste services, package-proxy egress, cross-environment persistence). Regex catches 6 of these; the remaining 8 measure the gap that the [ML classifier](#ml-classifier-optional) and unshipped detectors close. **These headline numbers move down whenever we add a blind spot we can't yet catch — that is deliberate.** `scripts/eval/thresholds.json` records every floor change and why. On the original 49 adversarial samples, regex detection is 100% at balanced strictness.
+The eval suite includes 14 adversarial samples drawn from real-world incidents (2025-2026): MCP tool poisoning, RAG vector DB saturation, covert exfiltration via image proxies, supply chain prompt injection, memory poisoning, HITL dialog forgery, and the July 2026 OpenAI sandbox escape (credential reuse, C2 over public paste services, package-proxy egress, cross-environment persistence). Regex catches 6 of these at balanced (10 at strict); the remaining 8 are the gap the [ML classifier](#ml-classifier-optional) closes (the retrain candidate flags all 8 at 0.5, measured 2026-10-08; regex alone still misses them). **These headline numbers move down whenever we add a blind spot we can't yet catch — that is deliberate.** `scripts/eval/thresholds.json` records every floor change and why. On the original 49 adversarial samples, regex detection is 100% at balanced strictness.
 
 Sources: [WASP benchmark](https://arxiv.org/abs/2312.02119) (Evtimov et al.), [HackAPrompt](https://arxiv.org/abs/2311.16119) (Schulhoff et al., 2023), [Greshake et al. (2023)](https://arxiv.org/abs/2302.12173), the [DeepMind paper](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438), and incident reports from [Invariant Labs](https://invariantlabs.ai/blog), [Unit 42](https://unit42.paloaltonetworks.com), [Snyk Labs](https://labs.snyk.io), [Legit Security](https://www.legitsecurity.com/blog/camoleak), and [Socket Research](https://socket.dev/blog). Benign samples include security blog posts, legitimate HTML, CI/CD docs, MCP tool descriptions, agent interaction logs, and procurement policy emails.
 
@@ -168,15 +170,15 @@ Run it: `npx tsx examples/real-world-validation.ts`
 
 ## Attack Categories Covered
 
-| Category                  | Target       | Status  | What It Detects                                                                                                                                                                            |
-| ------------------------- | ------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Content Injection**     | Perception   | Shipped | Hidden HTML/CSS instructions, metadata injection, dynamic cloaking artifacts, syntactic masking, steganographic payloads (ASCII smuggling)                                                 |
-| **Behavioural Control**   | Action       | Shipped | Embedded jailbreak sequences, data exfiltration patterns, sub-agent spawning traps                                                                                                         |
-| **Cognitive State**       | Memory       | Shipped | RAG knowledge poisoning, latent memory poisoning, contextual learning manipulation                                                                                                         |
-| **Semantic Manipulation** | Reasoning    | Shipped | Biased framing/priming, oversight evasion, persona hyperstition                                                                                                                            |
-| **Systemic**              | Multi-Agent  | Planned | Congestion traps, interdependence cascades, tacit collusion, compositional fragments, sybil attacks                                                                                        |
-| **Human-in-the-Loop**     | Overseer     | Planned | Approval fatigue induction, social engineering via compromised agent                                                                                                                       |
-| **Transport Integrity**   | Supply Chain | Partial | Credential exposure (AC-2) shipped; tool-call tampering (AC-1), dependency substitution (AC-1.a), response anomaly screening planned ([Liu et al. 2026](https://arxiv.org/abs/2604.08407)) |
+| Category                  | Target       | Status  | What It Detects                                                                                                                                                                               |
+| ------------------------- | ------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Content Injection**     | Perception   | Shipped | Hidden HTML/CSS instructions, metadata injection, dynamic cloaking artifacts, syntactic masking, steganographic payloads (ASCII smuggling)                                                    |
+| **Behavioural Control**   | Action       | Shipped | Embedded jailbreak sequences, data exfiltration patterns, sub-agent spawning traps                                                                                                            |
+| **Cognitive State**       | Memory       | Shipped | RAG knowledge poisoning, latent memory poisoning, contextual learning manipulation                                                                                                            |
+| **Semantic Manipulation** | Reasoning    | Shipped | Biased framing/priming, oversight evasion, persona hyperstition                                                                                                                               |
+| **Systemic**              | Multi-Agent  | Planned | Congestion traps, interdependence cascades, tacit collusion, compositional fragments, sybil attacks                                                                                           |
+| **Human-in-the-Loop**     | Overseer     | Planned | Approval fatigue induction, social engineering via compromised agent                                                                                                                          |
+| **Transport Integrity**   | Supply Chain | Partial | Credential exposure (AC-2) and dependency substitution (AC-1.a) shipped; tool-call tampering (AC-1), response anomaly screening planned ([Liu et al. 2026](https://arxiv.org/abs/2604.08407)) |
 
 ## Configuration
 
@@ -243,6 +245,17 @@ Strictness controls the confidence threshold for reporting threats. Every patter
 
 At `permissive`, 6 of the original 49 adversarial samples go undetected because their pattern confidence falls below the 0.7 threshold. These are mostly subtle semantic manipulation and cognitive state attacks (biased framing, oversight evasion, persona manipulation). At `balanced` and `strict`, all 49 are caught with 0% false positives.
 
+### Detectors that report at `strict` only
+
+A few detectors report at `strict` and nowhere else. In each case honest text uses the same words as the attack, and a regex cannot tell a description, a ban or a how-to from an order. Independent adversarial reviews kept finding honest text flagged at `balanced`, so these ship at `strict` rather than risk false positives on content people actually write. Scan content you did not write (issue text, tool descriptions, third-party packages) at `strict`.
+
+| What it catches                                                                                                                          | Why it is `strict` only                                                    | Issue |
+| ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ----- |
+| Package installs that skip the trusted registry: custom index flags, config commands, installs from a raw URL                            | Private registries, git installs and internal mirror guides look the same  | #29   |
+| "Install from a URL, then commit or push the result" (the Clinejection shape)                                                            | Release runbooks, contributor guides and bans use the same words           | #252  |
+| "Read private repository data and publish it to a public gist or paste"                                                                  | Security policies and advisories say the same thing                        | #250  |
+| Poisoned MCP tool descriptions: read a key file and pass it along, redirect a recipient, hidden `bcc`, marked blocks that conceal a step | XML system prompts, MCP setup guides and CRM email docs use the same words | #218  |
+
 ## Scan Results
 
 Every scan returns a `ScanResult` with full threat details:
@@ -258,6 +271,7 @@ interface ScanResult {
     detectorsRun: number;
     threatsFound: number;
     highestSeverity: 'low' | 'medium' | 'high' | 'critical' | null;
+    detectorsSkipped?: { detectorId: string; reason: string }[]; // only when a detector could not judge the input
   };
 }
 
@@ -357,6 +371,8 @@ Every refusal carries a human-readable `reason`; every admission carries the `ma
 
 The optional `@stylusnexus/agentarmor-ml` package adds an ONNX-based classifier that catches threats regex patterns might miss. It downloads the model on first use and caches it locally.
 
+> **Fixed in the next release ([#271](https://github.com/stylusnexus/agent-armor/issues/271), PR #277).** `@stylusnexus/agentarmor-ml` 0.1.5 and earlier tokenize with the wrong algorithm for this model (WordPiece instead of SentencePiece), so every word reaches the model as an unknown token and its output depends on the length of the text, not its meaning. Do not rely on `source: 'ml'` findings from those versions. The measurements in [How well it works](#how-well-it-works) were taken with the model's own training tokenizer, which the fixed package now matches.
+
 ```typescript
 const armor = await AgentArmor.create({
   ml: {
@@ -380,6 +396,33 @@ const armor = await AgentArmor.create({
 When ML is enabled, calling `await armor.scan(content)` runs both regex and ML detectors. The ML classifier's threats have `source: 'ml'` in the result, making it easy to distinguish them from pattern-based detections.
 
 If the ML package is not installed or the model is unavailable, behavior depends on the `onUnavailable` setting: `'warn-and-skip'` (default), `'throw'`, or `'silent-skip'`.
+
+### How well it works
+
+Measured on 2026-10-08 through the npm package (the shipped INT8 model and its own tokenizer; regex column at the default `balanced` level) on the repo's 105 benign and 142 adversarial eval samples, 110 held-out attack samples written after the training data was fixed (original wording plus paraphrases of public 2025-2026 write-ups), 47 held-out Chinese attacks, and NotInject (339 short benign prompts that contain attack words, 255 English and 84 Chinese; MIT). No model in the comparison was trained on any of them, but the eval samples are part of the validation split that picks the best checkpoint, so the eval-suite rows favour the retrain candidate somewhat; the held-out attacks and NotInject are the clean measurements. A sample is flagged when the model reports any trap label at the default 0.5 threshold.
+
+|                                                         | Published model (v1) | Retrain candidate (run 6, #212, not published) | Regex detectors                           |
+| ------------------------------------------------------- | -------------------- | ---------------------------------------------- | ----------------------------------------- |
+| Benign eval samples flagged (of 105)                    | 69                   | 21                                             | 11 (the documented known false positives) |
+| NotInject prompts flagged (of 339)                      | 165                  | 38                                             | 1                                         |
+| Eval-suite attacks flagged (of 142)                     | 107                  | 117                                            | 135                                       |
+| Held-out attacks flagged (of 110)                       | 74                   | 87                                             | 17                                        |
+| Eval-suite attacks ranked above eval-suite benign (AUC) | 0.59                 | 0.89                                           | not applicable                            |
+| Eval-suite attacks caught at 5% false flags             | 4%                   | 37%                                            | not applicable                            |
+| Held-out attacks ranked above honest text (AUC)         | 0.52                 | 0.86                                           | not applicable                            |
+
+What this means:
+
+- **Use the classifier as a second opinion for triage, not a gate.** A finding with `source: 'ml'` should go to review; the regex result stays the thing that blocks content.
+- **The published model flags two thirds of the repo's honest samples and half of the NotInject prompts.** The retrain candidate flags 21 of 105 honest eval samples and 38 of 339 NotInject prompts. Of the 21, 3 quote an attack; the rest are ordinary operations documents (credential rotation, incident summaries, CI output, setup steps with URLs) and markdown image links. The regex flags 11.
+- **The two layers catch different things.** The regex catches 135 of 142 eval attacks and the candidate 117, but on the held-out attacks, which use wording the regex was never written for, the candidate flags 87 of 110 and the regex 17. Together they catch 90 of the 110 and flag 29 of the 105 honest samples. That gap is why the classifier is worth running.
+- **Read the ranking rows (AUC) with the counts.** A model that flags everything scores well on detection. Neither AUC is a clean estimate: the eval-suite AUC is somewhat optimistic because those samples choose the checkpoint, and the held-out AUC is optimistic because the held-out and training samples were written in the same pass and share a style.
+- **English and Chinese only.** The candidate flags 11 of the 84 Chinese NotInject prompts and catches 47 of 47 held-out Chinese attacks, but the Chinese honest training text imitates NotInject's style, so treat the Chinese figure as optimistic. In probes, "ignore all previous instructions" in Spanish, German and Russian was not flagged, and 1 of 12 honest texts in other languages was.
+- **Short prompts are mostly fixed, not fully.** The candidate flags 27 of 255 English NotInject prompts, mostly polite formal requests that use words like "ensure" or "command". Differences between retrains of 10 to 20 prompts are noise at this size.
+- **Long text and obfuscation are weak spots.** An attack after about 700 characters of honest text drops below the threshold (the model also reads at most 512 tokens, [#274](https://github.com/stylusnexus/agent-armor/issues/274)); no held-out attack is that long, so the table does not measure it. Leetspeak and word-joiner characters were missed in probes. 14 held-out attacks that the published model flags are missed by both the candidate and the regex, even though regex plus candidate catches more overall (90 against 83).
+- **Labels are approximate.** The model often reports an attack under a different trap label than ours, so treat the label as a hint.
+
+The training data, the held-out set and the scoring script are in `ml/`. `python3 -m ml.train.evaluate_holdout` reproduces the table from the PyTorch weights, which differ from the shipped INT8 model by a few samples in each row.
 
 ## CLI
 
@@ -435,11 +478,11 @@ const armor = AgentArmor.regexOnly({
 });
 ```
 
-| Event             | Fires when                                                                                                                                                                        |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `warn`            | A known, expected degraded condition (e.g. ML classifier unavailable under `onUnavailable: 'warn-and-skip'`, `session.accumulation` requested but not available in the regex SDK) |
-| `error`           | A detector's `scan()`/`scanAsync()` threw and was caught — includes the real `Error` object                                                                                       |
-| `detectorSkipped` | A detector wasn't loaded — `reason: 'config-disabled'` (a config toggle is off) or `'no-patterns'` (the loaded pattern database has no entries for it)                            |
+| Event             | Fires when                                                                                                                                                                                                                                                                                                |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `warn`            | A known, expected degraded condition (e.g. ML classifier unavailable under `onUnavailable: 'warn-and-skip'`, `session.accumulation` requested but not available in the regex SDK, an ML result skipped because the tokenizer could not read the input; the skip also appears in `stats.detectorsSkipped`) |
+| `error`           | A detector's `scan()`/`scanAsync()` threw and was caught — includes the real `Error` object                                                                                                                                                                                                               |
+| `detectorSkipped` | A detector wasn't loaded — `reason: 'config-disabled'` (a config toggle is off) or `'no-patterns'` (the loaded pattern database has no entries for it)                                                                                                                                                    |
 
 `onUnavailable` on the ML config is unchanged and still controls _whether_ to throw/warn/skip when the ML classifier is unavailable — `on.warn` controls _where_ that warning goes.
 
@@ -512,8 +555,8 @@ Phrase matching is English only, so an override written in another language isn'
 
 ### Behavioural Control (Shipped)
 
-- **JailbreakPatternDetector** — Pattern-matches against known jailbreak templates (DAN, role-play bypasses, educational framing exploits, developer mode claims)
-- **ExfiltrationDetector** — Flags instructions that attempt to locate, encode, and transmit context data to external endpoints It also catches markdown images that leak data through the image URL: inline `![](url?data=...)` and reference-style `![alt][ref]` / `![ref][]` / `![ref]` with a `[ref]: url?data=...` definition before or after the image, at any distance, following CommonMark's rules for labels (nested and escaped brackets, line breaks, `\r` line endings, Unicode case folding).
+- **JailbreakPatternDetector** — Pattern-matches against known jailbreak templates (DAN, role-play bypasses, educational framing exploits, developer mode claims), plus, at `strict` only, an instruction to install a package from a raw URL or git source and then commit, push, merge or publish the result to a protected branch (the Clinejection shape)
+- **ExfiltrationDetector** — Flags instructions that attempt to locate, encode, and transmit context data to external endpoints, and, at `strict` only, instructions to read private repository data and publish it to a public gist or paste (the GitHub MCP attack), and, at `strict` only, instructions hidden in an MCP tool description: read a key file and pass it along, redirect a recipient or add a bcc address, or a marked `<IMPORTANT>` block that conceals a step or names a secret file. At balanced these are not reported, because honest MCP setup guides, XML system prompts and CRM email docs use the same words; scan tool descriptions you did not write at `strict` It also catches markdown images that leak data through the image URL: inline `![](url?data=...)` and reference-style `![alt][ref]` / `![ref][]` / `![ref]` with a `[ref]: url?data=...` definition before or after the image, at any distance, following CommonMark's rules for labels (nested and escaped brackets, line breaks, `\r` line endings, Unicode case folding).
 - **SubAgentSpawningDetector** — Detects instructions that try to instantiate new agents, escalate tool permissions, or inject pipeline steps
 
 ### Transport Integrity (Partial)
@@ -521,6 +564,8 @@ Phrase matching is English only, so an override written in another language isn'
 - **CredentialExposureDetector** — Flags secrets present in scanned content (AWS keys, provider API keys, GitHub/GitLab/Slack tokens, PEM private key blocks, connection strings with embedded passwords, crypto private keys). Any intermediary on the path — a malicious API router, a proxy, a logging sidecar — sees ingested content in plaintext, so catching a secret before it enters agent context is what shrinks the exposure window ([Liu et al. 2026](https://arxiv.org/abs/2604.08407), AC-2).
 
   Matched secrets are **redacted in `Threat.evidence`** (`AKIA[REDACTED 20 chars]`), so a scan can't leak the credential it just found into CI logs, SARIF reports, or audit records. Sanitization is unaffected — it removes the secret from the content itself.
+
+- **DependencySubstitutionDetector** — Flags package installs that skip the trusted registry ([Liu et al. 2026](https://arxiv.org/abs/2604.08407), AC-1.a): custom index flags (`--extra-index-url`, `--index-url`, `--registry`, `pip install -i`), config commands and variables that set the index (`pip config set global.index-url`, `npm config set registry`, `PIP_INDEX_URL`, `GOPROXY`), installs from a raw URL or git source, and a package resolver redirected to a proxy with an egress reason (the July 2026 Artifactory escape path). It reports at `strict` only: private registries, git installs and internal-mirror guides are normal, and a regex cannot tell a mirror guide from the attack that borrows its wording. It does not keep a typosquat dictionary or look packages up. Matched text is replaced with a warning in sanitized output.
 
   Published example keys (`AKIAIOSFODNN7EXAMPLE`), placeholders (`sk-your-key-here`), and masked references (`AKIA****`) are excluded by design. Low-confidence formats that are common in API documentation — bare bearer tokens and JWTs — surface only at `strict`.
 
@@ -594,7 +639,7 @@ armor.loadPatterns(latestPatterns);
 armor.loadPatterns(myCustomPatterns);
 
 // Check current pattern version
-console.log(armor.patternVersion); // '0.9.5'
+console.log(armor.patternVersion); // '0.9.12'
 ```
 
 ## Framework Agnostic
@@ -634,15 +679,16 @@ npm run build && npx tsx examples/rag-pipeline.ts
 
 ## Roadmap & Research Opportunities
 
-Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy, plus the first detector in the Transport Integrity category (Liu et al. 2026). Here's what's shipped, what's next, and where the open questions are.
+Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy, plus the first detectors in the Transport Integrity category (Liu et al. 2026). Here's what's shipped, what's next, and where the open questions are.
 
 ### Shipped
 
 - **Content Injection** (5 detectors) and **Behavioural Control** (3 detectors) since v0.1.0
 - **Cognitive State** (3 detectors) and **Semantic Manipulation** (3 detectors) since v0.2.0
+- **Transport Integrity** (2 detectors): credential exposure and dependency substitution
 - **Pre-execution action gate** — deterministic allowlist admissibility check (`checkAction()`)
 - ML classifier (DeBERTa-v3-small, ONNX) as optional companion package
-- Pattern database v0.9.5 with 106 pattern entries
+- Pattern database v0.9.12 with 117 pattern entries
 
 ### In Progress
 
@@ -693,13 +739,13 @@ Where it _does_ fit: if your team is building custom agents _using_ the Claude A
 
 ### Isn't this just prompt injection detection?
 
-Prompt injection is one attack type out of the 10 we cover (detected by 13 detectors). Prompt injection targets chatbots within a single conversation. Agent traps target autonomous agents with tool access, persistent memory, and sub-agent spawning. Different attack surface, different blast radius.
+Prompt injection is one attack type among the many we cover (16 detectors across 5 attack categories). Prompt injection targets chatbots within a single conversation. Agent traps target autonomous agents with tool access, persistent memory, and sub-agent spawning. Different attack surface, different blast radius.
 
 The full taxonomy includes content injection, behavioral control, cognitive state manipulation (RAG/memory poisoning), and semantic manipulation (biased framing, persona shifts). These are distinct attack categories with different detection approaches.
 
 ### Can a determined attacker bypass this?
 
-Yes. A sophisticated adversary with knowledge of the pattern database can craft content that evades regex detection. The ML classifier raises the bar significantly, but no detection system is foolproof.
+Yes. A sophisticated adversary with knowledge of the pattern database can craft content that evades regex detection. The ML classifier can add findings the regex misses, but it also flags a lot of honest text (see [How well it works](#how-well-it-works)), so treat it as a second opinion. No detection system is foolproof.
 
 Agent Armor is defense-in-depth. It raises the cost of attack and catches the broad majority of real-world attacks. Think of it as input validation for your agent pipeline, grounded in a real taxonomy rather than guesswork.
 

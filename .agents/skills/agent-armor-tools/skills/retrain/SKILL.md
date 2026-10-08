@@ -117,11 +117,22 @@ After evaluation passes the quality gate:
 # Export to ONNX + INT8 quantization
 KMP_DUPLICATE_LIB_OK=TRUE python3 -m ml.train.export_onnx
 
-# Push to HuggingFace
-KMP_DUPLICATE_LIB_OK=TRUE python3 -m ml.train.push_to_hub
+# Push to a NEW HuggingFace revision (never main: published package versions
+# download from a pinned revision and check a baked-in SHA-256)
+KMP_DUPLICATE_LIB_OK=TRUE python3 -m ml.train.push_to_hub --revision v3 --dry-run   # inspect first
+KMP_DUPLICATE_LIB_OK=TRUE python3 -m ml.train.push_to_hub --revision v3
 ```
 
-After pushing, update `MODEL_CHECKSUM` in `packages/ml/src/constants.ts` with the new SHA-256. The push script reads `ml/train/output/eval_report.json` to populate the model card.
+Then, in one PR, set `HF_REVISION`, `MODEL_VERSION` (same value) and `MODEL_CHECKSUM` in `packages/ml/src/constants.ts`, and update the README measurement table and the numbers in the `push_to_hub.py` model card. Merge once `model-integrity` passes against the new revision, then the release PR.
+
+Regenerate the tokenizer golden ids from the exported model and commit them (the package test fails if `tokenizer.json` changes without this, #271):
+
+```bash
+KMP_DUPLICATE_LIB_OK=TRUE python3 packages/ml/scripts/gen-tokenizer-fixtures.py ml/train/output/onnx
+cd packages/ml && TOKENIZER_JSON=../../ml/train/output/onnx/tokenizer.json npm test
+```
+
+The push script reads `ml/train/output/eval_report.json` to populate the model card.
 
 ## Model details
 

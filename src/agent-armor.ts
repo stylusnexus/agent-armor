@@ -302,6 +302,18 @@ const DETECTOR_REGISTRY: Array<{
     replaceText: '[REDACTED: potential credential removed by AgentArmor]',
     maskEvidence: true,
   },
+  {
+    configGroup: 'transportIntegrity',
+    configKey: 'dependencySubstitution',
+    patternDbKey: 'dependency-substitution',
+    id: 'dependency-substitution',
+    name: 'Dependency Substitution Detector',
+    category: 'transport-integrity',
+    trapType: 'dependency-substitution',
+    sanitizeMode: 'replace',
+    replaceText:
+      '[BLOCKED: suspicious package source flagged by AgentArmor — verify the package and registry before executing]',
+  },
 ];
 
 /**
@@ -325,6 +337,8 @@ export class AgentArmor {
   private maskedDetectorIds = new Set<string>();
   /** Guards the one-time "accumulation not yet implemented" warning. */
   private accumulationWarned = false;
+  /** Detector ids whose "skipped this input" warning has already fired. */
+  private skipWarned = new Set<string>();
 
   constructor(config?: AgentArmorConfig) {
     this.config = {
@@ -577,7 +591,7 @@ export class AgentArmor {
         this.mlDetector = detector;
         this.detectors.push(detector);
       } catch (err) {
-        const behavior = mlConfig.onUnavailable ?? 'throw';
+        const behavior = mlConfig.onUnavailable ?? 'warn-and-skip';
         if (behavior === 'throw') {
           throw new Error(
             `ML classifier unavailable: ${err instanceof Error ? err.message : String(err)}. ` +
@@ -778,6 +792,7 @@ export class AgentArmor {
     if (content.length > this.config.maxInputLength) return this.oversizedResult(content);
     const start = performance.now();
     const allThreats: Threat[] = [];
+    const skipped: Array<{ detectorId: string; reason: string }> = [];
     const norm = this.config.normalizeUnicode ? normalizeForScan(content) : null;
 
     for (const detector of this.detectors) {
@@ -792,6 +807,10 @@ export class AgentArmor {
             allThreats,
             useNorm ? this.remapThreats(result.threats, norm!, content) : result.threats,
           );
+          if (result.skipped) {
+            skipped.push({ detectorId: detector.id, reason: result.skipped.reason });
+            this.warnSkipped(detector.id, result.skipped.reason);
+          }
         } else {
           const result = detector.scan(scanInput, {
             strictness: this.config.strictness,
@@ -832,8 +851,21 @@ export class AgentArmor {
         detectorsRun: this.detectors.length,
         threatsFound: allThreats.length,
         highestSeverity: allThreats[0]?.severity ?? null,
+        ...(skipped.length > 0 ? { detectorsSkipped: skipped } : {}),
       },
     };
+  }
+
+  /** One warning per detector: it could not judge an input (see DetectorResult.skipped). */
+  private warnSkipped(detectorId: string, reason: string): void {
+    if (this.skipWarned.has(detectorId)) return;
+    this.skipWarned.add(detectorId);
+    const message = `[AgentArmor] Detector "${detectorId}" skipped an input: ${reason}`;
+    if (this.config.on?.warn) {
+      this.config.on.warn({ message, context: { detectorId } });
+    } else {
+      console.warn(message);
+    }
   }
 
   /** sha256 of a string, formatted as `sha256:<hex>` (matches EvidencePackage.packageDigest's format). */

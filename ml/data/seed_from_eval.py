@@ -53,8 +53,15 @@ def extract_samples_from_ts() -> list[dict]:
     return json.loads(result.stdout)
 
 
-def convert_sample(raw: dict) -> TrainingSample:
-    """Map an eval sample dict to a TrainingSample."""
+def convert_sample(raw: dict) -> TrainingSample | None:
+    """Map an eval sample dict to a TrainingSample.
+
+    Returns None for an adversarial sample whose trap types are all outside the
+    model's label set (credential-exposure, steganographic-payload,
+    dependency-substitution). Labelling those "benign" would teach and score the
+    model on a wrong answer, and the label space cannot change without breaking
+    the order that `npm run check:model` compares.
+    """
     expected: list[str] = raw.get("expected", [])
 
     if not expected:
@@ -62,7 +69,7 @@ def convert_sample(raw: dict) -> TrainingSample:
     else:
         labels = [l for l in expected if l in TRAP_LABELS]
         if not labels:
-            labels = ["benign"]
+            return None
 
     return TrainingSample(
         text=raw["content"],
@@ -82,7 +89,9 @@ def main() -> None:
     print(f"Extracting eval samples from {SAMPLES_TS.relative_to(ROOT)} ...")
     raw_samples = extract_samples_from_ts()
 
-    samples = [convert_sample(s) for s in raw_samples]
+    converted = [convert_sample(s) for s in raw_samples]
+    samples = [s for s in converted if s is not None]
+    skipped = len(converted) - len(samples)
 
     # Validate all samples
     errors: list[str] = []
@@ -102,6 +111,7 @@ def main() -> None:
     print(f"Wrote {len(samples)} samples to {OUTPUT_PATH.relative_to(ROOT)}")
     print(f"  adversarial: {adversarial}")
     print(f"  benign:      {benign}")
+    print(f"  skipped (trap type outside the label set): {skipped}")
 
 
 if __name__ == "__main__":

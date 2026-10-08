@@ -10,6 +10,7 @@ interface DetectorOptions {
 
 interface DetectorResult {
   threats: Threat[];
+  skipped?: { reason: string };
 }
 
 interface Threat {
@@ -42,6 +43,9 @@ interface OrtModule {
   InferenceSession: { create(path: string): Promise<OrtSession> };
   Tensor: new (type: string, data: any, dims: number[]) => any;
 }
+
+/** More than this share of unknown content tokens means the tokenizer does not fit the model. */
+const MAX_UNKNOWN_RATIO = 0.5;
 
 const THRESHOLDS: Record<string, number> = {
   strict: 0.3,
@@ -96,8 +100,10 @@ export class MLDetector implements Detector {
   /** Loads the ONNX session and tokenizer from resolved {@link ModelArtifacts}. */
   static async create(artifacts: ModelArtifacts): Promise<MLDetector> {
     const ort = (await import('onnxruntime-node')) as unknown as OrtModule;
-    const session = await ort.InferenceSession.create(artifacts.modelPath);
+    // Load the tokenizer first: it can reject the model directory, and a session
+    // created before that would be left open.
     const tokenizer = await Tokenizer.fromFile(artifacts.tokenizerPath);
+    const session = await ort.InferenceSession.create(artifacts.modelPath);
     return new MLDetector(session, tokenizer, ort);
   }
 
@@ -111,7 +117,20 @@ export class MLDetector implements Detector {
     const strictness = options?.strictness ?? 'balanced';
     const threshold = THRESHOLDS[strictness] ?? THRESHOLDS.balanced;
 
-    const { inputIds, attentionMask } = this.tokenizer.encode(content, 512);
+    const { inputIds, attentionMask, unknownRatio } = await this.tokenizer.encode(content, 512);
+
+    // Mostly unknown ids means the tokenizer and the model disagree (the failure
+    // behind #271). The output would only reflect the input's length, so drop the
+    // ML result and let the pattern detectors carry the scan. The skip is
+    // reported in the result; AgentArmor turns it into one on.warn event.
+    if (unknownRatio > MAX_UNKNOWN_RATIO && content.length > 5) {
+      return {
+        threats: [],
+        skipped: {
+          reason: `${(unknownRatio * 100).toFixed(0)}% of the tokens are unknown, so the tokenizer does not match the model (see https://github.com/stylusnexus/agent-armor/issues/271)`,
+        },
+      };
+    }
 
     const feeds: Record<string, any> = {
       input_ids: new this.ort.Tensor('int64', inputIds, [1, 512]),

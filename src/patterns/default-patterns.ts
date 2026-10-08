@@ -12,8 +12,8 @@ import type { PatternDatabase } from './pattern-db';
  *           variation-selector runs (#69 item 1)
  */
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.5',
-  updatedAt: '2026-10-04',
+  version: '0.9.12',
+  updatedAt: '2026-10-07',
   detectors: {
     'hidden-html': [
       {
@@ -505,6 +505,26 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         boostOnInstructions: true,
       },
       {
+        // The Clinejection shape (#252): an issue or comment tells an AI triager
+        // to install a package from an attacker URL and then commit, push or
+        // publish the result. Strict only (0.4). Honest text says the same
+        // thing in a different mood ("if it works we will merge it into main",
+        // "never push to main", an advisory quoting the attack), and three
+        // red-team passes kept finding new honest cases at balanced. A regex
+        // cannot tell a description from an order, so this does not report at
+        // balanced. The lookahead after the URL keeps the runs from
+        // overlapping, which keeps the scan linear.
+        id: 'jb-install-url-then-commit',
+        regex:
+          '\\b(?:run|running|execute|executing|use|using|invoke|invoking|type|do)[\\s`*:]{1,5}(?:sudo\\s+)?(?:npm|pnpm|yarn|bun|pip3?|cargo)\\s+(?:install|add|i)\\s+(?:-[\\w-]+(?:=\\S+)?\\s+){0,6}[\'"<(]?(?:git\\+)?(?:https?|ssh)://[^\\s\'"`>)]+(?=[\\s\'"`>)])[^.!?;\\n]{0,200}?(?<!\\b(?:never|not)\\s+)(?<!n\x27t\\s+)\\b(?:commit|push|merge|publish)\\b(?!\\s+(?:(?:the|your|a|this|that)\\s+)*(?:release\\s+)?(?:PR|pull\\s+requests?|tags?)\\b)[^.!?;\\n]{0,60}?(?:\\b(?:to|into|onto)\\s+(?:the\\s+)?|\\borigin\\s+(?:HEAD:)?)[`*]{0,2}(?:origin/)?(?:main|master|production|prod|default|trunk|release\\s+(?:branch|tag))\\b',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'embedded-jailbreak',
+        severity: 'high',
+        confidence: 0.4,
+        label: 'Instruction to install a package from a URL and commit or publish the result',
+      },
+      {
         id: 'jb-stop-following-user',
         regex:
           '\\bstop\\s+(?:following|obeying)\\s+(?:the\\s+)?users?[\x27’]?s?\\s+(?:instructions?|requests?|commands?|orders?|directions?)\\b|\\bstop\\s+obeying\\s+(?:the\\s+)?users?\\b',
@@ -621,7 +641,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       {
         id: 'ex-sensitive-file',
         regex:
-          '(?:read|access|open|cat|list|find)\\s+(?:the\\s+)?(?:file|files|directory|folder|path)\\s+(?:at|in|from)\\s+[\\s\\S]{0,50}(?:\\.env|\\.ssh|credentials?|password|secret|config|token)',
+          '(?:read|access|open|cat|list|find)\\s+(?:the\\s+)?(?:file|files|directory|folder|path)\\s+(?:at|in|from):?(?=([^\\S\\n]*\\n?[^\\S\\n]*))\\1(?<=\\s)(?!\\n)(?:[^\\n]|\\n(?![^\\S\\n]*\\n)){0,61}?(?:\\.env|\\.ssh|\\.aws|\\.netrc|\\.npmrc|\\.pgpass|[/\\\\~.\'"`_-](?:credentials?|passwords?|secrets?|config|tokens?)|(?<!\\w)(?:credentials?|passwords?|secrets?|config)(?:/|\\s+(?:directory|folder|dir|files?|vault|store)\\b)|(?<!\\w)(?:credentials?|passwords?|secrets?)[\\w.-]{0,60}?\\.(?:json|ya?ml|txt|csv|kdbx|xlsx?|ini|toml|pem|key|env|xml|properties|cfg|conf|json5|tfvars|db|bak|gpg|p12|pfx|jks|docx)\\b)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -702,6 +722,91 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         confidence: 0.85,
         label: 'Instruction to send the contents of a secret file',
         boostOnInstructions: true,
+      },
+      {
+        // The GitHub MCP shape (#250, Invariant Labs, May 2025): an instruction
+        // to read private repository data and publish it to a public gist or
+        // paste. Strict only (0.4). Security policies, advisories and training
+        // text say the same thing ("agents are not allowed to...", "the attack
+        // caused the agent to...", "never copy private repo code to a public
+        // gist"), and a regex cannot tell a description or a ban from an order.
+        // "public repository" is not a destination here: fork and contributor
+        // guides say "clone the private repo, then open a PR on the public one".
+        id: 'ex-private-repo-public',
+        regex:
+          '(?<!\\b(?:never|not)\\s+)(?<!n\x27t\\s+)\\b(?:read|copy|dump|export|collect|gather|clone|get|fetch|pull|grab|list|send)(?:s|ing)?\\b[^.!?;\\n]{0,80}?\\bprivate\\s+(?:repos?|repositor(?:y|ies))\\b[^.!?;\\n]{0,160}?(?:\\bpublic\\s+(?:gist|paste|pastebin)\\b|\\b(?:to|on)\\s+(?:a\\s+)?(?:pastebin|paste\\s+site)\\b|\\b(?:create|post|publish|upload|put)\\w*\\b[^.!?;\\n]{0,40}?\\bgist\\b)',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'critical',
+        confidence: 0.4,
+        label: 'Instruction to read private repository data and publish it publicly',
+      },
+      // MCP tool-description poisoning (#218). Instructions hidden in the text an
+      // MCP server gives the agent about a tool. Each pattern needs a secret
+      // target (a key file path, a literal address) AND a pass-it-along or
+      // conceal-it verb in one sentence. All five report at strict only (0.4):
+      // an independent review found the honest look-alikes are the most common
+      // text in this space (XML system prompts such as <SYSTEM>...Do not tell
+      // the user</SYSTEM>, MCP setup READMEs that say "open ~/.cursor/mcp.json
+      // and add", CRM docs that say "always include bcc: ..."). The leading
+      // word break also accepts a literal backslash-n, because the real attack
+      // arrives inside a JSON string. Not covered: shadowing another tool,
+      // which needs the tool list as structure (option 3 in #218).
+      {
+        id: 'ex-tool-read-pass',
+        regex:
+          '(?:\\b|(?<=\\\\[nrt]))(?:before|prior\\s+to|whenever|when)\\s+(?:using|calling|invoking|running|you\\s+use|you\\s+call|this\\s+tool\\s+is\\s+(?:used|called))\\b[^.!?;\\n]{0,40}?\\b(?:read|open|fetch|load|access|cat)\\b[^.!?;\\n]{0,60}?(?:~/|\\.ssh\\b|\\.aws\\b|\\.env\\b|id_rsa|mcp\\.json|credentials\\.\\w+|\\.npmrc\\b|\\.netrc\\b)(?:[^.!?;\\n]|\\.(?=\\S)){0,80}?\\b(?:pass|include|append|add|put|send|provide|supply|attach|forward|paste)\\b',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'critical',
+        confidence: 0.4,
+        label: 'Tool description tells the agent to read a secret file and pass it along',
+      },
+      {
+        id: 'ex-tool-redirect-recipient',
+        regex:
+          '(?:\\b|(?<=\\\\[nrt]))(?:when|whenever|if|each\\s+time|every\\s+time)\\b[^.!?;\\n]{0,40}?\\b(?:tool|function|command)\\b[^.!?;\\n]{0,30}?\\b(?:called|used|invoked|run)\\b[^.!?;\\n]{0,40}?\\b(?:change|replace|set|redirect|override|route)\\b[^.!?;\\n]{0,30}?\\b(?:recipient|destination|bcc|address)\\b[^.!?;\\n]{0,30}?\\b(?:to|with)\\s+[\\w.+-]+@[\\w-]+\\.[\\w.-]+',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'critical',
+        confidence: 0.4,
+        label: 'Tool description redirects a recipient to a literal address',
+      },
+      {
+        id: 'ex-tool-hidden-bcc',
+        regex:
+          '(?:\\b|(?<=\\\\[nrt]))(?:always|must|should)\\s+(?:include|add|attach|append)\\b[^.!?;\\n]{0,20}?\\bbcc\\b[^.!?;\\n]{0,10}?[\\s:]\\s*[\\w.+-]+@[\\w-]+\\.[\\w.-]+',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'high',
+        confidence: 0.4,
+        label: 'Tool description tells the agent to always add a bcc address',
+      },
+      {
+        id: 'ex-tool-secret-in-param',
+        regex:
+          '(?:\\b|(?<=\\\\[nrt]))(?:append|add|include|put|attach)\\b[^.!?;\\n]{0,40}?\\b(?:api[\\s_-]?key|secret|token|password|credentials?|private\\s+key|ssh\\s+key)\\b[^.!?;\\n]{0,50}?\\b(?:to|in|into|as)\\s+(?:the\\s+)?(?:side-?note|notes?|comment|description|metadata|extra|misc)\\s+(?:param(?:eter)?|argument|field)\\b',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'high',
+        confidence: 0.4,
+        label: 'Tool description tells the agent to append a secret to a notes parameter',
+      },
+      {
+        id: 'ex-tool-important-block',
+        regex:
+          '<(?:IMPORTANT|SYSTEM|INSTRUCTIONS?)>[^<]{0,300}?(?:do\\s+not\\s+(?:tell|mention|reveal|show)|without\\s+(?:telling|informing|notifying)|~/|\\.ssh\\b|\\.aws\\b|\\.env\\b|mcp\\.json|id_rsa)',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'critical',
+        confidence: 0.4,
+        label: 'Marked block that hides an instruction or names a secret file',
       },
     ],
 
@@ -1390,6 +1495,62 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         severity: 'medium',
         confidence: 0.45,
         label: 'JSON Web Token',
+      },
+    ],
+
+    // Dependency substitution (AC-1.a, #29). Anchored on the index or registry
+    // flag, the config command, the raw-URL source or the redirect wording,
+    // never on `install` alone, so a plain `npm install express` stays clean.
+    // Every pattern sits below the balanced threshold (strict only). Honest docs
+    // say the same things: an enterprise guide that points the registry at an
+    // internal mirror and mentions blocked egress reads exactly like the July
+    // 2026 Artifactory escape text, and private registries and git installs are
+    // normal in real projects. A regex cannot tell them apart, so none of these
+    // reports at balanced.
+    'dependency-substitution': [
+      {
+        id: 'ds-resolver-egress',
+        regex:
+          '\\b(?:resolver|registry|package\\s+index)\\s+(?:to|at)\\s+[\\w -]{0,60}?(?:proxy|mirror|cache|upstream|artifact\\s+server|repository\\s+manager)(?:\\s+at\\s+|\\s*:\\s*|\\s+)[\'"<`]?https?://[^\\s]{1,500}(?=\\s)[\\s\\S]{0,300}?\\b(?:egress|outbound|internet\\s+access|reach\\s+the\\s+internet|network\\s+access|external\\s+access|firewall)\\b',
+        flags: 'gi',
+        category: 'transport-integrity',
+        type: 'dependency-substitution',
+        severity: 'high',
+        confidence: 0.4,
+        label: 'Package resolver redirected to a proxy for network egress',
+      },
+      {
+        id: 'ds-index-flag',
+        regex:
+          '(?:--extra-index-url|--index-url|--registry)(?:=|\\s+)(?:\\\\\\s+)?[\'"]?https?://[^\\s\'"]{1,200}|\\bpip3?\\s+install\\s+(?:\\S+\\s+){0,6}-i\\s+[\'"]?https?://[^\\s\'"]{1,200}',
+        flags: 'gi',
+        category: 'transport-integrity',
+        type: 'dependency-substitution',
+        severity: 'medium',
+        confidence: 0.4,
+        label: 'Package install pointed at a custom index or registry',
+      },
+      {
+        id: 'ds-config-index',
+        regex:
+          '(?:\\bpip3?\\s+config\\s+(?:--\\w+\\s+)?set\\s+\\S{1,40}index-url|\\bnpm\\s+(?:config\\s+)?set\\s+(?:@[\\w-]+:)?registry|\\b(?:pnpm|yarn)\\s+config\\s+set\\s+(?:npmRegistryServer|registry)|\\b(?:PIP_(?:EXTRA_)?INDEX_URL|UV_(?:EXTRA_)?INDEX_URL|NPM_CONFIG_REGISTRY|GOPROXY))\\s{0,3}[=:]?\\s{0,3}[\'"]?https?://[^\\s\'"]{1,200}',
+        flags: 'gi',
+        category: 'transport-integrity',
+        type: 'dependency-substitution',
+        severity: 'medium',
+        confidence: 0.4,
+        label: 'Package index or registry set through a config command or environment variable',
+      },
+      {
+        id: 'ds-install-from-url',
+        regex:
+          '\\b(?:npm|pnpm|yarn|bun|pip3?|cargo)\\s+(?:install|add|i)\\s+(?:(?!--(?:extra-)?index-url\\b|--registry\\b|-i\\s)-[\\w-]+\\s+){0,4}[\'"]?(?:git\\+)?(?:https?|ssh)://[^\\s\'"]{1,200}',
+        flags: 'gi',
+        category: 'transport-integrity',
+        type: 'dependency-substitution',
+        severity: 'medium',
+        confidence: 0.4,
+        label: 'Package installed from a URL or git source instead of a registry name',
       },
     ],
   },
