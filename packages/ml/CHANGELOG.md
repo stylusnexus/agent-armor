@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.7](https://github.com/stylusnexus/agent-armor/compare/agentarmor-ml-v0.1.6...agentarmor-ml-v0.1.7) (2026-10-08)
+
+
+### Fixed
+
+* **ml:** follow relative redirects on download ([c4e39a0](https://github.com/stylusnexus/agent-armor/commit/c4e39a05f42a646a02cf81acf01c9300e10a3619)), closes [#288](https://github.com/stylusnexus/agent-armor/issues/288)
+
 ## [0.1.6](https://github.com/stylusnexus/agent-armor/compare/agentarmor-ml-v0.1.5...agentarmor-ml-v0.1.6) (2026-10-08)
 
 
