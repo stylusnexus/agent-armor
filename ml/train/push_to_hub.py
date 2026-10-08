@@ -94,6 +94,7 @@ def _build_model_card(eval_report: dict | None, revision: str) -> str:
 license: mit
 language:
   - en
+  - zh
 tags:
   - agent-security
   - prompt-injection
@@ -154,10 +155,12 @@ held-out attacks and the NotInject benchmark below were never trained on.
 ## Evaluation
 
 Run on 2026-10-08 through the npm package (INT8 ONNX model, its tokenizer), at
-the default 0.5 threshold, on text this model was not trained on: the repo's
-105 benign and 142 adversarial eval samples, 110 held-out attacks written after
-the training data was fixed, 47 held-out Chinese attacks, and NotInject (339
-short benign prompts that contain attack words, 255 English and 84 Chinese; MIT).
+the default 0.5 threshold. Three sets were never trained on: 110 held-out
+attacks written after the training data was fixed, 47 held-out Chinese attacks,
+and NotInject (339 short benign prompts that contain attack words, 255 English
+and 84 Chinese; MIT). The repo's 105 benign and 142 adversarial eval samples
+were not trained on either, but they are part of the validation split that picks
+the best checkpoint, so the eval-suite figures are somewhat optimistic.
 
 | At 0.5 | Previous model (v1) | This revision | Regex detectors |
 |---|---|---|---|
@@ -167,15 +170,35 @@ short benign prompts that contain attack words, 255 English and 84 Chinese; MIT)
 | Held-out attacks flagged (of 110) | 74 | 87 | 17 |
 
 Ranking quality on the eval suite (area under the ROC curve, attacks against
-honest samples) is 0.89 against 0.59 for v1; the held-out ranking figure (0.86)
+honest samples) is 0.89 against 0.59 for v1. The held-out ranking figure (0.86)
 is optimistic, because the held-out and training samples share a drafting style.
 Used together with the regex detectors it catches 90 of 110 held-out attacks and
-flags 29 of 105 honest eval samples. The honest eval samples it still flags are
-mostly documents that quote an attack. It flags 11 of 84 Chinese and 27 of 255
-English NotInject prompts and catches 47 of 47 held-out Chinese attacks; other
-languages are unmeasured. Counts come from small sets, so treat differences of a
-few samples as noise.
+flags 29 of 105 honest eval samples. Of the 21 honest eval samples it flags, 3
+quote an attack; the rest are ordinary operations documents (credential
+rotation, incident summaries, CI output, setup steps with URLs) and markdown
+image links. It flags 11 of 84 Chinese and 27 of 255 English NotInject prompts
+and catches 47 of 47 held-out Chinese attacks; the Chinese honest training text
+imitates NotInject's style, so treat the Chinese figure as optimistic. Counts
+come from small sets, so treat differences of a few samples as noise.
 
+### Known limits
+
+- **Languages.** English and Chinese only. In probes, "ignore all previous
+  instructions" in Spanish, German and Russian scored 0.00, and 1 of 12 honest
+  texts in other languages was flagged.
+- **Long text.** An attack placed after about 700 characters of honest text drops
+  below 0.5 (the model reads at most 512 tokens, and attacks lose weight well
+  before that). No held-out attack is longer than 600 characters, so the figures
+  above do not measure this.
+- **Obfuscation.** Leetspeak and word-joiner characters were missed in probes;
+  zero-width, homoglyph and fullwidth tricks were caught.
+- **Weaker labels on held-out attacks:** embedded-jailbreak 9 of 14,
+  sub-agent-spawning 7 of 10, persona-hyperstition 3 of 5.
+- **Attacks v1 caught.** 14 held-out attacks that v1 flags are missed by both
+  this revision and the regex detectors, even though regex plus this revision
+  catches more overall (90 against 83).
+
+"""
     if eval_report:
         per_label = eval_report.get("per_label", {})
         card += "### In-distribution test split\n\n"
