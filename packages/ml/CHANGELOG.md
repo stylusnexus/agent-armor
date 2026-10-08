@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.6](https://github.com/stylusnexus/agent-armor/compare/agentarmor-ml-v0.1.5...agentarmor-ml-v0.1.6) (2026-10-08)
+
+
+### Fixed
+
+* **ml:** pin the model revision, fix model card ([aef8fea](https://github.com/stylusnexus/agent-armor/commit/aef8fea479a5b161b4200c5c7cff2b2a25aea11b))
+* **ml:** read text with the model's tokenizer ([42a6d74](https://github.com/stylusnexus/agent-armor/commit/42a6d74f371232e44dba8b1235094776e5256e3e)), closes [#271](https://github.com/stylusnexus/agent-armor/issues/271)
+* **ml:** report a skipped ML result in the scan ([5afbc4f](https://github.com/stylusnexus/agent-armor/commit/5afbc4f2115ef66f73721191167af0de94ee19e1)), closes [#278](https://github.com/stylusnexus/agent-armor/issues/278) [#279](https://github.com/stylusnexus/agent-armor/issues/279)
+
+
+### Documentation
+
+* **ml:** state the classifier's limits on its npm page ([2300888](https://github.com/stylusnexus/agent-armor/commit/2300888995113f93bc47960f762c26d8b878bb0b)), closes [#212](https://github.com/stylusnexus/agent-armor/issues/212)
+
 ## [0.1.5](https://github.com/stylusnexus/agent-armor/compare/agentarmor-ml-v0.1.4...agentarmor-ml-v0.1.5) (2026-10-02)
 
 
