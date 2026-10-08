@@ -210,7 +210,10 @@ export async function downloadFile(
               res.statusCode < 400 &&
               res.headers.location
             ) {
-              makeRequest(res.headers.location, redirectCount + 1);
+              // Hugging Face redirects a branch download to a relative path
+              // (/api/resolve-cache/...), so resolve it against the current URL.
+              res.resume();
+              makeRequest(new URL(res.headers.location, requestUrl).toString(), redirectCount + 1);
               return;
             }
 
