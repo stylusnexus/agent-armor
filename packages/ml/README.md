@@ -88,6 +88,16 @@ agentarmor-ml clear-cache
 - Applies sigmoid on logits with strictness-based thresholds: `strict=0.3`, `balanced=0.5`, `permissive=0.7`
 - `scan()` (sync) returns empty — ML inference is async-only via `scanAsync()`
 
+## Limits
+
+Treat the classifier as a second opinion for triage, not a gate. The regex result stays the thing that blocks content. Measured on 2026-10-08 on the shipped INT8 model (see the [main README](https://github.com/stylusnexus/agent-armor#how-well-it-works) for the full table):
+
+- **False flags.** It flags 21 of 105 honest eval samples (about 20%) and 38 of 339 short NotInject prompts; together with the regex detectors, 29 of 105 honest eval samples. Most flags are ordinary operations documents (credential rotation, incident summaries, CI output, setup steps with URLs) and markdown image links.
+- **Languages.** English and Chinese only. In probes, "ignore all previous instructions" in Spanish, German and Russian was not flagged.
+- **Long text.** The model reads at most 512 tokens, and an attack after about 700 characters of honest text drops below the threshold ([#274](https://github.com/stylusnexus/agent-armor/issues/274)).
+- **Obfuscation.** Leetspeak and word-joiner characters were missed in probes.
+- **Small evaluation sets.** Differences of 10 to 20 samples between model versions are noise.
+
 ## Deployment Notes
 
 - **AWS Lambda:** 165MB model + ~40MB onnxruntime = ~205MB, fits the 250MB limit but is tight. Use `modelDir` to bundle the model in your deployment package.
