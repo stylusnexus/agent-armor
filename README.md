@@ -399,27 +399,29 @@ If the ML package is not installed or the model is unavailable, behavior depends
 
 ### How well it works
 
-Measured on 2026-10-07 (regex column at the default `balanced` level) on text no model in the comparison was trained on: the repo's 105 benign eval samples, its 142 adversarial eval samples, and 110 held-out attack samples written after the training data was fixed (original wording plus paraphrases of public 2025-2026 write-ups). A sample is flagged when the model reports any trap label at the default 0.5 threshold. The model was run with its own training tokenizer; the fixed npm package (#277) matches it on all golden test strings.
+Measured on 2026-10-08 through the npm package (the shipped INT8 model and its own tokenizer; regex column at the default `balanced` level) on text no model in the comparison was trained on: the repo's 105 benign eval samples, its 142 adversarial eval samples, 110 held-out attack samples written after the training data was fixed (original wording plus paraphrases of public 2025-2026 write-ups), 47 held-out Chinese attacks, and NotInject (339 short benign prompts that contain attack words, 255 English and 84 Chinese; MIT). A sample is flagged when the model reports any trap label at the default 0.5 threshold.
 
-|                                                         | Published model (v1) | Retrain candidate (run 3, #212, not published) | Regex detectors                           |
+|                                                         | Published model (v1) | Retrain candidate (run 6, #212, not published) | Regex detectors                           |
 | ------------------------------------------------------- | -------------------- | ---------------------------------------------- | ----------------------------------------- |
-| Benign eval samples flagged (of 105)                    | 69                   | 11                                             | 11 (the documented known false positives) |
-| Eval-suite attacks flagged (of 142)                     | 108                  | 79                                             | 135                                       |
-| Held-out attacks flagged (of 110)                       | 76                   | 67                                             | 17                                        |
-| Eval-suite attacks ranked above eval-suite benign (AUC) | 0.58                 | 0.82                                           | not applicable                            |
-| Eval-suite attacks caught at 5% false flags             | 4%                   | 43%                                            | not applicable                            |
-| Held-out attacks ranked above honest text (AUC)         | 0.55                 | 0.89                                           | not applicable                            |
+| Benign eval samples flagged (of 105)                    | 69                   | 21                                             | 11 (the documented known false positives) |
+| NotInject prompts flagged (of 339)                      | 165                  | 38                                             | 1                                         |
+| Eval-suite attacks flagged (of 142)                     | 107                  | 117                                            | 135                                       |
+| Held-out attacks flagged (of 110)                       | 74                   | 87                                             | 17                                        |
+| Eval-suite attacks ranked above eval-suite benign (AUC) | 0.59                 | 0.89                                           | not applicable                            |
+| Eval-suite attacks caught at 5% false flags             | 4%                   | 37%                                            | not applicable                            |
+| Held-out attacks ranked above honest text (AUC)         | 0.52                 | 0.86                                           | not applicable                            |
 
 What this means:
 
 - **Use the classifier as a second opinion for triage, not a gate.** A finding with `source: 'ml'` should go to review; the regex result stays the thing that blocks content.
-- **The published model flags two thirds of the repo's honest samples.** The retrain candidate flags 11 of 105, the same count as the regex (the regex's 11 are the known false positives that quote an attack).
-- **The two layers catch different things.** The regex catches 135 of 142 eval attacks and the candidate 79, but on the held-out attacks, which use wording the regex was never written for, the candidate flags 67 of 110 and the regex 17. That gap is why the classifier is worth running.
+- **The published model flags two thirds of the repo's honest samples and half of the NotInject prompts.** The retrain candidate flags 21 of 105 honest eval samples and 38 of 339 NotInject prompts. The 21 are mostly honest documents that quote an attack (an incident report that mentions emailing a credentials file, a base64 example), which the regex also finds hard (it flags 11).
+- **The two layers catch different things.** The regex catches 135 of 142 eval attacks and the candidate 117, but on the held-out attacks, which use wording the regex was never written for, the candidate flags 87 of 110 and the regex 17. Together they catch 90 of the 110 and flag 29 of the 105 honest samples. That gap is why the classifier is worth running.
 - **Read the ranking rows (AUC) with the counts.** A model that flags everything scores well on detection. The eval-suite AUC is the fairest comparison: those samples were written separately from the training data. The held-out AUC is optimistic, because the held-out and training samples were written in the same pass and share a style.
-- **Short prompts that contain attack words are still over-flagged** ([#275](https://github.com/stylusnexus/agent-armor/issues/275)). On NotInject (339 short benign prompts with attack words; MIT) the published model flags 160, the retrain candidate 120 and the regex 1. Our honest training data is document-style, so run the classifier on documents, not chat messages.
+- **Chinese is covered, other languages are not.** The candidate flags 11 of the 84 Chinese NotInject prompts and catches 47 of 47 held-out Chinese attacks. The published model and earlier retrains had almost no Chinese in training and flagged most Chinese requests. Other languages have not been measured.
+- **Short prompts are mostly fixed, not fully.** The candidate flags 27 of 255 English NotInject prompts, mostly polite formal requests that use words like "ensure" or "command". Differences between retrains of 10 to 20 prompts are noise at this size.
 - **Labels are approximate.** The model often reports an attack under a different trap label than ours, so treat the label as a hint.
 
-The training data, the held-out set and the scoring script are in `ml/`; reproduce the table with `python3 -m ml.train.evaluate_holdout`.
+The training data, the held-out set and the scoring script are in `ml/`. `python3 -m ml.train.evaluate_holdout` reproduces the table from the PyTorch weights, which differ from the shipped INT8 model by a few samples in each row.
 
 ## CLI
 

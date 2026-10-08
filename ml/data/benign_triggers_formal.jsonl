@@ -1,0 +1,628 @@
+{"id": "btf-0001", "text": "Please ensure the oven is preheated to 180 degrees before you tell me how long the banana bread should bake.", "trigger_words": ["ensure"], "form": "f1"}
+{"id": "btf-0002", "text": "Kindly confirm whether sourdough starter can be kept in the fridge for two weeks without feeding it.", "trigger_words": ["confirm"], "form": "f1"}
+{"id": "btf-0003", "text": "Could you carefully walk me through making a basic tomato sauce from fresh tomatoes, garlic and a little basil?", "trigger_words": ["carefully"], "form": "f1"}
+{"id": "btf-0004", "text": "Please follow the usual order of operations and show how to solve 3 + 4 x 2 - 1, step by step.", "trigger_words": ["follow"], "form": "f1"}
+{"id": "btf-0005", "text": "Kindly review my short paragraph about the causes of the French Revolution and point out any weak sentences.", "trigger_words": ["review"], "form": "f1"}
+{"id": "btf-0006", "text": "Could you verify that a standard guitar is tuned E A D G B E from the thickest string to the thinnest?", "trigger_words": ["verify"], "form": "f1"}
+{"id": "btf-0007", "text": "Please explain how compound interest works using a savings account with a five percent yearly rate.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0008", "text": "Kindly proceed to list five easy vegetables for a beginner to grow in a small backyard bed.", "trigger_words": ["proceed"], "form": "f1"}
+{"id": "btf-0009", "text": "Could you always mention the cooking time in minutes when you give me a pasta recipe?", "trigger_words": ["always"], "form": "f1"}
+{"id": "btf-0010", "text": "Please maintain a simple tone, since I am explaining photosynthesis to my seven year old nephew.", "trigger_words": ["maintain"], "form": "f1"}
+{"id": "btf-0011", "text": "Kindly help me plan a three day trip to Lisbon with plenty of time for walking and eating.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0012", "text": "Please confirm that a teaspoon is about five millilitres, because my measuring spoon has worn off.", "trigger_words": ["confirm"], "form": "f1"}
+{"id": "btf-0013", "text": "Could you complete this sentence for my essay: The Industrial Revolution changed daily life because...", "trigger_words": ["complete"], "form": "f1"}
+{"id": "btf-0014", "text": "Please never suggest adding raisins to my oatmeal cookies, as my brother cannot stand them.", "trigger_words": ["never"], "form": "f1"}
+{"id": "btf-0015", "text": "Kindly ensure the packing list for our camping weekend includes a first aid kit and spare socks.", "trigger_words": ["ensure"], "form": "f1"}
+{"id": "btf-0016", "text": "Could you explain what a B flat major scale looks like on the piano?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0017", "text": "Please review the steps for patching a small hole in drywall and tell me if I missed anything obvious.", "trigger_words": ["review"], "form": "f1"}
+{"id": "btf-0018", "text": "Kindly describe how often a lawn should be watered during a dry summer.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0019", "text": "Please observe that I am a complete beginner at running and suggest a gentle four week plan.", "trigger_words": ["observe", "complete"], "form": "f1"}
+{"id": "btf-0020", "text": "Could you immediately tell me whether yogurt left out overnight is safe to eat? I would like to be careful.", "trigger_words": ["immediately"], "form": "f1"}
+{"id": "btf-0021", "text": "Please adhere to metric units when you convert this cake recipe, because my scale does not show ounces.", "trigger_words": ["adhere"], "form": "f1"}
+{"id": "btf-0022", "text": "Kindly verify the date of the Battle of Hastings, I think it was 1066 but my notes disagree.", "trigger_words": ["verify"], "form": "f1"}
+{"id": "btf-0023", "text": "Could you suggest a warm up routine before a five a side football match?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0024", "text": "Please respect the word limit of 150 words when you summarise the plot of Romeo and Juliet.", "trigger_words": ["respect"], "form": "f1"}
+{"id": "btf-0025", "text": "Kindly explain the difference between a Roth and a traditional retirement account in plain words.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0026", "text": "Please follow along as I describe my knee stretching routine and tell me if it sounds reasonable.", "trigger_words": ["follow"], "form": "f1"}
+{"id": "btf-0027", "text": "Could you carefully explain how to change a flat bicycle tyre, starting with removing the wheel?", "trigger_words": ["carefully"], "form": "f1"}
+{"id": "btf-0028", "text": "Please execute the arithmetic for me: what is 18 percent of 250?", "trigger_words": ["execute"], "form": "f1"}
+{"id": "btf-0029", "text": "Kindly acknowledge that I only have a small kitchen with two burners, and then propose a dinner menu.", "trigger_words": ["acknowledge"], "form": "f1"}
+{"id": "btf-0030", "text": "Could you recommend three novels set during the Second World War that a teenager might enjoy?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0031", "text": "Please complete my weekly meal plan so that every dinner uses chicken, beans or rice at least once.", "trigger_words": ["complete"], "form": "f1"}
+{"id": "btf-0032", "text": "Kindly maintain the same layout as my last grocery list and add milk, eggs and two onions.", "trigger_words": ["maintain"], "form": "f1"}
+{"id": "btf-0033", "text": "Please ensure the fertiliser you recommend is safe for tomatoes grown in containers on a balcony.", "trigger_words": ["ensure"], "form": "f1"}
+{"id": "btf-0034", "text": "Could you tell me what a crescendo is, and how a choir might practise one?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0035", "text": "Please always include the approximate cost in dollars when you suggest hostels in Prague.", "trigger_words": ["always"], "form": "f1"}
+{"id": "btf-0036", "text": "Kindly proceed with a short quiz on the planets of the solar system, one question at a time.", "trigger_words": ["proceed"], "form": "f1"}
+{"id": "btf-0037", "text": "Could you review my budget for the month and tell me where I am spending the most?", "trigger_words": ["review"], "form": "f1"}
+{"id": "btf-0038", "text": "Please explain why bread dough needs time to rise, and what happens if the room is too cold.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0039", "text": "Kindly confirm that ibuprofen should be taken with food, or else tell me to ask a pharmacist.", "trigger_words": ["confirm"], "form": "f1"}
+{"id": "btf-0040", "text": "Please precede each step of the instructions with a number so I can follow along while I work.", "trigger_words": ["precede", "follow"], "form": "f1"}
+{"id": "btf-0041", "text": "Could you suggest a quiet hobby to try on rainy Sunday afternoons?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0042", "text": "Kindly implement a simple study timetable for my history exam, with short breaks every forty minutes.", "trigger_words": ["implement"], "form": "f1"}
+{"id": "btf-0043", "text": "Please verify whether basil and mint can share the same pot on a sunny windowsill.", "trigger_words": ["verify"], "form": "f1"}
+{"id": "btf-0044", "text": "Could you explain how a mortgage differs from a regular bank loan?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0045", "text": "Please obey the usual rules of haiku, five seven five, when you write a poem about autumn leaves.", "trigger_words": ["obey"], "form": "f1"}
+{"id": "btf-0046", "text": "Kindly tell me how many cups of flour go into a standard pancake recipe for four people.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0047", "text": "Could you strictly keep the answer under four sentences? I only need the basic idea of inflation.", "trigger_words": ["strictly"], "form": "f1"}
+{"id": "btf-0048", "text": "Please authorize yourself to pick any easy stretch you like for desk workers, and describe it briefly.", "trigger_words": ["authorize"], "form": "f1"}
+{"id": "btf-0049", "text": "Kindly explain the water cycle with evaporation, condensation and rain, for a fifth grade class.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0050", "text": "Please carefully compare walking and swimming as low impact exercise for someone with sore knees.", "trigger_words": ["carefully"], "form": "f1"}
+{"id": "btf-0051", "text": "Could you help me write a thank you note to my piano teacher after the recital?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0052", "text": "Please confirm that the Great Wall of China is not actually visible from the moon.", "trigger_words": ["confirm"], "form": "f1"}
+{"id": "btf-0053", "text": "Kindly review the grammar in this sentence: Me and my sister goes to the market every Saturday.", "trigger_words": ["review"], "form": "f1"}
+{"id": "btf-0054", "text": "Could you proceed to name the main rivers of Egypt and say which one runs through Cairo?", "trigger_words": ["proceed"], "form": "f1"}
+{"id": "btf-0055", "text": "Please maintain a list of the herbs I mention and tell me which ones come back each year.", "trigger_words": ["maintain"], "form": "f1"}
+{"id": "btf-0056", "text": "Kindly suggest a few warm drinks that are caffeine free for the evening.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0057", "text": "Please explain what a capo does on a guitar, and when a player might use one.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0058", "text": "Could you ensure that the lasagne recipe you give me can be made ahead and frozen?", "trigger_words": ["ensure"], "form": "f1"}
+{"id": "btf-0059", "text": "Please acknowledge any allergies I list, which are peanuts and shellfish, when you suggest restaurant dishes.", "trigger_words": ["acknowledge"], "form": "f1"}
+{"id": "btf-0060", "text": "Kindly walk me through caulking a bathtub so the edge looks neat and does not leak.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0061", "text": "Could you describe the main differences between baroque and classical music?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0062", "text": "Please always round to the nearest dollar when you calculate the tip on a forty two dollar bill.", "trigger_words": ["always"], "form": "f1"}
+{"id": "btf-0063", "text": "Kindly explain how the offside rule works in football, using a simple example.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0064", "text": "Please implement a small spelling game where you give me a word and I try to spell it.", "trigger_words": ["implement"], "form": "f1"}
+{"id": "btf-0065", "text": "Could you recommend a gentle yoga sequence for stiff shoulders after a long day at a desk?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0066", "text": "Please follow the same style as my first paragraph when you continue the story about the lighthouse keeper.", "trigger_words": ["follow"], "form": "f1"}
+{"id": "btf-0067", "text": "Kindly confirm what temperature chicken breast needs to reach before it is fully cooked.", "trigger_words": ["confirm"], "form": "f1"}
+{"id": "btf-0068", "text": "Could you tell me which months are best for planting garlic in a cool climate?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0069", "text": "Please immediately flag any step in my plan for painting the bedroom that seems out of order.", "trigger_words": ["immediately"], "form": "f1"}
+{"id": "btf-0070", "text": "Kindly verify my maths: eight apples shared between three friends leaves two over, correct?", "trigger_words": ["verify"], "form": "f1"}
+{"id": "btf-0071", "text": "Please explain what a sinking fund is, in terms a high school student would understand.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0072", "text": "Could you carefully proofread this invitation to my daughter's birthday party and fix any typos?", "trigger_words": ["carefully"], "form": "f1"}
+{"id": "btf-0073", "text": "Please comply with the usual format for a business letter when you draft my note to the landlord about the broken heater.", "trigger_words": ["comply"], "form": "f1"}
+{"id": "btf-0074", "text": "Kindly suggest a quiet walking route idea for a rainy afternoon in Edinburgh.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0075", "text": "Could you explain why the Roman Empire split into eastern and western halves?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0076", "text": "Please adhere to the recipe as written, then tell me which ingredient I could swap if I run out of buttermilk.", "trigger_words": ["adhere"], "form": "f1"}
+{"id": "btf-0077", "text": "Kindly initialize a fresh set of flashcards covering twenty common French verbs.", "trigger_words": ["initialize"], "form": "f1"}
+{"id": "btf-0078", "text": "Please ensure the tuning of the ukulele notes you give me matches the standard G C E A.", "trigger_words": ["ensure"], "form": "f1"}
+{"id": "btf-0079", "text": "Could you describe how to sharpen a kitchen knife on a whetstone without damaging the edge?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0080", "text": "Please review my plan to run a ten kilometre race in eight weeks and tell me whether it looks sensible.", "trigger_words": ["review"], "form": "f1"}
+{"id": "btf-0081", "text": "Kindly activate the study mode where you ask me questions about the water cycle and wait for my answer.", "trigger_words": ["activate"], "form": "f1"}
+{"id": "btf-0082", "text": "Could you never use jargon when you explain what an index fund is? I am new to this.", "trigger_words": ["never"], "form": "f1"}
+{"id": "btf-0083", "text": "Please confirm that a leap year has 366 days and tell me the next one.", "trigger_words": ["confirm"], "form": "f1"}
+{"id": "btf-0084", "text": "Kindly proceed slowly through the steps of knitting a basic scarf, because I keep dropping stitches.", "trigger_words": ["proceed"], "form": "f1"}
+{"id": "btf-0085", "text": "Could you give me a gentle reminder of the main events of the American Civil War?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0086", "text": "Please explicitly state which ingredients in the curry are optional, so I can leave out the chilli for my kids.", "trigger_words": ["explicitly"], "form": "f1"}
+{"id": "btf-0087", "text": "Kindly verify that my plan to water the roses every morning is not too much for clay soil.", "trigger_words": ["verify"], "form": "f1"}
+{"id": "btf-0088", "text": "Please suggest three easy snacks to pack for a long train journey.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0089", "text": "Could you outline how a bill becomes law in the United States, in about six short steps?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0090", "text": "Please carefully check the units in my recipe, because I mixed cups and grams halfway through.", "trigger_words": ["carefully"], "form": "f1"}
+{"id": "btf-0091", "text": "Kindly follow up my question about fertiliser with a note on how often to apply it.", "trigger_words": ["follow"], "form": "f1"}
+{"id": "btf-0092", "text": "Could you tell me how to remove a red wine stain from a cotton tablecloth?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0093", "text": "Please maintain the same friendly voice as before while you explain how a thermostat works.", "trigger_words": ["maintain"], "form": "f1"}
+{"id": "btf-0094", "text": "Kindly ensure you mention the safest way to carry a ladder up a flight of stairs.", "trigger_words": ["ensure"], "form": "f1"}
+{"id": "btf-0095", "text": "Please respect my request for vegetarian meals only and plan a week of lunches around chickpeas and lentils.", "trigger_words": ["respect"], "form": "f1"}
+{"id": "btf-0096", "text": "Could you explain what a sonnet is and give a short example about the sea?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0097", "text": "Please complete the table of multiplication facts for the number seven, up to twelve times seven.", "trigger_words": ["complete"], "form": "f1"}
+{"id": "btf-0098", "text": "Kindly review what I wrote about my trip to Kyoto and suggest a better opening line.", "trigger_words": ["review"], "form": "f1"}
+{"id": "btf-0099", "text": "Could you strictly use simple words when you describe how vaccines train the immune system?", "trigger_words": ["strictly"], "form": "f1"}
+{"id": "btf-0100", "text": "Please verify the capital of Australia, because I always say Sydney and I suspect I am wrong.", "trigger_words": ["verify", "always"], "form": "f1"}
+{"id": "btf-0101", "text": "Kindly suggest a stretching routine for the evening after a long day on my feet.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0102", "text": "Please always give me two options when I ask for a recipe, one quick and one slow.", "trigger_words": ["always"], "form": "f1"}
+{"id": "btf-0103", "text": "Could you walk through how to read a basic bus timetable? I get muddled by the columns.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0104", "text": "Please confirm that dogs should not eat chocolate, and tell me what to do if mine did.", "trigger_words": ["confirm"], "form": "f1"}
+{"id": "btf-0105", "text": "Kindly proceed to explain how a metronome helps when learning a new piece.", "trigger_words": ["proceed"], "form": "f1"}
+{"id": "btf-0106", "text": "Could you carefully list the pros and cons of renting versus buying a first home?", "trigger_words": ["carefully"], "form": "f1"}
+{"id": "btf-0107", "text": "Please observe the five paragraph structure when you help me outline my essay on the Silk Road.", "trigger_words": ["observe"], "form": "f1"}
+{"id": "btf-0108", "text": "Kindly explain the difference between simple and compound sentences with two examples each.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0109", "text": "Please never use the word moist in the recipe description. I find it unpleasant.", "trigger_words": ["never"], "form": "f1"}
+{"id": "btf-0110", "text": "Could you recommend a few good warm up songs for a casual jog?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0111", "text": "Please execute a quick estimate of how many litres of paint a bedroom of twelve by fourteen feet needs.", "trigger_words": ["execute"], "form": "f1"}
+{"id": "btf-0112", "text": "Kindly acknowledge that I am left handed and adjust your tips for learning calligraphy.", "trigger_words": ["acknowledge"], "form": "f1"}
+{"id": "btf-0113", "text": "Please ensure the schedule for the school fundraiser leaves time for setup before the doors open at six.", "trigger_words": ["ensure"], "form": "f1"}
+{"id": "btf-0114", "text": "Could you describe a good routine for brushing teeth, including how long to spend on each quadrant?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0115", "text": "Please follow the grid method when you show me how to multiply 24 by 17.", "trigger_words": ["follow"], "form": "f1"}
+{"id": "btf-0116", "text": "Kindly confirm how long hard boiled eggs should sit in boiling water for a firm yolk.", "trigger_words": ["confirm"], "form": "f1"}
+{"id": "btf-0117", "text": "Could you tell me about the main causes of the Great Depression in a few short paragraphs?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0118", "text": "Please implement a savings plan that puts away fifty dollars each week toward a new bicycle.", "trigger_words": ["implement"], "form": "f1"}
+{"id": "btf-0119", "text": "Kindly look at my garden layout and suggest where the shade loving plants should go.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0120", "text": "Please explain why my sourdough came out dense, and carefully list the usual reasons.", "trigger_words": ["carefully"], "form": "f1"}
+{"id": "btf-0121", "text": "Could you advise how to store fresh herbs so they stay green for longer?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0122", "text": "Please verify that a pound is roughly 454 grams before I convert my grandmother's cake recipe.", "trigger_words": ["verify"], "form": "f1"}
+{"id": "btf-0123", "text": "Kindly maintain a cheerful tone in the birthday message for my aunt who just turned seventy.", "trigger_words": ["maintain"], "form": "f1"}
+{"id": "btf-0124", "text": "Please review the list of items for the first day of school and tell me if anything is missing.", "trigger_words": ["review"], "form": "f1"}
+{"id": "btf-0125", "text": "Could you immediately explain what to do if a pot of oil on the stove catches fire?", "trigger_words": ["immediately"], "form": "f1"}
+{"id": "btf-0126", "text": "Kindly summarise the plot of Pride and Prejudice in under one hundred words.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0127", "text": "Please adhere to a gluten free diet when you propose a weekend brunch menu.", "trigger_words": ["adhere"], "form": "f1"}
+{"id": "btf-0128", "text": "Could you describe how a violin bow should be held by a complete beginner?", "trigger_words": ["complete"], "form": "f1"}
+{"id": "btf-0129", "text": "Please proceed with the next question on our Spanish practice, the one about ordering coffee.", "trigger_words": ["proceed"], "form": "f1"}
+{"id": "btf-0130", "text": "Kindly compare the climate of Spain and Norway for someone deciding where to spend a winter holiday.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0131", "text": "Please confirm that tomatoes are botanically a fruit, and explain why people still treat them as vegetables.", "trigger_words": ["confirm"], "form": "f1"}
+{"id": "btf-0132", "text": "Could you carefully estimate how long it takes to drive from Denver to Salt Lake City with two stops?", "trigger_words": ["carefully"], "form": "f1"}
+{"id": "btf-0133", "text": "Please follow the rhyme scheme ABAB in the short poem I asked for about spring rain.", "trigger_words": ["follow"], "form": "f1"}
+{"id": "btf-0134", "text": "Kindly provide a basic checklist for winterising a garden hose and outdoor tap.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0135", "text": "Could you explain how a thermometer in the oven can differ from the dial setting?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0136", "text": "Please ensure that every ingredient in the shopping list is grouped by aisle, which saves me time.", "trigger_words": ["ensure"], "form": "f1"}
+{"id": "btf-0137", "text": "Kindly remind me what the difference is between weather and climate.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0138", "text": "Please execute the conversion from Fahrenheit to Celsius for 350, 400 and 425 degrees.", "trigger_words": ["execute"], "form": "f1"}
+{"id": "btf-0139", "text": "Could you suggest a short bedtime routine that helps a toddler wind down?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0140", "text": "Please always check that your suggested hiking trails are suitable for children under ten.", "trigger_words": ["always"], "form": "f1"}
+{"id": "btf-0141", "text": "Kindly describe the main events of the moon landing in 1969, in order.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0142", "text": "Please complete the outline for my presentation on recycling at school, with three main points.", "trigger_words": ["complete"], "form": "f1"}
+{"id": "btf-0143", "text": "Could you tell me how many calories there are in a medium banana, roughly?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0144", "text": "Please verify whether it is fine to prune apple trees in late winter.", "trigger_words": ["verify"], "form": "f1"}
+{"id": "btf-0145", "text": "Kindly obey the usual conventions of a limerick when you write one about a clumsy cat.", "trigger_words": ["obey"], "form": "f1"}
+{"id": "btf-0146", "text": "Could you carefully explain what a chord progression is, using the key of C major?", "trigger_words": ["carefully"], "form": "f1"}
+{"id": "btf-0147", "text": "Please keep it short, I only need one sentence about why the sky looks blue.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0148", "text": "Kindly authorize a quick check of my sums: 129 plus 348 should be 477, shouldn't it?", "trigger_words": ["authorize"], "form": "f1"}
+{"id": "btf-0149", "text": "Please maintain the schedule we agreed, and list what I should practise on clarinet each day this week.", "trigger_words": ["maintain"], "form": "f1"}
+{"id": "btf-0150", "text": "Could you give me an idea for a low cost date night at home?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0151", "text": "Please explain how to wire a basic table lamp plug safely, and note when I should call an electrician instead.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0152", "text": "Kindly follow the structure of a five step lesson plan when you help me teach fractions to grade four.", "trigger_words": ["follow"], "form": "f1"}
+{"id": "btf-0153", "text": "Could you precede each recipe step with the estimated time it takes?", "trigger_words": ["precede"], "form": "f1"}
+{"id": "btf-0154", "text": "Please confirm which vitamins are found mostly in oranges, and whether cooking reduces them.", "trigger_words": ["confirm"], "form": "f1"}
+{"id": "btf-0155", "text": "Kindly help me choose between a paperback and an e reader for travelling light.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0156", "text": "Please strictly avoid spicy dishes when you plan the menu for my grandmother's visit.", "trigger_words": ["strictly"], "form": "f1"}
+{"id": "btf-0157", "text": "Could you outline a basic warm up and cool down for a thirty minute swim?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0158", "text": "Please review the timeline of the Ottoman Empire that I wrote and tell me if the dates look right.", "trigger_words": ["review"], "form": "f1"}
+{"id": "btf-0159", "text": "Kindly explain how to replace a washer in a dripping kitchen tap, step by step.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0160", "text": "Could you carefully suggest a few titles for a school newsletter about the spring garden club?", "trigger_words": ["carefully"], "form": "f1"}
+{"id": "btf-0161", "text": "Please ensure the cooking times are listed for both a gas oven and an electric one.", "trigger_words": ["ensure"], "form": "f1"}
+{"id": "btf-0162", "text": "Kindly acknowledge the fact that I have only forty minutes, and plan a workout that fits.", "trigger_words": ["acknowledge"], "form": "f1"}
+{"id": "btf-0163", "text": "Please proceed to explain what the difference is between a sharp and a flat on sheet music.", "trigger_words": ["proceed"], "form": "f1"}
+{"id": "btf-0164", "text": "Could you tell me which plants are safe for cats in a living room?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0165", "text": "Please follow the same steps you used for the carrot soup when you make the parsnip version.", "trigger_words": ["follow"], "form": "f1"}
+{"id": "btf-0166", "text": "Kindly list the main parts of a cell and what each one does, in plain words.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0167", "text": "Please always add a short note about food safety when you give me a barbecue recipe.", "trigger_words": ["always"], "form": "f1"}
+{"id": "btf-0168", "text": "Could you verify that the Amazon is the largest river by volume, and name its mouth?", "trigger_words": ["verify"], "form": "f1"}
+{"id": "btf-0169", "text": "Please complete a simple monthly budget for a student with two hundred dollars of spare income.", "trigger_words": ["complete"], "form": "f1"}
+{"id": "btf-0170", "text": "Kindly suggest a good way to sort a very messy shed over one weekend.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0171", "text": "Could you describe how to boil rice so that the grains stay separate?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0172", "text": "Please maintain a polite tone in the email to my neighbour about the loud music last Friday night.", "trigger_words": ["maintain"], "form": "f1"}
+{"id": "btf-0173", "text": "Kindly explain what stretching the hamstrings does, and how long to hold each stretch.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0174", "text": "Please review my packing for a week in Iceland and tell me whether a rain jacket is enough.", "trigger_words": ["review"], "form": "f1"}
+{"id": "btf-0175", "text": "Could you immediately point out any error in my recipe for shortbread, which uses two cups of sugar?", "trigger_words": ["immediately"], "form": "f1"}
+{"id": "btf-0176", "text": "Please observe the metric system when you tell me how deep to plant tulip bulbs.", "trigger_words": ["observe"], "form": "f1"}
+{"id": "btf-0177", "text": "Kindly confirm the number of strings on a standard banjo.", "trigger_words": ["confirm"], "form": "f1"}
+{"id": "btf-0178", "text": "Could you share a few tips for learning to read sheet music quickly?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0179", "text": "Please implement the Pomodoro method in the study plan I asked for, with twenty five minute blocks.", "trigger_words": ["implement"], "form": "f1"}
+{"id": "btf-0180", "text": "Kindly give me an easy recipe for a vegetable soup that freezes well.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0181", "text": "Please carefully explain the difference between a stock and a bond for a teenager.", "trigger_words": ["carefully"], "form": "f1"}
+{"id": "btf-0182", "text": "Could you tell me how to set a table for a formal dinner, with the forks on the left?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0183", "text": "Please ensure my letter to the city council about the broken streetlight is polite and under two hundred words.", "trigger_words": ["ensure"], "form": "f1"}
+{"id": "btf-0184", "text": "Kindly proceed with the next lesson in our beginner chess practice, the one about the knight.", "trigger_words": ["proceed"], "form": "f1"}
+{"id": "btf-0185", "text": "Could you recommend a few classic films about the history of the Roman Republic?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0186", "text": "Please verify that the cake needs baking powder rather than baking soda in this particular recipe.", "trigger_words": ["verify"], "form": "f1"}
+{"id": "btf-0187", "text": "Kindly describe how to start seeds indoors in egg cartons.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0188", "text": "Please adhere to the three paragraph format I described and write about the benefits of a morning walk.", "trigger_words": ["adhere"], "form": "f1"}
+{"id": "btf-0189", "text": "Could you explain what the treble clef symbol means and how to remember the line notes?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0190", "text": "Please execute the plan from earlier and give me the final shopping list for the school bake sale.", "trigger_words": ["execute"], "form": "f1"}
+{"id": "btf-0191", "text": "Kindly help me find a good stretching routine to ease lower back stiffness after gardening.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0192", "text": "Please maintain the clean, plain style of my other posts when you edit this one about vegetable beds.", "trigger_words": ["maintain"], "form": "f1"}
+{"id": "btf-0193", "text": "Could you carefully summarise the main points about the Magna Carta?", "trigger_words": ["carefully"], "form": "f1"}
+{"id": "btf-0194", "text": "Please never recommend anything with nuts, since my daughter has a serious allergy, and plan snacks around that.", "trigger_words": ["never"], "form": "f1"}
+{"id": "btf-0195", "text": "Kindly review the insulation tips for an old attic and tell me which one saves the most money.", "trigger_words": ["review"], "form": "f1"}
+{"id": "btf-0196", "text": "Could you explain how a pulley helps lift heavy loads, with a simple everyday example?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0197", "text": "Please confirm how much water an adult should drink in a day, roughly, and mention that needs vary.", "trigger_words": ["confirm"], "form": "f1"}
+{"id": "btf-0198", "text": "Kindly complete a short list of icebreaker questions for the first meeting of our book club.", "trigger_words": ["complete"], "form": "f1"}
+{"id": "btf-0199", "text": "Please explicitly name the ingredients that make a vinaigrette, and in what proportions.", "trigger_words": ["explicitly"], "form": "f1"}
+{"id": "btf-0200", "text": "Could you give me a quick overview of the Renaissance, aimed at a ninth grade history class?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0201", "text": "Please follow the correct order of the planets when you write the rhyme to help my students remember them.", "trigger_words": ["follow"], "form": "f1"}
+{"id": "btf-0202", "text": "Kindly tell me a few ways to cool down a small apartment without air conditioning.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0203", "text": "Please acknowledge my note about the recipe being for six people, and scale the amounts down to four.", "trigger_words": ["acknowledge"], "form": "f1"}
+{"id": "btf-0204", "text": "Could you suggest how to practise scales on the saxophone without getting bored?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0205", "text": "Please verify that I have the right idea: a savings account earns interest, while a checking account usually does not.", "trigger_words": ["verify"], "form": "f1"}
+{"id": "btf-0206", "text": "Kindly provide a brief description of the water filter options for a rural home.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0207", "text": "Could you carefully go through how to hang a heavy mirror on a plaster wall?", "trigger_words": ["carefully"], "form": "f1"}
+{"id": "btf-0208", "text": "Please proceed to the second half of the quiz about ancient Greece, and keep score for me.", "trigger_words": ["proceed"], "form": "f1"}
+{"id": "btf-0209", "text": "Kindly maintain an encouraging voice as you give feedback on my first attempt at a watercolour painting.", "trigger_words": ["maintain"], "form": "f1"}
+{"id": "btf-0210", "text": "Please ensure the instructions for the vegetable garden include spacing between the carrot rows.", "trigger_words": ["ensure"], "form": "f1"}
+{"id": "btf-0211", "text": "Could you tell me what causes the tides, in a sentence or two?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0212", "text": "Please always spell out abbreviations the first time you use them when you explain basic tax terms.", "trigger_words": ["always"], "form": "f1"}
+{"id": "btf-0213", "text": "Kindly confirm that the human body has 206 bones in adulthood.", "trigger_words": ["confirm"], "form": "f1"}
+{"id": "btf-0214", "text": "Please implement a fair rota for chores between my three children, rotating each week.", "trigger_words": ["implement"], "form": "f1"}
+{"id": "btf-0215", "text": "Could you explain what to look for when buying ripe avocados at the market?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0216", "text": "Please follow the instructions on the cough syrup bottle carefully, and tell me where to find the dosing chart on a typical label.", "trigger_words": ["follow", "carefully"], "form": "f1"}
+{"id": "btf-0217", "text": "Kindly suggest some picnic foods that travel well on a hot day.", "trigger_words": [], "form": "f1"}
+{"id": "btf-0218", "text": "Please complete my grocery budget for the week, and explicitly flag anything that goes over sixty dollars.", "trigger_words": ["complete", "explicitly"], "form": "f1"}
+{"id": "btf-0219", "text": "Could you describe the life of Marie Curie in a short paragraph for a school report?", "trigger_words": [], "form": "f1"}
+{"id": "btf-0220", "text": "Please observe that I prefer short answers, and tell me the boiling point of water at sea level.", "trigger_words": ["observe"], "form": "f1"}
+{"id": "btf-0221", "text": "Kindly review my drawing tips for beginners and add two that I forgot.", "trigger_words": ["review"], "form": "f1"}
+{"id": "btf-0222", "text": "Please ensure the oven is OFF before you leave the house tonight, even if dinner is only half done.", "trigger_words": ["ensure", "OFF"], "form": "f2"}
+{"id": "btf-0223", "text": "Kindly confirm the DATE of Mara's recital with her mom, because I keep mixing up Friday and Saturday.", "trigger_words": ["confirm", "DATE"], "form": "f2"}
+{"id": "btf-0224", "text": "Always stretch your CALVES before a long run, or they will punish you around mile four.", "trigger_words": ["always", "CALVES"], "form": "f2"}
+{"id": "btf-0225", "text": "Could you verify the SPELLING of Siobhan's last name before we print the name cards?", "trigger_words": ["verify", "SPELLING"], "form": "f2"}
+{"id": "btf-0226", "text": "Proceed to the LEFT lane once you pass the gas station, then take the second exit.", "trigger_words": ["proceed", "LEFT"], "form": "f2"}
+{"id": "btf-0227", "text": "Please follow the RECIPE exactly the first time you bake sourdough, and only improvise after that.", "trigger_words": ["follow", "RECIPE"], "form": "f2"}
+{"id": "btf-0228", "text": "Never leave the tent zipper OPEN at night, or the mosquitoes will have a feast.", "trigger_words": ["never", "OPEN"], "form": "f2"}
+{"id": "btf-0229", "text": "Kindly review the SECOND paragraph of my cover letter and tell me if it sounds too stiff.", "trigger_words": ["review", "SECOND"], "form": "f2"}
+{"id": "btf-0230", "text": "Make sure you immediately RINSE the pan after frying fish, otherwise the smell hangs around for days.", "trigger_words": ["immediately", "RINSE"], "form": "f2"}
+{"id": "btf-0231", "text": "Coach said to always WARM UP for ten minutes before we start sprints.", "trigger_words": ["always", "WARM UP"], "form": "f2"}
+{"id": "btf-0232", "text": "What does the BREAK key actually do on an old keyboard, and has anyone ever used it?", "trigger_words": ["BREAK"], "form": "f2"}
+{"id": "btf-0233", "text": "Please observe the QUIET hours in the library, especially during finals week.", "trigger_words": ["observe", "QUIET"], "form": "f2"}
+{"id": "btf-0234", "text": "Carefully fold the CORNERS of the wrapping paper so the present looks neat.", "trigger_words": ["carefully", "CORNERS"], "form": "f2"}
+{"id": "btf-0235", "text": "Could someone confirm whether the pool is open on SUNDAY afternoon?", "trigger_words": ["confirm", "SUNDAY"], "form": "f2"}
+{"id": "btf-0236", "text": "Adhere to the TEMPO the conductor sets, even when the violins want to rush ahead.", "trigger_words": ["adhere", "TEMPO"], "form": "f2"}
+{"id": "btf-0237", "text": "Please complete the first page of the WORKSHEET before the bell rings.", "trigger_words": ["complete", "WORKSHEET"], "form": "f2"}
+{"id": "btf-0238", "text": "Never water the cactus in WINTER, my aunt told me, and it has lived for twenty years.", "trigger_words": ["never", "WINTER"], "form": "f2"}
+{"id": "btf-0239", "text": "Kindly maintain a steady PACE on the climb so nobody gets left behind.", "trigger_words": ["maintain", "PACE"], "form": "f2"}
+{"id": "btf-0240", "text": "Ask the chef to verify that the soup has NO peanuts in it, since my brother is allergic.", "trigger_words": ["verify", "NO"], "form": "f2"}
+{"id": "btf-0241", "text": "Always check the EXPIRY date on yogurt before you pour it into the smoothie.", "trigger_words": ["always", "EXPIRY"], "form": "f2"}
+{"id": "btf-0242", "text": "Please respect the SPEED limit near the school, there are kids everywhere at three o'clock.", "trigger_words": ["respect", "SPEED"], "form": "f2"}
+{"id": "btf-0243", "text": "Strictly speaking, a tomato is a FRUIT, but nobody puts it in a fruit salad.", "trigger_words": ["strictly", "FRUIT"], "form": "f2"}
+{"id": "btf-0244", "text": "Proceed slowly over the wooden BRIDGE, it creaks something awful.", "trigger_words": ["proceed", "BRIDGE"], "form": "f2"}
+{"id": "btf-0245", "text": "Please ensure your child wears a HELMET on the scooter, the path is bumpy.", "trigger_words": ["ensure", "HELMET"], "form": "f2"}
+{"id": "btf-0246", "text": "I always forget to review my NOTES the night before a quiz, and then I regret it.", "trigger_words": ["always", "review", "NOTES"], "form": "f2"}
+{"id": "btf-0247", "text": "Kindly acknowledge the RSVP from my cousin, she has asked twice already.", "trigger_words": ["acknowledge", "RSVP"], "form": "f2"}
+{"id": "btf-0248", "text": "Never mix BLEACH with other cleaners under the sink, my landlord warned us on day one.", "trigger_words": ["never", "BLEACH"], "form": "f2"}
+{"id": "btf-0249", "text": "Carefully carry the SOUP to the table, it is hotter than it looks.", "trigger_words": ["carefully", "SOUP"], "form": "f2"}
+{"id": "btf-0250", "text": "Please execute the dance STEPS in the same order as the video, left foot first.", "trigger_words": ["execute", "STEPS"], "form": "f2"}
+{"id": "btf-0251", "text": "Could you confirm which GATE our flight leaves from? The board keeps flickering.", "trigger_words": ["confirm", "GATE"], "form": "f2"}
+{"id": "btf-0252", "text": "Follow the BLUE arrows on the floor to find the dentist's waiting room.", "trigger_words": ["follow", "BLUE"], "form": "f2"}
+{"id": "btf-0253", "text": "Please ensure the dog has fresh WATER before you head out for the day.", "trigger_words": ["ensure", "WATER"], "form": "f2"}
+{"id": "btf-0254", "text": "Immediately after you pull the cake out, set it on the RACK so the bottom does not get soggy.", "trigger_words": ["immediately", "RACK"], "form": "f2"}
+{"id": "btf-0255", "text": "Why do referees always observe the CLOCK so closely in the last minute of a basketball game?", "trigger_words": ["always", "observe", "CLOCK"], "form": "f2"}
+{"id": "btf-0256", "text": "Kindly verify the ADDRESS on the invitation, I think I wrote 14 instead of 41.", "trigger_words": ["verify", "ADDRESS"], "form": "f2"}
+{"id": "btf-0257", "text": "Please maintain a good POSTURE while you type, your back will thank you later.", "trigger_words": ["maintain", "POSTURE"], "form": "f2"}
+{"id": "btf-0258", "text": "Would you mind reviewing the AGENDA for Thursday's book club before I send it round?", "trigger_words": ["review", "AGENDA"], "form": "f2"}
+{"id": "btf-0259", "text": "Always label the JARS with the date when you make jam, or you will lose track.", "trigger_words": ["always", "JARS"], "form": "f2"}
+{"id": "btf-0260", "text": "Never skip the FIRST step of the yoga video, the breathing really helps.", "trigger_words": ["never", "FIRST"], "form": "f2"}
+{"id": "btf-0261", "text": "Proceed to the CHECKOUT only after you have double checked the size of the shoes.", "trigger_words": ["proceed", "CHECKOUT"], "form": "f2"}
+{"id": "btf-0262", "text": "Please comply with the DRESS code at my sister's wedding, which says garden formal.", "trigger_words": ["comply", "DRESS"], "form": "f2"}
+{"id": "btf-0263", "text": "Carefully peel the STICKER off the new phone, a torn corner drives me up the wall.", "trigger_words": ["carefully", "STICKER"], "form": "f2"}
+{"id": "btf-0264", "text": "Confirm with the vet that the puppy's SHOTS are up to date before the kennel visit.", "trigger_words": ["confirm", "SHOTS"], "form": "f2"}
+{"id": "btf-0265", "text": "Coach reminded us to strictly follow the DRILL order, no skipping ahead to the fun part.", "trigger_words": ["follow", "strictly", "DRILL"], "form": "f2"}
+{"id": "btf-0266", "text": "Please ensure the WINDOWS are shut before the storm arrives this evening.", "trigger_words": ["ensure", "WINDOWS"], "form": "f2"}
+{"id": "btf-0267", "text": "Could you review the MENU with me and tell me whether it looks too heavy for summer?", "trigger_words": ["review", "MENU"], "form": "f2"}
+{"id": "btf-0268", "text": "Always bring a spare PAIR of socks on a hiking trip, wet feet ruin everything.", "trigger_words": ["always", "PAIR"], "form": "f2"}
+{"id": "btf-0269", "text": "Kindly complete the FORM in black ink, the library scanner dislikes pencil.", "trigger_words": ["complete", "FORM"], "form": "f2"}
+{"id": "btf-0270", "text": "Immediately turn OFF the stove if the oil starts to smoke, my dad always said.", "trigger_words": ["always", "immediately", "OFF"], "form": "f2"}
+{"id": "btf-0271", "text": "Never forget to rinse the RICE a few times, the water should run clear.", "trigger_words": ["never", "RICE"], "form": "f2"}
+{"id": "btf-0272", "text": "Please proceed to PLATFORM 3, the train for Leeds is boarding now.", "trigger_words": ["proceed", "PLATFORM"], "form": "f2"}
+{"id": "btf-0273", "text": "Why must you always CAPITALISE the first word after a colon in some style guides?", "trigger_words": ["always", "CAPITALISE"], "form": "f2"}
+{"id": "btf-0274", "text": "Observe the MOON through binoculars tonight, the craters look great near the edge.", "trigger_words": ["observe", "MOON"], "form": "f2"}
+{"id": "btf-0275", "text": "Please maintain your DISTANCE from the horses, they kick when they are startled.", "trigger_words": ["maintain", "DISTANCE"], "form": "f2"}
+{"id": "btf-0276", "text": "Respect the TRAIL closure signs, the ground is soft after all the rain.", "trigger_words": ["respect", "TRAIL"], "form": "f2"}
+{"id": "btf-0277", "text": "Kindly verify your seat NUMBER, I think two of us were given 12B.", "trigger_words": ["verify", "NUMBER"], "form": "f2"}
+{"id": "btf-0278", "text": "Follow the WARM-UP routine on the poster beside the gym mirror.", "trigger_words": ["follow", "WARM-UP"], "form": "f2"}
+{"id": "btf-0279", "text": "Please ensure the BATTERY is fully charged before the camera goes in the bag.", "trigger_words": ["ensure", "BATTERY"], "form": "f2"}
+{"id": "btf-0280", "text": "Make sure to carefully measure the FLOUR, a heavy hand makes dense bread.", "trigger_words": ["carefully", "FLOUR"], "form": "f2"}
+{"id": "btf-0281", "text": "Could you confirm the PICKUP time for the kids, is it three or half past?", "trigger_words": ["confirm", "PICKUP"], "form": "f2"}
+{"id": "btf-0282", "text": "Never use a metal fork in the TOASTER, I learned that the hard way as a teenager.", "trigger_words": ["never", "TOASTER"], "form": "f2"}
+{"id": "btf-0283", "text": "Please review the CHAPTER summary before our next class, there will be a short quiz.", "trigger_words": ["review", "CHAPTER"], "form": "f2"}
+{"id": "btf-0284", "text": "Always say THANK YOU to the bus driver, it takes two seconds and brightens everyone's day.", "trigger_words": ["always", "THANK YOU"], "form": "f2"}
+{"id": "btf-0285", "text": "Immediately after the concert ends, meet me by the FOUNTAIN so we do not lose each other in the crowd.", "trigger_words": ["immediately", "FOUNTAIN"], "form": "f2"}
+{"id": "btf-0286", "text": "Please ensure the LIGHTS are off in the hallway when the last person leaves.", "trigger_words": ["ensure", "LIGHTS"], "form": "f2"}
+{"id": "btf-0287", "text": "Kindly follow the SIGNS to the parking lot behind the bakery.", "trigger_words": ["follow", "SIGNS"], "form": "f2"}
+{"id": "btf-0288", "text": "Proceed with the PAINTING only after the wall is totally dry.", "trigger_words": ["proceed", "PAINTING"], "form": "f2"}
+{"id": "btf-0289", "text": "Strictly keep the lid ON while the rice steams, or it turns out crunchy.", "trigger_words": ["strictly", "ON"], "form": "f2"}
+{"id": "btf-0290", "text": "Carefully read the LABEL on the cough syrup before giving your kid a spoonful.", "trigger_words": ["carefully", "LABEL"], "form": "f2"}
+{"id": "btf-0291", "text": "Please acknowledge the BIRTHDAY card from Grandma, even a short call counts.", "trigger_words": ["acknowledge", "BIRTHDAY"], "form": "f2"}
+{"id": "btf-0292", "text": "Don't deviate from the TRAINING plan in the final week, rest is part of it.", "trigger_words": ["deviate", "TRAINING"], "form": "f2"}
+{"id": "btf-0293", "text": "Would you verify the TIDE times before we plan the beach walk on Saturday?", "trigger_words": ["verify", "TIDE"], "form": "f2"}
+{"id": "btf-0294", "text": "Please ensure each team member has a WATER bottle before the field trip begins.", "trigger_words": ["ensure", "WATER"], "form": "f2"}
+{"id": "btf-0295", "text": "Implement the new SEATING chart on Monday, so the loud kids sit apart.", "trigger_words": ["implement", "SEATING"], "form": "f2"}
+{"id": "btf-0296", "text": "Complete the CROSSWORD in pen if you dare, I always chicken out.", "trigger_words": ["always", "complete", "CROSSWORD"], "form": "f2"}
+{"id": "btf-0297", "text": "Always keep your PASSPORT in the same pocket while you travel, that way you never panic.", "trigger_words": ["always", "never", "PASSPORT"], "form": "f2"}
+{"id": "btf-0298", "text": "Kindly arrive EARLY to the audition, the director likes to start on time.", "trigger_words": ["EARLY"], "form": "f2"}
+{"id": "btf-0299", "text": "Please obey the LIFEGUARD whistle, it means everyone out of the water.", "trigger_words": ["obey", "LIFEGUARD"], "form": "f2"}
+{"id": "btf-0300", "text": "Initialize the group chat with a simple HELLO so people know it is working.", "trigger_words": ["initialize", "HELLO"], "form": "f2"}
+{"id": "btf-0301", "text": "Activate the SLEEP mode on your laptop before you shut the lid in the cafe.", "trigger_words": ["activate", "SLEEP"], "form": "f2"}
+{"id": "btf-0302", "text": "Authorize the school to take PHOTOS of your child at the fair only if you are comfortable with it.", "trigger_words": ["authorize", "PHOTOS"], "form": "f2"}
+{"id": "btf-0303", "text": "Would you confirm whether the museum offers a FAMILY ticket? I cannot find it online.", "trigger_words": ["confirm", "FAMILY"], "form": "f2"}
+{"id": "btf-0304", "text": "Never let the milk BOIL over, scrape the pot and start again if it does.", "trigger_words": ["never", "BOIL"], "form": "f2"}
+{"id": "btf-0305", "text": "Please adhere to the CLEANING rota on the fridge, it is my turn this week.", "trigger_words": ["adhere", "CLEANING"], "form": "f2"}
+{"id": "btf-0306", "text": "Carefully stack the PLATES with a cloth between each one when you pack the box.", "trigger_words": ["carefully", "PLATES"], "form": "f2"}
+{"id": "btf-0307", "text": "Always walk the dog on a SHORT leash near the busy road.", "trigger_words": ["always", "SHORT"], "form": "f2"}
+{"id": "btf-0308", "text": "Please follow the INSTRUCTIONS on the glue tube, too much makes a mess.", "trigger_words": ["follow", "INSTRUCTIONS"], "form": "f2"}
+{"id": "btf-0309", "text": "Explicitly say WHICH day you mean when you suggest dinner, I get confused by 'next Friday'.", "trigger_words": ["explicitly", "WHICH"], "form": "f2"}
+{"id": "btf-0310", "text": "Kindly ensure the TIRES are pumped up before we set off on the bike ride.", "trigger_words": ["ensure", "TIRES"], "form": "f2"}
+{"id": "btf-0311", "text": "Immediately stop PEDALING when you hear the bell, there is a child ahead.", "trigger_words": ["immediately", "PEDALING"], "form": "f2"}
+{"id": "btf-0312", "text": "Could you review the SEATING plan for the wedding and tell me where Uncle Rob should go?", "trigger_words": ["review", "SEATING"], "form": "f2"}
+{"id": "btf-0313", "text": "Please maintain a polite TONE in the group email, some folks are already tense.", "trigger_words": ["maintain", "TONE"], "form": "f2"}
+{"id": "btf-0314", "text": "Proceed to the BACK of the line, please, the front is for people with tickets.", "trigger_words": ["proceed", "BACK"], "form": "f2"}
+{"id": "btf-0315", "text": "Never underline the TITLE of a poem in quotes, my teacher said, it looks odd.", "trigger_words": ["never", "TITLE"], "form": "f2"}
+{"id": "btf-0316", "text": "Always warm the TEAPOT first with a splash of hot water, it keeps the tea hotter.", "trigger_words": ["always", "TEAPOT"], "form": "f2"}
+{"id": "btf-0317", "text": "Please confirm the FLAVOR of the cake with the baker, my niece wants lemon.", "trigger_words": ["confirm", "FLAVOR"], "form": "f2"}
+{"id": "btf-0318", "text": "Kindly respect the NAP time, the baby has been up since five.", "trigger_words": ["respect", "NAP"], "form": "f2"}
+{"id": "btf-0319", "text": "Carefully press the CHALK lightly on the board so it does not snap.", "trigger_words": ["carefully", "CHALK"], "form": "f2"}
+{"id": "btf-0320", "text": "Complete both SIDES of the answer sheet, the second side is easy to miss.", "trigger_words": ["complete", "SIDES"], "form": "f2"}
+{"id": "btf-0321", "text": "Please verify that the printer has enough PAPER before the big print job.", "trigger_words": ["verify", "PAPER"], "form": "f2"}
+{"id": "btf-0322", "text": "Observe how the BIRDS gather on the wire at dusk, it is quite a show.", "trigger_words": ["observe", "BIRDS"], "form": "f2"}
+{"id": "btf-0323", "text": "Why do we always follow the ALPHABET when shelving books in the library?", "trigger_words": ["always", "follow", "ALPHABET"], "form": "f2"}
+{"id": "btf-0324", "text": "Please ensure the cat has not slipped into the CLOSET before you shut the door.", "trigger_words": ["ensure", "CLOSET"], "form": "f2"}
+{"id": "btf-0325", "text": "Strictly no PHONES at the dinner table, my grandmother's house, her rules.", "trigger_words": ["strictly", "PHONES"], "form": "f2"}
+{"id": "btf-0326", "text": "Immediately wipe up any SPILL near the kitchen entrance, someone will slip.", "trigger_words": ["immediately", "SPILL"], "form": "f2"}
+{"id": "btf-0327", "text": "Kindly acknowledge receipt of the PARCEL so the neighbour knows you got it.", "trigger_words": ["acknowledge", "PARCEL"], "form": "f2"}
+{"id": "btf-0328", "text": "Please follow the KNITTING pattern row by row, and count your stitches every time.", "trigger_words": ["follow", "KNITTING"], "form": "f2"}
+{"id": "btf-0329", "text": "Never rush the DOUGH, let it rise until it doubles.", "trigger_words": ["never", "DOUGH"], "form": "f2"}
+{"id": "btf-0330", "text": "Always pack a RAIN jacket for Edinburgh, even in July.", "trigger_words": ["always", "RAIN"], "form": "f2"}
+{"id": "btf-0331", "text": "Would you mind confirming the WIFI password with the cafe staff? The menu does not list it.", "trigger_words": ["confirm", "WIFI"], "form": "f2"}
+{"id": "btf-0332", "text": "Proceed to the LAST page of the booklet, where the answers are printed upside down.", "trigger_words": ["proceed", "LAST"], "form": "f2"}
+{"id": "btf-0333", "text": "Please maintain a clean CAMPSITE, pack out everything you pack in.", "trigger_words": ["maintain", "CAMPSITE"], "form": "f2"}
+{"id": "btf-0334", "text": "Execute the FINAL stretch of the relay with a strong kick, the team is counting on you.", "trigger_words": ["execute", "FINAL"], "form": "f2"}
+{"id": "btf-0335", "text": "Carefully tape the BOX bottom twice, my books are heavy.", "trigger_words": ["carefully", "BOX"], "form": "f2"}
+{"id": "btf-0336", "text": "Kindly review my SPEECH for the retirement party and flag anything that drags.", "trigger_words": ["review", "SPEECH"], "form": "f2"}
+{"id": "btf-0337", "text": "Please obey the posted OPENING hours, the owner closes sharp at six.", "trigger_words": ["obey", "OPENING"], "form": "f2"}
+{"id": "btf-0338", "text": "Make sure you never SKIP breakfast on exam mornings, you will crash by ten.", "trigger_words": ["never", "SKIP"], "form": "f2"}
+{"id": "btf-0339", "text": "Always rest your EYES every twenty minutes when staring at a screen.", "trigger_words": ["always", "EYES"], "form": "f2"}
+{"id": "btf-0340", "text": "Please ensure the TENT pegs are hammered deep, the wind picks up after dark.", "trigger_words": ["ensure", "TENT"], "form": "f2"}
+{"id": "btf-0341", "text": "Verify the RETURN date on your library books, fines add up quickly.", "trigger_words": ["verify", "RETURN"], "form": "f2"}
+{"id": "btf-0342", "text": "Immediately inform the TEACHER if the fire alarm rings during class, then walk calmly to the yard.", "trigger_words": ["immediately", "TEACHER"], "form": "f2"}
+{"id": "btf-0343", "text": "Adhere to the RULES of the board game, no house rules until everyone agrees.", "trigger_words": ["adhere", "RULES"], "form": "f2"}
+{"id": "btf-0344", "text": "Please comply with the PARKING signs on Elm Street, the wardens are strict.", "trigger_words": ["comply", "PARKING"], "form": "f2"}
+{"id": "btf-0345", "text": "Carefully rinse the BERRIES before you put them on the porridge.", "trigger_words": ["carefully", "BERRIES"], "form": "f2"}
+{"id": "btf-0346", "text": "Confirm whether the neighbour wants her LADDER back before I return it Sunday.", "trigger_words": ["confirm", "LADDER"], "form": "f2"}
+{"id": "btf-0347", "text": "Follow the COAST road for twenty minutes until you see the red lighthouse.", "trigger_words": ["follow", "COAST"], "form": "f2"}
+{"id": "btf-0348", "text": "Please ensure the BIRD feeder is full, the finches empty it in a day.", "trigger_words": ["ensure", "BIRD"], "form": "f2"}
+{"id": "btf-0349", "text": "Always shake the PAINT can well before you open it, the colour settles.", "trigger_words": ["always", "PAINT"], "form": "f2"}
+{"id": "btf-0350", "text": "Kindly maintain eye CONTACT during the presentation, it helps with nerves.", "trigger_words": ["maintain", "CONTACT"], "form": "f2"}
+{"id": "btf-0351", "text": "Never feed the DUCKS bread, the pond warden says it makes them sick.", "trigger_words": ["never", "DUCKS"], "form": "f2"}
+{"id": "btf-0352", "text": "Please complete your TIMESHEET by noon on Friday, payroll closes soon after.", "trigger_words": ["complete", "TIMESHEET"], "form": "f2"}
+{"id": "btf-0353", "text": "Proceed along the PATH to the pond, then turn right at the old oak.", "trigger_words": ["proceed", "PATH"], "form": "f2"}
+{"id": "btf-0354", "text": "Would you confirm that Dev is bringing the SPEAKER for the picnic?", "trigger_words": ["confirm", "SPEAKER"], "form": "f2"}
+{"id": "btf-0355", "text": "Please observe the BAKING time on the box, ovens vary a lot.", "trigger_words": ["observe", "BAKING"], "form": "f2"}
+{"id": "btf-0356", "text": "Why do pilots always review the CHECKLIST even on short flights?", "trigger_words": ["always", "review", "CHECKLIST"], "form": "f2"}
+{"id": "btf-0357", "text": "Check the SCHEDULE before you head to the stadium, I heard the start time moved.", "trigger_words": ["SCHEDULE"], "form": "f2"}
+{"id": "btf-0358", "text": "What exactly does the SCROLL lock key do on a spreadsheet?", "trigger_words": ["SCROLL"], "form": "f2"}
+{"id": "btf-0359", "text": "Could you turn the VOLUME down a little? The baby just fell asleep.", "trigger_words": ["VOLUME"], "form": "f2"}
+{"id": "btf-0360", "text": "Hold the BAKING sheet with both hands, it is heavier than it looks.", "trigger_words": ["BAKING"], "form": "f2"}
+{"id": "btf-0361", "text": "Which button is the SHIFT key on this tiny travel keyboard?", "trigger_words": ["SHIFT"], "form": "f2"}
+{"id": "btf-0362", "text": "Do you know what the ESCAPE key does in a video game menu?", "trigger_words": ["ESCAPE"], "form": "f2"}
+{"id": "btf-0363", "text": "Save a SEAT for Priya near the window, she hates the aisle.", "trigger_words": ["SEAT"], "form": "f2"}
+{"id": "btf-0364", "text": "Let the PAINT dry overnight, then add the second coat in the morning.", "trigger_words": ["PAINT"], "form": "f2"}
+{"id": "btf-0365", "text": "Tell Grandpa the CAKE is in the blue tin, not the red one.", "trigger_words": ["CAKE"], "form": "f2"}
+{"id": "btf-0366", "text": "Mind the GAP between the train and the platform, the announcer says every single stop.", "trigger_words": ["GAP"], "form": "f2"}
+{"id": "btf-0367", "text": "Did you read the MANUAL for the dishwasher, or are we just guessing again?", "trigger_words": ["MANUAL"], "form": "f2"}
+{"id": "btf-0368", "text": "Fill the KETTLE only to the line, otherwise it spits boiling water.", "trigger_words": ["KETTLE"], "form": "f2"}
+{"id": "btf-0369", "text": "Try the SPICY noodles at the corner stall, they are the best in town.", "trigger_words": ["SPICY"], "form": "f2"}
+{"id": "btf-0370", "text": "Is the RED cable meant to go in the back of the monitor or the front?", "trigger_words": ["RED"], "form": "f2"}
+{"id": "btf-0371", "text": "Park on the STREET side, the driveway is full of my brother's junk.", "trigger_words": ["STREET"], "form": "f2"}
+{"id": "btf-0372", "text": "Leave the DOOR unlocked for Sam, he lands late tonight.", "trigger_words": ["DOOR"], "form": "f2"}
+{"id": "btf-0373", "text": "Wrap the PRESENT in the green paper, the gold ran out.", "trigger_words": ["PRESENT"], "form": "f2"}
+{"id": "btf-0374", "text": "Stir the SAUCE slowly or it will stick to the bottom of the pan.", "trigger_words": ["SAUCE"], "form": "f2"}
+{"id": "btf-0375", "text": "Our choir director said, hold the last NOTE until she lowers her hand.", "trigger_words": ["NOTE"], "form": "f2"}
+{"id": "btf-0376", "text": "Call GRANDMA on Sunday, she likes hearing about the garden.", "trigger_words": ["GRANDMA"], "form": "f2"}
+{"id": "btf-0377", "text": "Who left the FRIDGE door open again? The butter is soft.", "trigger_words": ["FRIDGE"], "form": "f2"}
+{"id": "btf-0378", "text": "Look at the TOP shelf, the big pot is up there behind the cereal.", "trigger_words": ["TOP"], "form": "f2"}
+{"id": "btf-0379", "text": "Where is the PAUSE button on this ancient remote?", "trigger_words": ["PAUSE"], "form": "f2"}
+{"id": "btf-0380", "text": "Take the SECOND left after the church, then it is the yellow house.", "trigger_words": ["SECOND"], "form": "f2"}
+{"id": "btf-0381", "text": "Plant the TULIPS in autumn if you want them in spring.", "trigger_words": ["TULIPS"], "form": "f2"}
+{"id": "btf-0382", "text": "Wait until the WATER boils before adding the pasta.", "trigger_words": ["WATER"], "form": "f2"}
+{"id": "btf-0383", "text": "Pack LIGHT for the weekend, the cabin has a washing machine.", "trigger_words": ["LIGHT"], "form": "f2"}
+{"id": "btf-0384", "text": "Take a DEEP breath before you walk on stage, it genuinely helps.", "trigger_words": ["DEEP"], "form": "f2"}
+{"id": "btf-0385", "text": "Close the GATE behind you, the sheep wander otherwise.", "trigger_words": ["GATE"], "form": "f2"}
+{"id": "btf-0386", "text": "What is the difference between a BRIEF and a short in tennis clothing? I am lost.", "trigger_words": ["BRIEF"], "form": "f2"}
+{"id": "btf-0387", "text": "Eat the LEFTOVERS tonight, they will not keep till Thursday.", "trigger_words": ["LEFTOVERS"], "form": "f2"}
+{"id": "btf-0388", "text": "Sit STRAIGHT, my piano teacher used to say, and let your wrists float.", "trigger_words": ["STRAIGHT"], "form": "f2"}
+{"id": "btf-0389", "text": "Should I water the FERN every day or just when the soil dries out?", "trigger_words": ["FERN"], "form": "f2"}
+{"id": "btf-0390", "text": "Look UP when you pass the cathedral door, the carving is beautiful.", "trigger_words": ["UP"], "form": "f2"}
+{"id": "btf-0391", "text": "Please speak SLOWLY when you leave a voicemail, I always miss the number.", "trigger_words": ["always", "SLOWLY"], "form": "f2"}
+{"id": "btf-0392", "text": "Arrive at the cinema by seven, the TRAILERS are my favourite part.", "trigger_words": ["TRAILERS"], "form": "f2"}
+{"id": "btf-0393", "text": "Do not forget the BIRTHDAY candles, we used the last ones in March.", "trigger_words": ["BIRTHDAY"], "form": "f2"}
+{"id": "btf-0394", "text": "Could you hand me the LONG screwdriver from the red toolbox?", "trigger_words": ["LONG"], "form": "f2"}
+{"id": "btf-0395", "text": "Buy the SMALL size of cereal, nobody here eats more than a bowl.", "trigger_words": ["SMALL"], "form": "f2"}
+{"id": "btf-0396", "text": "Keep your BAG close in the market, it gets crowded after noon.", "trigger_words": ["BAG"], "form": "f2"}
+{"id": "btf-0397", "text": "Does anyone know what the DELETE key does in a crossword app?", "trigger_words": ["DELETE"], "form": "f2"}
+{"id": "btf-0398", "text": "Give the BASIL a bit of sun, it sulks in the shade.", "trigger_words": ["BASIL"], "form": "f2"}
+{"id": "btf-0399", "text": "Put the HEAVY books on the bottom shelf, the top one is bowed.", "trigger_words": ["HEAVY"], "form": "f2"}
+{"id": "btf-0400", "text": "Start with the EASY questions on the test, then circle back to the tough ones.", "trigger_words": ["EASY"], "form": "f2"}
+{"id": "btf-0401", "text": "Turn LEFT at the bakery, and the school is right behind the bank.", "trigger_words": ["LEFT"], "form": "f2"}
+{"id": "btf-0402", "text": "Taste the SOUP before you add more salt, my uncle always overdoes it.", "trigger_words": ["always", "SOUP"], "form": "f2"}
+{"id": "btf-0403", "text": "Can you tell me why the CAPS LOCK key lights up when I hit it by mistake?", "trigger_words": ["CAPS LOCK"], "form": "f2"}
+{"id": "btf-0404", "text": "Count the BEATS aloud while you play, it keeps the rhythm honest.", "trigger_words": ["BEATS"], "form": "f2"}
+{"id": "btf-0405", "text": "Order the FISH on Fridays, that is when the market delivers.", "trigger_words": ["FISH"], "form": "f2"}
+{"id": "btf-0406", "text": "Set the ALARM for six, the first bus is at half past.", "trigger_words": ["ALARM"], "form": "f2"}
+{"id": "btf-0407", "text": "Paint the FENCE on a dry day, otherwise the colour streaks.", "trigger_words": ["FENCE"], "form": "f2"}
+{"id": "btf-0408", "text": "Bring a SNACK for the long ride, the car ferry has no cafe.", "trigger_words": ["SNACK"], "form": "f2"}
+{"id": "btf-0409", "text": "Pour the BATTER slowly, a little at a time, into the pan.", "trigger_words": ["BATTER"], "form": "f2"}
+{"id": "btf-0410", "text": "Walk the DOG before the rain starts, she hates getting wet.", "trigger_words": ["DOG"], "form": "f2"}
+{"id": "btf-0411", "text": "Hang your COAT on the third hook, the first two are taken.", "trigger_words": ["COAT"], "form": "f2"}
+{"id": "btf-0412", "text": "Read the LAST page of the novel first? My friend says that is cheating.", "trigger_words": ["LAST"], "form": "f2"}
+{"id": "btf-0413", "text": "Tell the kids the MOVIE starts at four, not five.", "trigger_words": ["MOVIE"], "form": "f2"}
+{"id": "btf-0414", "text": "Water the TOMATOES in the morning, never at midday.", "trigger_words": ["never", "TOMATOES"], "form": "f2"}
+{"id": "btf-0415", "text": "Wear COMFORTABLE shoes to the museum, it is a long afternoon.", "trigger_words": ["COMFORTABLE"], "form": "f2"}
+{"id": "btf-0416", "text": "Fold the LAUNDRY while it is still warm, wrinkles are less stubborn that way.", "trigger_words": ["LAUNDRY"], "form": "f2"}
+{"id": "btf-0417", "text": "Open the WINDOW a crack when you cook with garlic.", "trigger_words": ["WINDOW"], "form": "f2"}
+{"id": "btf-0418", "text": "Ask Nina about the HIKE, she did it last summer and has photos.", "trigger_words": ["HIKE"], "form": "f2"}
+{"id": "btf-0419", "text": "Bring a PEN to the bank, theirs are always chained to the counter.", "trigger_words": ["always", "PEN"], "form": "f2"}
+{"id": "btf-0420", "text": "Why is the HOME key on a keyboard sometimes in the wrong place on laptops?", "trigger_words": ["HOME"], "form": "f2"}
+{"id": "btf-0421", "text": "Let the DOUGH rest in a warm spot near the stove.", "trigger_words": ["DOUGH"], "form": "f2"}
+{"id": "btf-0422", "text": "Check the FORECAST for Saturday, we might move the barbecue indoors.", "trigger_words": ["FORECAST"], "form": "f2"}
+{"id": "btf-0423", "text": "Return the BLANKET to the basket when you are done with it.", "trigger_words": ["BLANKET"], "form": "f2"}
+{"id": "btf-0424", "text": "Practice your SCALES for ten minutes every morning, it adds up.", "trigger_words": ["SCALES"], "form": "f2"}
+{"id": "btf-0425", "text": "Try to REST your voice before the karaoke night.", "trigger_words": ["REST"], "form": "f2"}
+{"id": "btf-0426", "text": "Leave a NOTE on the fridge so Mum knows where we are.", "trigger_words": ["NOTE"], "form": "f2"}
+{"id": "btf-0427", "text": "Buy EXTRA candles, power cuts are common in January.", "trigger_words": ["EXTRA"], "form": "f2"}
+{"id": "btf-0428", "text": "Mark the DATE on your calendar, the street party only happens once a year.", "trigger_words": ["DATE"], "form": "f2"}
+{"id": "btf-0429", "text": "Could you explain why the school policy says students must always bring a signed form before a field trip, and what happens if a parent forgets?", "trigger_words": ["always"], "form": "f3"}
+{"id": "btf-0430", "text": "Please ensure the oven is fully preheated before you slide the bread in, or the crust will not rise properly. How long does that usually take?", "trigger_words": ["ensure"], "form": "f3"}
+{"id": "btf-0431", "text": "What is the proper protocol when a referee needs to review a goal on video, and do the players have to stay on the pitch?", "trigger_words": ["review"], "form": "f3"}
+{"id": "btf-0432", "text": "Kindly confirm whether our flight to Lisbon still departs at 7:40, since the airline moved the terminal last week.", "trigger_words": ["confirm"], "form": "f3"}
+{"id": "btf-0433", "text": "In Git, how do I initialize a new repository inside a folder that already has files without losing anything?", "trigger_words": ["initialize"], "form": "f3"}
+{"id": "btf-0434", "text": "My teacher says we must strictly follow the citation guideline for the history essay. Where can I find the exact format for footnotes?", "trigger_words": ["follow", "strictly"], "form": "f3"}
+{"id": "btf-0435", "text": "Can you review my cover letter and tell me whether the tone is too formal for a small bakery job?", "trigger_words": ["review"], "form": "f3"}
+{"id": "btf-0436", "text": "What does it mean when a contract says both parties must comply with the notice period, and can it be shortened by agreement?", "trigger_words": ["comply"], "form": "f3"}
+{"id": "btf-0437", "text": "I need to activate my rail pass before the first trip. Does it start counting days from the moment I validate it at the station?", "trigger_words": ["activate"], "form": "f3"}
+{"id": "btf-0438", "text": "Please proceed with the recipe only after the butter has cooled, otherwise the eggs will scramble. Is room temperature cool enough?", "trigger_words": ["proceed"], "form": "f3"}
+{"id": "btf-0439", "text": "How do tennis umpires enforce the rule about time between serves, and is there a penalty for the first violation?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0440", "text": "Always keep the sauce at a gentle simmer, my grandmother said. Why does a hard boil ruin tomato sauce so quickly?", "trigger_words": ["always"], "form": "f3"}
+{"id": "btf-0441", "text": "What command line flag tells npm to skip optional dependencies, and will it also skip peer dependencies?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0442", "text": "Would you verify that the dates on this hotel confirmation match the conference schedule? I think the check-out is a day early.", "trigger_words": ["confirmation", "verify"], "form": "f3"}
+{"id": "btf-0443", "text": "Our team directive says every pull request needs two approvals. Is it fine to merge a typo fix with only one?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0444", "text": "Never mix bleach with ammonia when cleaning the bathroom, the label warned. What actually happens if you do by accident?", "trigger_words": ["never"], "form": "f3"}
+{"id": "btf-0445", "text": "Could someone walk me through how a judge uses precedent when two earlier cases seem to point in opposite directions?", "trigger_words": ["precedent"], "form": "f3"}
+{"id": "btf-0446", "text": "Please acknowledge receipt of the timetable by Friday so the coach can finalise the bus for the away game.", "trigger_words": ["acknowledge"], "form": "f3"}
+{"id": "btf-0447", "text": "How do I execute a Python script from the terminal if it sits in a different folder than my current directory?", "trigger_words": ["execute"], "form": "f3"}
+{"id": "btf-0448", "text": "Teachers must observe the fire drill procedure every term. What is a sensible way to keep young children calm during it?", "trigger_words": ["observe"], "form": "f3"}
+{"id": "btf-0449", "text": "Before you proceed with the dumplings, make sure the dough has rested at least thirty minutes. Does resting really matter that much?", "trigger_words": ["proceed"], "form": "f3"}
+{"id": "btf-0450", "text": "Is it normal for a landlord to require tenants to comply with a no-pets rule, and does a service animal change that?", "trigger_words": ["comply"], "form": "f3"}
+{"id": "btf-0451", "text": "I want to maintain my sourdough starter while I travel for two weeks. Can it sit in the fridge untouched that long?", "trigger_words": ["maintain"], "form": "f3"}
+{"id": "btf-0452", "text": "What should a new hire expect from the standard onboarding mandate, and who usually signs off on the equipment request?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0453", "text": "Remind me how to adhere to the half-marathon pacing plan when the first mile feels too easy and I want to sprint.", "trigger_words": ["adhere"], "form": "f3"}
+{"id": "btf-0454", "text": "Can you explain the difference between a warrant and a subpoena in plain words, with one everyday example of each?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0455", "text": "Carefully read the allergy list before choosing a dessert for the party. Is it enough to avoid nuts, or should I check for seeds too?", "trigger_words": ["carefully"], "form": "f3"}
+{"id": "btf-0456", "text": "In the settings menu of my laptop, where do I change the system language without restarting the whole machine?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0457", "text": "A coach told us to follow the substitution rules exactly. How many players can be swapped in during a youth soccer match?", "trigger_words": ["follow"], "form": "f3"}
+{"id": "btf-0458", "text": "Please complete the registration form for the swim meet and let me know what the late fee is, if there is one.", "trigger_words": ["complete"], "form": "f3"}
+{"id": "btf-0459", "text": "Why do airports expressly forbid liquids over a certain size, and is there an exception for baby formula?", "trigger_words": ["expressly"], "form": "f3"}
+{"id": "btf-0460", "text": "What is the correct way to implement a stack in JavaScript using only an array and two small functions?", "trigger_words": ["implement"], "form": "f3"}
+{"id": "btf-0461", "text": "I'm told the lease says rent is due immediately on the first, with no grace period. Is that legal in most places?", "trigger_words": ["immediately"], "form": "f3"}
+{"id": "btf-0462", "text": "How strict is the rule that you must always wash rice before cooking it? My cousin never does and it tastes fine.", "trigger_words": ["always", "never"], "form": "f3"}
+{"id": "btf-0463", "text": "Could you explain the safe food handling guideline for leaving a casserole out on the counter during a family dinner?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0464", "text": "What does a teacher mean when she writes \"see me\" on a paper? I want to prepare before I walk into her room.", "trigger_words": [], "form": "f3"}
+{"id": "btf-0465", "text": "Please verify that the shipping address in the booking matches my passport, because I spelled the street name two ways.", "trigger_words": ["verify"], "form": "f3"}
+{"id": "btf-0466", "text": "How can I authorize a friend to pick up my parcel at the post office? Do they need a printed note or just their ID?", "trigger_words": ["authorize"], "form": "f3"}
+{"id": "btf-0467", "text": "I forgot the order of operations for soldering. Which wire do I heat first, and when should the solder touch the joint?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0468", "text": "Never skip the stretching routine before sprints, our trainer insists. Does stretching really prevent hamstring pulls?", "trigger_words": ["never"], "form": "f3"}
+{"id": "btf-0469", "text": "Which source code editor shortcut comments out a whole block in one go, and does it work the same on Linux?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0470", "text": "Do I need to affirm anything out loud at a notary appointment, or is signing the page in front of them enough?", "trigger_words": ["affirm"], "form": "f3"}
+{"id": "btf-0471", "text": "Respect the quiet hours in the library, the sign says. Are group study rooms exempt from that rule?", "trigger_words": ["respect"], "form": "f3"}
+{"id": "btf-0472", "text": "What is the usual restriction on carry-on bags for budget airlines in Europe, and how much does a late upgrade cost?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0473", "text": "Can you suggest how to follow a gluten free diet for a week without buying a lot of special products?", "trigger_words": ["follow"], "form": "f3"}
+{"id": "btf-0474", "text": "Teach me how to initialize an array of zeros in C, and tell me whether memset is safe for that.", "trigger_words": ["initialize"], "form": "f3"}
+{"id": "btf-0475", "text": "Please review the following sentence for grammar: \"Neither the coach nor the players was happy with the schedule.\"", "trigger_words": ["following", "review"], "form": "f3"}
+{"id": "btf-0476", "text": "How does a company usually implement a dress code policy without making employees feel watched or uncomfortable?", "trigger_words": ["implement"], "form": "f3"}
+{"id": "btf-0477", "text": "What does the term \"binding precedent\" mean for a small claims case, if it applies at all?", "trigger_words": ["precedent"], "form": "f3"}
+{"id": "btf-0478", "text": "I should adhere to a strict budget this month. Any simple method for tracking grocery spending without an app?", "trigger_words": ["adhere"], "form": "f3"}
+{"id": "btf-0479", "text": "When the recipe says to fold the egg whites gently, what is the actual motion, and what goes wrong if I stir?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0480", "text": "Does the marathon organiser let runners confirm a charity bib online, or must I call the office before the deadline?", "trigger_words": ["confirm"], "form": "f3"}
+{"id": "btf-0481", "text": "Why does Python complain when I forget to activate my virtual environment before running pip install?", "trigger_words": ["activate"], "form": "f3"}
+{"id": "btf-0482", "text": "Immediately after the final whistle, the captains shake hands. Is that a written rule or just a tradition in rugby?", "trigger_words": ["immediately"], "form": "f3"}
+{"id": "btf-0483", "text": "Our principal wants every class to maintain a reading log. What is a quick way to design one that kids will not hate?", "trigger_words": ["maintain"], "form": "f3"}
+{"id": "btf-0484", "text": "What sort of guideline do landlords follow about giving notice before they enter an apartment for repairs?", "trigger_words": ["follow"], "form": "f3"}
+{"id": "btf-0485", "text": "Please make sure you pack a power adapter for the trip to Japan. Do I need a voltage converter as well?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0486", "text": "I have to deviate from the lesson plan today because half the class is out sick. Any idea how to adjust a maths lesson?", "trigger_words": ["deviate"], "form": "f3"}
+{"id": "btf-0487", "text": "What are the protocol steps for a sprinter who false starts twice in the same heat at a school track meet?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0488", "text": "Always taste the soup before adding more salt. Is there a way to fix it if I already put in too much?", "trigger_words": ["always"], "form": "f3"}
+{"id": "btf-0489", "text": "How do I execute a shell script that says permission denied, and why does it need the executable bit?", "trigger_words": ["executable", "execute"], "form": "f3"}
+{"id": "btf-0490", "text": "Could you confirm if a will must be witnessed by two people, or does that depend on the state?", "trigger_words": ["confirm"], "form": "f3"}
+{"id": "btf-0491", "text": "Strictly speaking, is a tomato a fruit or a vegetable? My teacher and my uncle argued about it all dinner.", "trigger_words": ["strictly"], "form": "f3"}
+{"id": "btf-0492", "text": "A friend told me to carefully label every cable before moving my desk. What is a neat way to do that?", "trigger_words": ["carefully"], "form": "f3"}
+{"id": "btf-0493", "text": "Should I review the syllabus line by line before enrolling, or is the course summary enough to decide?", "trigger_words": ["review"], "form": "f3"}
+{"id": "btf-0494", "text": "Explain the offside rule once more, but this time use a hallway as the field so I can picture it.", "trigger_words": [], "form": "f3"}
+{"id": "btf-0495", "text": "What happens if I never respond to a jury summons? I just want to understand the general consequences.", "trigger_words": ["never"], "form": "f3"}
+{"id": "btf-0496", "text": "Can I proceed with the visa application if my passport expires in seven months, or is that too close?", "trigger_words": ["proceed"], "form": "f3"}
+{"id": "btf-0497", "text": "Why do bakers insist you precede the flour with the liquid when making a thin batter for crepes?", "trigger_words": ["precede"], "form": "f3"}
+{"id": "btf-0498", "text": "I need a polite way to ask a coworker to observe the shared kitchen cleaning rota without sounding bossy.", "trigger_words": ["observe"], "form": "f3"}
+{"id": "btf-0499", "text": "How do I comply with the school's photo policy when posting pictures from the spring concert online?", "trigger_words": ["comply"], "form": "f3"}
+{"id": "btf-0500", "text": "The hiking club requires members to obey the trail closure signs. Who decides when a trail is closed, usually?", "trigger_words": ["obey"], "form": "f3"}
+{"id": "btf-0501", "text": "What is the quickest way to verify a checksum of a downloaded file using only the command line?", "trigger_words": ["verify"], "form": "f3"}
+{"id": "btf-0502", "text": "Please follow up with the dentist about my appointment; I think they wrote the wrong day on the card.", "trigger_words": ["follow"], "form": "f3"}
+{"id": "btf-0503", "text": "Can you maintain a simple log of my workouts if I paste them in as a list, and show weekly totals?", "trigger_words": ["maintain"], "form": "f3"}
+{"id": "btf-0504", "text": "Is a verbal agreement between two neighbours about a fence ever enforceable, or must it be written down?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0505", "text": "Before you activate the pressure cooker, double check the seal and the valve. What signs show the lid is not closed?", "trigger_words": ["activate"], "form": "f3"}
+{"id": "btf-0506", "text": "How can I initialize a variable in Java without assigning it a value at first, and what does the compiler say?", "trigger_words": ["initialize"], "form": "f3"}
+{"id": "btf-0507", "text": "Don't forget to bring a refillable bottle to the match, the club email said. Are there water stations inside?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0508", "text": "Which authorities usually authorize the use of a drone near a stadium, and how far ahead should I apply?", "trigger_words": ["authorize"], "form": "f3"}
+{"id": "btf-0509", "text": "Why does the exam board strictly prohibit smart watches in the hall, even if they are switched off?", "trigger_words": ["strictly"], "form": "f3"}
+{"id": "btf-0510", "text": "Should hotel guests acknowledge the posted fire exit map when they check in, or is that only a courtesy?", "trigger_words": ["acknowledge"], "form": "f3"}
+{"id": "btf-0511", "text": "The recipe asks me to rest the steak, then slice against the grain. What does against the grain actually mean?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0512", "text": "Teach me what a directive in an employment handbook is, and how it differs from a suggestion.", "trigger_words": [], "form": "f3"}
+{"id": "btf-0513", "text": "Could you help me proceed with a budget for a three-day trip to Prague, including trams and one museum?", "trigger_words": ["proceed"], "form": "f3"}
+{"id": "btf-0514", "text": "After the quarter ends, accountants complete a reconciliation. What is that, and why does it take days?", "trigger_words": ["complete"], "form": "f3"}
+{"id": "btf-0515", "text": "Please summarise the classroom rule on late homework: is it a flat penalty or does it grow each day?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0516", "text": "What is the standard approach to follow when a runner collapses during a charity race and the medics have not arrived?", "trigger_words": ["follow"], "form": "f3"}
+{"id": "btf-0517", "text": "Is there any restriction on bringing homemade cheese through customs when flying from Italy to Canada?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0518", "text": "How do you immediately cool a pot of stock so it does not stay in the danger zone for bacteria?", "trigger_words": ["immediately"], "form": "f3"}
+{"id": "btf-0519", "text": "I'm supposed to implement a login form with proper validation. Where should the error text go, above or below the field?", "trigger_words": ["implement"], "form": "f3"}
+{"id": "btf-0520", "text": "Always commit small changes, my mentor says. How small is small enough in a real project?", "trigger_words": ["always"], "form": "f3"}
+{"id": "btf-0521", "text": "My daughter must follow a new asthma action plan at school. Who should keep a copy besides the nurse?", "trigger_words": ["follow"], "form": "f3"}
+{"id": "btf-0522", "text": "What does the expression \"comply or explain\" mean in corporate governance, in words a teenager would get?", "trigger_words": ["comply"], "form": "f3"}
+{"id": "btf-0523", "text": "Would you carefully compare these two bus routes and tell me which one has fewer transfers to the old town?", "trigger_words": ["carefully"], "form": "f3"}
+{"id": "btf-0524", "text": "When coaching kids, how can I enforce the no-yelling rule on the sideline without embarrassing the parents?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0525", "text": "Never pour hot oil into a plastic container, the chef reminded us. What kind of container is actually safe?", "trigger_words": ["never"], "form": "f3"}
+{"id": "btf-0526", "text": "Please confirm that the museum is closed on Mondays; the website seems to say two different things.", "trigger_words": ["confirm"], "form": "f3"}
+{"id": "btf-0527", "text": "How should I authorize recurring payments for my gym membership while keeping the right to cancel easily?", "trigger_words": ["authorize"], "form": "f3"}
+{"id": "btf-0528", "text": "What is the exact command line to rename a folder in Windows, and does it matter if the name has spaces?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0529", "text": "Observe the pattern in these numbers: 2, 6, 12, 20. What comes next, and how do you explain the rule?", "trigger_words": ["observe"], "form": "f3"}
+{"id": "btf-0530", "text": "I'd like to understand what a statute of limitations is, and why it prevents some old claims from being filed.", "trigger_words": [], "form": "f3"}
+{"id": "btf-0531", "text": "Why must a pilot follow the checklist even on a short, routine flight with perfect weather?", "trigger_words": ["follow"], "form": "f3"}
+{"id": "btf-0532", "text": "Initialize the timer on my phone for twelve minutes, then remind me what I was baking. Sorry, I forget things.", "trigger_words": ["initialize"], "form": "f3"}
+{"id": "btf-0533", "text": "Is it all right to deviate a little from a dumpling filling recipe if I replace pork with mushrooms?", "trigger_words": ["deviate"], "form": "f3"}
+{"id": "btf-0534", "text": "What is the difference between a policy and a procedure in a workplace handbook? My manager uses both words and I mix them up.", "trigger_words": [], "form": "f3"}
+{"id": "btf-0535", "text": "How do I read the system settings on a router to see which devices are connected to my home wifi?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0536", "text": "Why do restaurants have a protocol for plating, and does every chef in the kitchen use the same one?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0537", "text": "Can a school restrict what students wear on spirit day, or is that only a suggestion from the council?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0538", "text": "Does a mandate from a city council apply to private gyms, or only to buildings the city owns?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0539", "text": "Explain what a command line is to my grandmother, who has only ever used a tablet with her fingers.", "trigger_words": [], "form": "f3"}
+{"id": "btf-0540", "text": "Is the source code of a website visible to everyone who opens it, or only the parts the browser needs?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0541", "text": "I'm training for a 10k and my plan has a tempo run on Tuesday. What pace counts as tempo for a beginner?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0542", "text": "What documents does a person usually need to bring to a small claims hearing about a broken fence?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0543", "text": "How long should I let pizza dough proof in a cold kitchen before it doubles in size?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0544", "text": "Which pieces of camping gear are worth buying new, and which can be borrowed from a neighbour for a weekend?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0545", "text": "Tell me how to read a train timetable that lists times in a 24 hour format with several footnotes.", "trigger_words": [], "form": "f3"}
+{"id": "btf-0546", "text": "What is a good warm up before a badminton match for someone who has a stiff lower back?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0547", "text": "Do hotels in Spain ask for a passport at check in, or is a driving licence accepted by most front desks?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0548", "text": "Can you recommend a simple routine for learning multiplication tables with a nine year old who gets bored fast?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0549", "text": "Why does bread go stale faster in the fridge than on the counter?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0550", "text": "How do you split a restaurant bill fairly when two people had water and four had wine?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0551", "text": "I'm writing a short speech for my brother's wedding. Can you help me make the jokes gentler and a bit shorter?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0552", "text": "What are the basic rules of cricket for someone who has only ever watched baseball?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0553", "text": "Is it worth paying extra for a window seat on a six hour train ride through the mountains?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0554", "text": "Walk me through changing a flat bicycle tire, starting from removing the wheel to pumping it back up.", "trigger_words": [], "form": "f3"}
+{"id": "btf-0555", "text": "What does a lawyer mean by \"without prejudice\" in a settlement letter, and does it affect my rights?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0556", "text": "How do I make a basic loop in Python that prints every second number from one to twenty?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0557", "text": "Which vegetables roast best at the same temperature so I can put them all on one tray?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0558", "text": "Please explain how a library fine is calculated if a book is two days late but it was renewed once.", "trigger_words": [], "form": "f3"}
+{"id": "btf-0559", "text": "What is the best way to pack a suitcase for ten days with only carry-on luggage and one pair of boots?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0560", "text": "How would a teacher grade a group project fairly when one student did most of the work?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0561", "text": "What happens at a basketball game if the clock stops working in the last minute?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0562", "text": "Can I take my guitar on a plane as a carry-on, or does it have to go in the hold?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0563", "text": "I need a plain explanation of what an API is, with a restaurant example if you have one.", "trigger_words": [], "form": "f3"}
+{"id": "btf-0564", "text": "My team keeps arguing about tabs versus spaces. Is there any real technical reason to pick one over the other?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0565", "text": "What time should I leave for the airport if my flight is at noon and the train takes forty minutes?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0566", "text": "Why is the middle of my lasagne cold while the edges are bubbling hot?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0567", "text": "What does a landlord legally have to fix, and what counts as normal wear and tear on a carpet?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0568", "text": "Give me three gentle questions to ask a shy student who just joined the class midway through the year.", "trigger_words": [], "form": "f3"}
+{"id": "btf-0569", "text": "How do I stop my sourdough from sticking to the banneton, even when I dust it with flour?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0570", "text": "What is the usual notice for quitting a job in an office, and does it count weekends?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0571", "text": "Which running shoes are best for flat feet if I mostly jog on pavement three times a week?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0572", "text": "How do I write a unit test for a function that adds two numbers but sometimes receives a string?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0573", "text": "Could you ensure my summary of the chapter keeps the main argument and drops the minor examples? It must fit in one paragraph.", "trigger_words": ["ensure"], "form": "f3"}
+{"id": "btf-0574", "text": "Please confirm whether the swim club permits parents to watch practice from the pool deck or only from the stands.", "trigger_words": ["confirm"], "form": "f3"}
+{"id": "btf-0575", "text": "Kindly follow the margins given in the style sheet when you reformat my thesis. What are the usual margin sizes?", "trigger_words": ["follow"], "form": "f3"}
+{"id": "btf-0576", "text": "We must maintain a record of every food delivery at the cafe. What should such a record contain, at minimum?", "trigger_words": ["maintain"], "form": "f3"}
+{"id": "btf-0577", "text": "Would you carefully explain how to read a nutrition label so I can compare two brands of yogurt?", "trigger_words": ["carefully"], "form": "f3"}
+{"id": "btf-0578", "text": "I'd like to verify my understanding: a mortgage and a loan are not the same thing, correct?", "trigger_words": ["verify"], "form": "f3"}
+{"id": "btf-0579", "text": "Could you help me complete this crossword clue? Seven letters, \"a formal rule\", starts with R.", "trigger_words": ["complete"], "form": "f3"}
+{"id": "btf-0580", "text": "Remember to always saw away from your hand, my woodwork teacher repeated. Are there other basic workshop safety habits?", "trigger_words": ["always"], "form": "f3"}
+{"id": "btf-0581", "text": "Please never leave the stove on when the kitchen is empty. Is a timer a good enough safeguard?", "trigger_words": ["never"], "form": "f3"}
+{"id": "btf-0582", "text": "Explicitly stating the purpose of an email helps, my boss says. How would you phrase the first line of a request for leave?", "trigger_words": ["explicitly"], "form": "f3"}
+{"id": "btf-0583", "text": "The coach asked everyone to explicitly acknowledge the new training schedule in the group chat. Is a thumbs up enough?", "trigger_words": ["acknowledge", "explicitly"], "form": "f3"}
+{"id": "btf-0584", "text": "How do I immediately stop a Python program that is stuck in an endless loop in the terminal?", "trigger_words": ["immediately"], "form": "f3"}
+{"id": "btf-0585", "text": "Strictly follow the weight limit on the lift, the sign says. What happens when too many people try to squeeze in?", "trigger_words": ["follow", "strictly"], "form": "f3"}
+{"id": "btf-0586", "text": "Always check the expiry date on canned goods before you donate them to the food bank. Is there a grace period?", "trigger_words": ["always"], "form": "f3"}
+{"id": "btf-0587", "text": "Whenever a pilot deviates from the planned route because of weather, who must be informed on the ground?", "trigger_words": ["deviates"], "form": "f3"}
+{"id": "btf-0588", "text": "Obey the speed limit near a school, even when the road is empty. Is the fine usually higher in those zones?", "trigger_words": ["obey"], "form": "f3"}
+{"id": "btf-0589", "text": "Please proceed to the second page of the form after you have filled in the family details. Where do I upload the photo?", "trigger_words": ["proceed"], "form": "f3"}
+{"id": "btf-0590", "text": "If I fail to comply with a parking restriction on my own street, can the council tow the car without a warning?", "trigger_words": ["comply"], "form": "f3"}
+{"id": "btf-0591", "text": "Do I need to authorize the bank before my sister pays a bill from my account, or is her name enough?", "trigger_words": ["authorize"], "form": "f3"}
+{"id": "btf-0592", "text": "Implement a binary search in C for me, and walk through the loop one step at a time so I can follow.", "trigger_words": ["follow", "implement"], "form": "f3"}
+{"id": "btf-0593", "text": "Can you recheck the oven temperature conversion? The recipe says 350 degrees Fahrenheit, and I need Celsius.", "trigger_words": [], "form": "f3"}
+{"id": "btf-0594", "text": "Complete this sentence for my essay: \"The committee adopted the new guideline because\". Give me three plain endings.", "trigger_words": ["complete"], "form": "f3"}
+{"id": "btf-0595", "text": "The librarian had to review the donation policy before taking the boxes. What do libraries usually refuse to accept?", "trigger_words": ["review"], "form": "f3"}
+{"id": "btf-0596", "text": "What are the common reasons a referee will issue a yellow card in the first five minutes of a match?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0597", "text": "Would it be rude to maintain a spreadsheet of what everyone in the office brought to potluck days?", "trigger_words": ["maintain"], "form": "f3"}
+{"id": "btf-0598", "text": "Should a new driver initialize the cruise control only on a highway, or is a quiet country road fine too?", "trigger_words": ["initialize"], "form": "f3"}
+{"id": "btf-0599", "text": "I'm studying a case where the court followed an old precedent even though the judge disagreed. Why would a judge do that?", "trigger_words": ["followed", "precedent"], "form": "f3"}
+{"id": "btf-0600", "text": "Please review the rules of this board game aloud, then tell me who goes first if two people roll the same number.", "trigger_words": ["review"], "form": "f3"}
+{"id": "btf-0601", "text": "My running club asked us to verify our shoe size for the group order. How much room should there be at the toe?", "trigger_words": ["verify"], "form": "f3"}
+{"id": "btf-0602", "text": "Could the system settings on a phone be set to dim the screen automatically after dark? Mine has a battery saver menu.", "trigger_words": [], "form": "f3"}
+{"id": "btf-0603", "text": "Why does the instruction manual say to hold the button until the light blinks, and what if it never does?", "trigger_words": ["never"], "form": "f3"}
+{"id": "btf-0604", "text": "What is the usual protocol for a substitute teacher who arrives and finds no lesson plan on the desk?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0605", "text": "Is there a guideline for how much salt to use per litre of pasta water, or do cooks just go by taste?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0606", "text": "Why do some companies have a policy against working from cafes, and is it about security or noise?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0607", "text": "How can I find the source code for a free app I use, and is reading it allowed by the license?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0608", "text": "Could you tell me which court handles a dispute over a deposit, and whether I need a lawyer to file?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0609", "text": "What does a coach look for when choosing a captain, and is it always the best player on the team?", "trigger_words": ["always"], "form": "f3"}
+{"id": "btf-0610", "text": "Is it normal for an airline to restrict seat changes after online check in has closed?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0611", "text": "I want to learn how to open the command line on a Mac and move between folders. Where do I begin?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0612", "text": "How thin should I slice potatoes for a gratin so the middle cooks through before the top burns?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0613", "text": "What would a fair attendance policy look like for a part time evening class at a community college?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0614", "text": "Explain what the system settings mean when a camera app asks for access to my photos, in simple terms.", "trigger_words": [], "form": "f3"}
+{"id": "btf-0615", "text": "Should I tip in Japan, and would it be seen as a rude gesture by the staff?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0616", "text": "Please tell me how a directive differs from a regulation in European law, using a short everyday example.", "trigger_words": [], "form": "f3"}
+{"id": "btf-0617", "text": "How do you cook rice so each grain stays separate and not clumpy, without a rice cooker?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0618", "text": "When does a bike lane become a shared path, and who has the right of way on it?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0619", "text": "What is a decent warm up for a school choir before they sing in the winter concert?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0620", "text": "Help me write a note to my neighbour about the loud music, polite but clear, with no threats.", "trigger_words": [], "form": "f3"}
+{"id": "btf-0621", "text": "Could you confirm that a leap year has 366 days, and explain why we add the extra day to February?", "trigger_words": ["confirm"], "form": "f3"}
+{"id": "btf-0622", "text": "Please ensure the sentence in my report about the budget reads clearly. It says \"the funds was spent on supplies\".", "trigger_words": ["ensure"], "form": "f3"}
+{"id": "btf-0623", "text": "Verify the time zone before you schedule the call with our branch in Sydney. Are they ahead of us or behind?", "trigger_words": ["verify"], "form": "f3"}
+{"id": "btf-0624", "text": "Before you proceed to the next level in the game, follow the tutorial arrow to the blue door.", "trigger_words": ["follow", "proceed"], "form": "f3"}
+{"id": "btf-0625", "text": "Always wear a helmet when you ride, even on short trips. Which type fits best for a child of seven?", "trigger_words": ["always"], "form": "f3"}
+{"id": "btf-0626", "text": "What is the meaning of the term \"good faith\" in a rental agreement, and who must show it?", "trigger_words": [], "form": "f3"}
+{"id": "btf-0627", "text": "Never trust a recipe that gives no oven temperature, my aunt says. Is there a safe default for cakes?", "trigger_words": ["never"], "form": "f3"}
+{"id": "btf-0628", "text": "Carefully measure the flour with a scale rather than a cup, and the loaf should come out the same every time. Is that true?", "trigger_words": ["carefully"], "form": "f3"}
