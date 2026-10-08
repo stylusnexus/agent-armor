@@ -10,18 +10,17 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-_PATH = Path(__file__).with_name("benign_triggers.jsonl")
+_DIR = Path(__file__).parent
 
 
 def _load() -> list[tuple[str, str, str]]:
-    if not _PATH.exists():
-        return []
     rows = []
-    for line in _PATH.read_text().splitlines():
-        if line.strip():
-            r = json.loads(line)
-            words = ", ".join(r.get("trigger_words", []))
-            rows.append((r["id"], r["text"], f"honest text using: {words}"))
+    for path in sorted(_DIR.glob("benign_triggers*.jsonl")):
+        for line in path.read_text().splitlines():
+            if line.strip():
+                r = json.loads(line)
+                words = ", ".join(r.get("trigger_words", []))
+                rows.append((r["id"], r["text"], f"honest text using: {words}"))
     return rows
 
 

@@ -22,7 +22,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-OUT = ROOT / "ml" / "data" / "benign_triggers.jsonl"
+DATA_DIR = ROOT / "ml" / "data"
 DATA = ROOT / "ml" / "data" / "output"
 HOLDOUT = ROOT / "ml" / "data" / "holdout"
 
@@ -34,8 +34,16 @@ def _norm(text: str) -> str:
     return re.sub(r"\s+", " ", text.lower()).strip()
 
 
+def _is_cjk(n: str) -> bool:
+    return sum("\u3040" <= c <= "\u9fff" for c in n) >= 0.3 * max(len(n), 1)
+
+
 def _grams(text: str) -> frozenset:
-    w = _norm(text).split()
+    n = _norm(text)
+    # Chinese and Japanese have no spaces, so use character 4-grams there.
+    if _is_cjk(n):
+        return frozenset(n[i : i + 4] for i in range(max(len(n) - 3, 1)))
+    w = n.split()
     if len(w) < 3:
         return frozenset({tuple(w)})
     return frozenset(tuple(w[i : i + 3]) for i in range(len(w) - 2))
@@ -81,6 +89,12 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--drafts", required=True, help="directory of *.jsonl drafts")
     ap.add_argument("--notinject", nargs="*", default=[], help="NotInject parquet files")
+    ap.add_argument(
+        "--out",
+        default="benign_triggers.jsonl",
+        help="file name under ml/data/ (benign_triggers*.jsonl is loaded by benign_triggers.py)",
+    )
+    ap.add_argument("--id-prefix", default="bt", help="id prefix for the kept rows")
     args = ap.parse_args()
 
     rows = []
@@ -102,7 +116,9 @@ def main() -> None:
     for r in rows:
         text = r["text"].strip()
         n = _norm(text)
-        if len(n.split()) < 3 or any(n in s for s in ref_norm.values()):
+        # TrainingSample needs at least 10 characters
+        too_short = len(text) < 10 or (len(n.split()) < 3 and not _is_cjk(n))
+        if too_short or any(n in s for s in ref_norm.values()):
             dropped["exact"] += 1
             continue
         g = _grams(text)
@@ -115,7 +131,7 @@ def main() -> None:
             continue
         kept.append(
             {
-                "id": f"bt-{len(kept) + 1:04d}",
+                "id": f"{args.id_prefix}-{len(kept) + 1:04d}",
                 "text": text,
                 "trigger_words": r.get("trigger_words", []),
                 "form": r.get("form", ""),
@@ -123,6 +139,7 @@ def main() -> None:
         )
         kept_grams.append(g)
 
+    OUT = DATA_DIR / args.out
     OUT.write_text("".join(json.dumps(k, ensure_ascii=False) + "\n" for k in kept))
     print(f"kept {len(kept)}; dropped {dropped}")
     print(f"wrote {OUT.relative_to(ROOT)}")
