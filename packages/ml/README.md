@@ -92,9 +92,10 @@ agentarmor-ml clear-cache
 
 Treat the classifier as a second opinion for triage, not a gate. The regex result stays the thing that blocks content. Measured on 2026-10-08 on the shipped INT8 model (see the [main README](https://github.com/stylusnexus/agent-armor#how-well-it-works) for the full table):
 
-- **False flags on real documents.** On 1,000 real READMEs, docs, policies, agent files and templates from 215 public repositories it flags 57% at the default threshold (the previous model, 35%), and at a threshold that flags 5% of them it catches only about 8% to 10% of the test attacks. Use it on short text such as tool outputs and prompts, not on long documents. On repo-written honest samples it flags 21 of 105 (about 20%), and on 339 short NotInject prompts 38.
+- **False flags on real documents.** The model in `0.1.7` flags 57% of 1,000 real READMEs, docs, policies, agent files and templates from 215 public repositories at the default threshold (the first model, 35%). The retrained model in the next release flags 0.3% of them (3 of 1,000) and 9 of 339 short NotInject prompts, and catches 95 of 110 held-out attacks at a 1% false-flag rate. If you are on `0.1.7`, use it on short text such as tool outputs and prompts, not on long documents.
 - **Languages.** English and Chinese only. In probes, "ignore all previous instructions" in Spanish, German and Russian was not flagged.
-- **Long text.** The model reads at most 512 tokens, and an attack after about 700 characters of honest text drops below the threshold ([#274](https://github.com/stylusnexus/agent-armor/issues/274)).
+- **Long text.** The model reads at most 512 tokens (about 2,000 characters). An attack after about 600 tokens is missed, so split long documents into chunks ([#274](https://github.com/stylusnexus/agent-armor/issues/274)). Detection is lower toward the end of the window.
+- **The label is a hint.** It often names a different trap type than a person would.
 - **Obfuscation.** Leetspeak and word-joiner characters were missed in probes.
 - **Small evaluation sets.** Differences of 10 to 20 samples between model versions are noise.
 

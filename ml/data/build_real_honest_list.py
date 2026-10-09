@@ -18,6 +18,9 @@ the false-flag rate on ordinary documents, not to be a random sample of GitHub.
 
 Usage (needs the `gh` CLI, logged in):
     python3 -m ml.data.build_real_honest_list --target 1000
+    # a training pool that shares no repository with the evaluation list (#294):
+    python3 -m ml.data.build_real_honest_list --target 3000 --seed 294 \
+        --exclude-repos ml/data/real_honest_list.jsonl --out ml/data/real_honest_train_list.jsonl
 """
 
 from __future__ import annotations
@@ -147,12 +150,27 @@ def main() -> None:
     ap.add_argument("--target", type=int, default=1000, help="documents to collect")
     ap.add_argument("--per-repo", type=int, default=6)
     ap.add_argument("--seed", type=int, default=276)
+    ap.add_argument("--out", type=Path, default=OUT, help="list file to write")
+    ap.add_argument(
+        "--exclude-repos",
+        type=Path,
+        action="append",
+        default=[],
+        help="a list file whose repositories must not appear in this one (keeps training and evaluation apart)",
+    )
     args = ap.parse_args()
     rng = random.Random(args.seed)
+    excluded = {
+        json.loads(line)["repo"].lower()
+        for path in args.exclude_repos
+        for line in path.read_text().splitlines()
+        if line.strip()
+    }
 
     print("Searching repositories ...")
-    repos = discover_repos(rng, want=max(args.target // 2, 200))
-    print(f"{len(repos)} candidate repositories")
+    repos = discover_repos(rng, want=max(args.target // 2, 200) + len(excluded))
+    repos = [r for r in repos if r["repo"].lower() not in excluded]
+    print(f"{len(repos)} candidate repositories ({len(excluded)} excluded)")
 
     docs: list[dict] = []
     used_repos = 0
@@ -183,11 +201,11 @@ def main() -> None:
             print(f"  {len(docs)} documents from {used_repos} repositories", flush=True)
 
     docs.sort(key=lambda d: (d["repo"], d["path"]))
-    OUT.write_text("".join(json.dumps(d) + "\n" for d in docs), encoding="utf-8")
+    args.out.write_text("".join(json.dumps(d) + "\n" for d in docs), encoding="utf-8")
     kinds: dict[str, int] = {}
     for d in docs:
         kinds[d["kind"]] = kinds.get(d["kind"], 0) + 1
-    print(f"Wrote {len(docs)} documents from {len({d['repo'] for d in docs})} repositories to {OUT.relative_to(ROOT)}")
+    print(f"Wrote {len(docs)} documents from {len({d['repo'] for d in docs})} repositories to {args.out.relative_to(ROOT) if args.out.is_relative_to(ROOT) else args.out}")
     print(f"By kind: {kinds}")
     print("By license:", {l: sum(1 for d in docs if d['license'] == l) for l in sorted({d['license'] for d in docs})})
 

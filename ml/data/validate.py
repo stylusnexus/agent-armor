@@ -143,7 +143,7 @@ def main() -> None:
     # 1. Read source files
     print("Loading source files...")
     all_samples: list[TrainingSample] = []
-    for filename in ("seed.jsonl", "synthetic.jsonl", "hard_negatives.jsonl", "augmented.jsonl", "llmail.jsonl", "ragpoison.jsonl", "fresh_attacks.jsonl", "zh_attacks.jsonl"):
+    for filename in ("seed.jsonl", "synthetic.jsonl", "hard_negatives.jsonl", "augmented.jsonl", "llmail.jsonl", "ragpoison.jsonl", "fresh_attacks.jsonl", "zh_attacks.jsonl", "real_doc_negatives.jsonl"):
         path = OUTPUT_DIR / filename
         if path.exists():
             samples = read_jsonl(path)
