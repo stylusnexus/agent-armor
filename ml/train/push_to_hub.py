@@ -317,6 +317,15 @@ def main() -> None:
         help="Hugging Face branch to publish to (for example v2). Must not be main.",
     )
     parser.add_argument(
+        "--base-revision",
+        default="main",
+        help=(
+            "revision the new branch starts from (default main). A branch from main inherits "
+            "main's old files, which may not belong to the new model; branch from the previous "
+            "revision when it is clean."
+        ),
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Build the model card and list the files; do not contact Hugging Face.",
@@ -359,7 +368,13 @@ def main() -> None:
     print(f"Authenticated as: {user_info['name']}")
 
     api.create_repo(repo_id=REPO_ID, repo_type="model", private=False, exist_ok=True)
-    api.create_branch(repo_id=REPO_ID, repo_type="model", branch=args.revision, exist_ok=True)
+    api.create_branch(
+        repo_id=REPO_ID,
+        repo_type="model",
+        branch=args.revision,
+        revision=args.base_revision,
+        exist_ok=True,
+    )
     print(f"Repo ready: {REPO_ID}@{args.revision}")
 
     # One commit, so the revision never holds a half-uploaded model
