@@ -1,7 +1,7 @@
 import { homedir, platform } from 'os';
 import { join } from 'path';
 
-export const MODEL_VERSION = 'v2';
+export const MODEL_VERSION = 'v3';
 export const HF_REPO_ID = 'stylusnexus/agent-armor-classifier';
 /**
  * The Hugging Face branch or tag the package downloads from. Pinned so that a
@@ -9,7 +9,7 @@ export const HF_REPO_ID = 'stylusnexus/agent-armor-classifier';
  * version. A retrain publishes to a new revision and bumps this with
  * MODEL_VERSION and MODEL_CHECKSUM in one change.
  */
-export const HF_REVISION = 'v2';
+export const HF_REVISION = 'v3';
 export const MODEL_FILENAME = 'model_quantized.onnx';
 
 export const REQUIRED_MODEL_FILES = [
@@ -20,7 +20,7 @@ export const REQUIRED_MODEL_FILES = [
 
 export const OPTIONAL_MODEL_FILES = ['tokenizer_config.json', 'special_tokens_map.json'] as const;
 
-export const MODEL_CHECKSUM = '4f3e912ab7f6ef7fba679590738b7f00b6d3bfe0cafa09982463211f20b0d42f';
+export const MODEL_CHECKSUM = '17a4ae95494348929833a5ef8de8007c82d84e4b9c8bf4c53d4530688aec03a0';
 
 export const LABELS = [
   'hidden-html',

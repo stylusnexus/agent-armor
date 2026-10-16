@@ -146,8 +146,11 @@ defense against prompt injection.
 Hand-written and model-drafted attack samples (English and Chinese), honest
 text that discusses security or merely contains words an attack classifier keys
 on (so the model learns that those words alone are not an attack), samples
-converted from the Agent Armor eval suite, and public attack datasets. The
-held-out attacks and the NotInject benchmark below were never trained on.
+converted from the Agent Armor eval suite, public attack datasets, and about
+2,850 real documents from public repositories (as benign text, and with a
+training attack inserted into the start of a document). The held-out attacks,
+the NotInject benchmark and the 1,000 evaluation documents below were never
+trained on.
 
 """
     card += _split_table()
@@ -155,48 +158,55 @@ held-out attacks and the NotInject benchmark below were never trained on.
 ## Evaluation
 
 Run on 2026-10-08 through the npm package (INT8 ONNX model, its tokenizer), at
-the default 0.5 threshold. Three sets were never trained on: 110 held-out
-attacks written after the training data was fixed, 47 held-out Chinese attacks,
-and NotInject (339 short benign prompts that contain attack words, 255 English
-and 84 Chinese; MIT). The repo's 105 benign and 142 adversarial eval samples
-were not trained on either, but they are part of the validation split that picks
-the best checkpoint, so the eval-suite figures are somewhat optimistic.
+the default 0.5 threshold. Sets never trained on: 110 held-out attacks written
+after the training data was fixed, 47 held-out Chinese attacks, NotInject (339
+short benign prompts that contain attack words, 255 English and 84 Chinese;
+MIT), and 1,000 real documents (READMEs, docs, policies, agent instruction
+files, issue and pull request templates, MCP manifests) from 215 public
+repositories under MIT, Apache-2.0, BSD or CC0 licenses. The repo's 105 benign
+and 142 adversarial eval samples were not trained on either, but they are part
+of the validation split that picks the best checkpoint, so the eval-suite
+figures are somewhat optimistic.
 
-| At 0.5 | Previous model (v1) | This revision | Regex detectors |
-|---|---|---|---|
-| Benign eval samples flagged (of 105) | 69 | 21 | 11 |
-| NotInject prompts flagged (of 339) | 165 | 38 | 1 |
-| Eval-suite attacks flagged (of 142) | 107 | 117 | 135 |
-| Held-out attacks flagged (of 110) | 74 | 87 | 17 |
+| At 0.5 | First model (v1) | Previous revision (v2) | This revision | Regex detectors |
+|---|---|---|---|---|
+| Real documents flagged (of 1,000) | 354 | 566 | 3 | not measured |
+| NotInject prompts flagged (of 339) | 165 | 38 | 9 | 1 |
+| Benign eval samples flagged (of 105) | 69 | 21 | 16 | 11 |
+| Eval-suite attacks flagged (of 142) | 107 | 117 | 120 | 135 |
+| Held-out attacks flagged (of 110) | 74 | 87 | 84 | 17 |
 
-Ranking quality on the eval suite (area under the ROC curve, attacks against
-honest samples) is 0.89 against 0.59 for v1. The held-out ranking figure (0.86)
-is optimistic, because the held-out and training samples share a drafting style.
-Used together with the regex detectors it catches 90 of 110 held-out attacks and
-flags 29 of 105 honest eval samples. Of the 21 honest eval samples it flags, 3
-quote an attack; the rest are ordinary operations documents (credential
-rotation, incident summaries, CI output, setup steps with URLs) and markdown
-image links. It flags 11 of 84 Chinese and 27 of 255 English NotInject prompts
-and catches 47 of 47 held-out Chinese attacks; the Chinese honest training text
-imitates NotInject's style, so treat the Chinese figure as optimistic. Counts
-come from small sets, so treat differences of a few samples as noise.
+On the 1,000 real documents, the share of held-out attacks caught while
+flagging at most 1% of the documents is 95 of 110 (v1: 3, v2: 0), and at most 5%
+is 97 of 110 (v1: 25, v2: 9); the 0.1% rate rests on one document. Ranking
+quality on the eval suite (area under the ROC curve, attacks against honest
+samples) is 0.88; the held-out figure (0.85) is optimistic because the
+held-out and training samples share a drafting style. Used together with the
+regex detectors it catches 90 of 110 held-out attacks and flags 26 of 105
+honest eval samples. 61 real documents that discuss prompt injection or
+vulnerabilities are flagged 0 times. Some evaluation documents share wording
+with the training pool (mostly the Contributor Covenant); without the 90 that
+share 30% or more, 3 of 910 are flagged. It flags 3 of 84 Chinese and 6 of 255
+English NotInject prompts and catches 46 of 47 held-out Chinese attacks; the
+Chinese honest training text imitates NotInject's style, so treat the Chinese
+figure as optimistic. Counts come from small sets from one training run, so
+treat differences of a few samples as noise.
 
 ### Known limits
 
+- **Reads the first 512 tokens (about 2,000 characters).** An attack after about
+  600 tokens is missed (1 of 110 caught); split long documents into chunks.
+  Detection also falls toward the end of the window (84, 77 and 67 of 110 at the
+  start, middle and end of a real document), and by format between 61 (inside a
+  code block) and 82 (in a tool description), against 82 for the attack alone.
+- **The label is a hint.** On the held-out attacks it names the right label for
+  embedded-jailbreak in 3 of 31 cases and for contextual-learning-trap in 0 of 7.
 - **Languages.** English and Chinese only. In probes, "ignore all previous
-  instructions" in Spanish, German and Russian scored 0.00, and 1 of 12 honest
-  texts in other languages was flagged.
-- **Long text.** An attack placed after about 700 characters of honest text drops
-  below 0.5 (the model reads at most 512 tokens, and attacks lose weight well
-  before that). No held-out attack is longer than 600 characters, so the figures
-  above do not measure this.
+  instructions" in Spanish, German and Russian scored 0.00.
 - **Obfuscation.** Leetspeak and word-joiner characters were missed in probes;
-  zero-width, homoglyph and fullwidth tricks were caught.
-- **Weaker labels on held-out attacks:** embedded-jailbreak 9 of 14,
-  sub-agent-spawning 7 of 10, persona-hyperstition 3 of 5.
-- **Attacks v1 caught.** 14 held-out attacks that v1 flags are missed by both
-  this revision and the regex detectors, even though regex plus this revision
-  catches more overall (90 against 83).
+  zero-width, homoglyph and fullwidth tricks were mostly caught.
+- **Held-out attacks and training samples share a drafting style**, and every
+  figure comes from one training run.
 
 """
     if eval_report:
@@ -307,6 +317,15 @@ def main() -> None:
         help="Hugging Face branch to publish to (for example v2). Must not be main.",
     )
     parser.add_argument(
+        "--base-revision",
+        default="main",
+        help=(
+            "revision the new branch starts from (default main). A branch from main inherits "
+            "main's old files, which may not belong to the new model; branch from the previous "
+            "revision when it is clean."
+        ),
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Build the model card and list the files; do not contact Hugging Face.",
@@ -349,7 +368,13 @@ def main() -> None:
     print(f"Authenticated as: {user_info['name']}")
 
     api.create_repo(repo_id=REPO_ID, repo_type="model", private=False, exist_ok=True)
-    api.create_branch(repo_id=REPO_ID, repo_type="model", branch=args.revision, exist_ok=True)
+    api.create_branch(
+        repo_id=REPO_ID,
+        repo_type="model",
+        branch=args.revision,
+        revision=args.base_revision,
+        exist_ok=True,
+    )
     print(f"Repo ready: {REPO_ID}@{args.revision}")
 
     # One commit, so the revision never holds a half-uploaded model

@@ -10,6 +10,7 @@ _Inference is probabilistic. The gate shouldn't be._
 [![npm downloads](https://img.shields.io/npm/dm/@stylusnexus/agentarmor.svg)](https://www.npmjs.com/package/@stylusnexus/agentarmor)
 [![CI](https://github.com/stylusnexus/agent-armor/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/stylusnexus/agent-armor/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/stylusnexus/agent-armor/badge)](https://scorecard.dev/viewer/?uri=github.com/stylusnexus/agent-armor)
 
 **[agentarmor.dev](https://agentarmor.dev)** | **[API Reference](https://agentarmor.dev/api)** | **[npm](https://www.npmjs.com/package/@stylusnexus/agentarmor)** | **[GitHub](https://github.com/stylusnexus/agent-armor)**
 
@@ -136,17 +137,17 @@ Versions 0.2.1 to 0.2.17 can report a very large input as clean ([GHSA-vr4h-8mw3
 
 ### Eval Suite
 
-260 curated samples (155 adversarial, 105 benign) covering all 16 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
+264 curated samples (155 adversarial, 109 benign) covering all 16 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
 
 | Strictness   | Detection Rate (regex) | False Positive Rate |
 | ------------ | ---------------------- | ------------------- |
 | Permissive   | 90.3%                  | 0.0%                |
 | **Balanced** | **94.2%**              | **0.0%**            |
-| Strict       | 96.8%                  | 0.0%                |
+| Strict       | 98.1%                  | 0.0%                |
 
 The 0.0% false-positive figure covers every benign sample except 11 **known false positives** (`acceptedFlagAt` in `scripts/eval/samples.ts`): honest text that quotes an attack or tells an assistant to run a command, such as a security paper quoting an exfiltration instruction. They flag at every strictness, are reported separately by `npm run eval`, and are excluded from the rate. The gate still fails on any other benign sample that flags.
 
-The eval suite includes 14 adversarial samples drawn from real-world incidents (2025-2026): MCP tool poisoning, RAG vector DB saturation, covert exfiltration via image proxies, supply chain prompt injection, memory poisoning, HITL dialog forgery, and the July 2026 OpenAI sandbox escape (credential reuse, C2 over public paste services, package-proxy egress, cross-environment persistence). Regex catches 6 of these at balanced (10 at strict); the remaining 8 are the gap the [ML classifier](#ml-classifier-optional) closes (the retrain candidate flags all 8 at 0.5, measured 2026-10-08; regex alone still misses them). **These headline numbers move down whenever we add a blind spot we can't yet catch — that is deliberate.** `scripts/eval/thresholds.json` records every floor change and why. On the original 49 adversarial samples, regex detection is 100% at balanced strictness.
+The eval suite includes 14 adversarial samples drawn from real-world incidents (2025-2026): MCP tool poisoning, RAG vector DB saturation, covert exfiltration via image proxies, supply chain prompt injection, memory poisoning, HITL dialog forgery, and the July 2026 OpenAI sandbox escape (credential reuse, C2 over public paste services, package-proxy egress, cross-environment persistence). Regex flags 6 of these at balanced and 12 at strict (5 and 11 when the trap type must also match what the sample expects); the remaining 8 at balanced are where the [ML classifier](#ml-classifier-optional) helps, measured 2026-10-08 at its 0.5 threshold: the published model flags 6 of the 8, the model in 0.1.7 all 8, and the retrain candidate (run 7, not published) 5 of 8, missing two that the regex catches at strict. The regex still misses two even at strict (rw-011 and rw-014), which the classifier flags. **These headline numbers move down whenever we add a blind spot we can't yet catch — that is deliberate.** `scripts/eval/thresholds.json` records every floor change and why. On the original 49 adversarial samples, regex detection is 100% at balanced strictness.
 
 Sources: [WASP benchmark](https://arxiv.org/abs/2312.02119) (Evtimov et al.), [HackAPrompt](https://arxiv.org/abs/2311.16119) (Schulhoff et al., 2023), [Greshake et al. (2023)](https://arxiv.org/abs/2302.12173), the [DeepMind paper](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438), and incident reports from [Invariant Labs](https://invariantlabs.ai/blog), [Unit 42](https://unit42.paloaltonetworks.com), [Snyk Labs](https://labs.snyk.io), [Legit Security](https://www.legitsecurity.com/blog/camoleak), and [Socket Research](https://socket.dev/blog). Benign samples include security blog posts, legitimate HTML, CI/CD docs, MCP tool descriptions, agent interaction logs, and procurement policy emails.
 
@@ -196,8 +197,8 @@ const armor = await AgentArmor.create({
     exfiltrationURLs: true, // Data exfiltration patterns
     privilegeEscalation: true, // Sub-agent spawning triggers
   },
-  // 'permissive' = only high-confidence threats (90.1% detection)
-  // 'balanced'   = recommended default (94.1% detection, 0% FP)
+  // 'permissive' = only high-confidence threats (90.3% detection)
+  // 'balanced'   = recommended default (94.2% detection, 0% FP)
   // 'strict'     = maximum coverage, catches subtle attacks
   strictness: 'balanced',
 
@@ -399,30 +400,46 @@ If the ML package is not installed or the model is unavailable, behavior depends
 
 ### How well it works
 
-Measured on 2026-10-08 through the npm package (the shipped INT8 model and its own tokenizer; regex column at the default `balanced` level) on the repo's 105 benign and 142 adversarial eval samples, 110 held-out attack samples written after the training data was fixed (original wording plus paraphrases of public 2025-2026 write-ups), 47 held-out Chinese attacks, and NotInject (339 short benign prompts that contain attack words, 255 English and 84 Chinese; MIT). No model in the comparison was trained on any of them, but the eval samples are part of the validation split that picks the best checkpoint, so the eval-suite rows favour the retrain candidate somewhat; the held-out attacks and NotInject are the clean measurements. A sample is flagged when the model reports any trap label at the default 0.5 threshold.
+Measured on 2026-10-08 through the npm package (the shipped INT8 model and its own tokenizer; regex column at the default `balanced` level) on the repo's 105 benign and 142 adversarial eval samples, 110 held-out attack samples written after the training data was fixed (original wording plus paraphrases of public 2025-2026 write-ups), 47 held-out Chinese attacks, and NotInject (339 short benign prompts that contain attack words, 255 English and 84 Chinese; MIT). None of the models was trained on any of them, but the eval samples are part of the validation split that picks the best checkpoint, so the eval-suite rows favour the retrained models somewhat; the held-out attacks and NotInject are the clean measurements. A sample is flagged when the model reports any trap label at the default 0.5 threshold.
 
-|                                                         | Published model (v1) | Retrain candidate (run 6, #212, not published) | Regex detectors                           |
-| ------------------------------------------------------- | -------------------- | ---------------------------------------------- | ----------------------------------------- |
-| Benign eval samples flagged (of 105)                    | 69                   | 21                                             | 11 (the documented known false positives) |
-| NotInject prompts flagged (of 339)                      | 165                  | 38                                             | 1                                         |
-| Eval-suite attacks flagged (of 142)                     | 107                  | 117                                            | 135                                       |
-| Held-out attacks flagged (of 110)                       | 74                   | 87                                             | 17                                        |
-| Eval-suite attacks ranked above eval-suite benign (AUC) | 0.59                 | 0.89                                           | not applicable                            |
-| Eval-suite attacks caught at 5% false flags             | 4%                   | 37%                                            | not applicable                            |
-| Held-out attacks ranked above honest text (AUC)         | 0.52                 | 0.86                                           | not applicable                            |
+|                                                         | Published model (v1) | Model in 0.1.7 (run 6) | Retrain candidate (run 7, #294, not published) | Regex detectors                           |
+| ------------------------------------------------------- | -------------------- | ---------------------- | ---------------------------------------------- | ----------------------------------------- |
+| Benign eval samples flagged (of 105)                    | 69                   | 21                     | 16                                             | 11 (the documented known false positives) |
+| NotInject prompts flagged (of 339)                      | 165                  | 38                     | 9                                              | 1                                         |
+| Eval-suite attacks flagged (of 142)                     | 107                  | 117                    | 120                                            | 135                                       |
+| Held-out attacks flagged (of 110)                       | 74                   | 87                     | 84                                             | 17                                        |
+| Eval-suite attacks ranked above eval-suite benign (AUC) | 0.59                 | 0.89                   | 0.88                                           | not applicable                            |
+| Eval-suite attacks caught at 5% false flags             | 4%                   | 37%                    | 33%                                            | not applicable                            |
+| Held-out attacks ranked above honest text (AUC)         | 0.52                 | 0.86                   | 0.85                                           | not applicable                            |
 
 What this means:
 
 - **Use the classifier as a second opinion for triage, not a gate.** A finding with `source: 'ml'` should go to review; the regex result stays the thing that blocks content.
-- **The published model flags two thirds of the repo's honest samples and half of the NotInject prompts.** The retrain candidate flags 21 of 105 honest eval samples and 38 of 339 NotInject prompts. Of the 21, 3 quote an attack; the rest are ordinary operations documents (credential rotation, incident summaries, CI output, setup steps with URLs) and markdown image links. The regex flags 11.
-- **The two layers catch different things.** The regex catches 135 of 142 eval attacks and the candidate 117, but on the held-out attacks, which use wording the regex was never written for, the candidate flags 87 of 110 and the regex 17. Together they catch 90 of the 110 and flag 29 of the 105 honest samples. That gap is why the classifier is worth running.
+- **Honest text.** The published model flags two thirds of the repo's honest samples and half of the NotInject prompts. Run 7 flags 16 of 105 honest eval samples and 9 of 339 NotInject prompts. The regex flags 11 of the 105 (the known false positives that quote an attack).
+- **The two layers catch different things.** The regex catches 135 of 142 eval attacks and run 7 catches 120, but on the held-out attacks, which use wording the regex was never written for, run 7 flags 84 of 110 and the regex 17. Together they catch 90 of the 110 and flag 26 of the 105 honest samples. That gap is why the classifier is worth running.
 - **Read the ranking rows (AUC) with the counts.** A model that flags everything scores well on detection. Neither AUC is a clean estimate: the eval-suite AUC is somewhat optimistic because those samples choose the checkpoint, and the held-out AUC is optimistic because the held-out and training samples were written in the same pass and share a style.
-- **English and Chinese only.** The candidate flags 11 of the 84 Chinese NotInject prompts and catches 47 of 47 held-out Chinese attacks, but the Chinese honest training text imitates NotInject's style, so treat the Chinese figure as optimistic. In probes, "ignore all previous instructions" in Spanish, German and Russian was not flagged, and 1 of 12 honest texts in other languages was.
-- **Short prompts are mostly fixed, not fully.** The candidate flags 27 of 255 English NotInject prompts, mostly polite formal requests that use words like "ensure" or "command". Differences between retrains of 10 to 20 prompts are noise at this size.
-- **Long text and obfuscation are weak spots.** An attack after about 700 characters of honest text drops below the threshold (the model also reads at most 512 tokens, [#274](https://github.com/stylusnexus/agent-armor/issues/274)); no held-out attack is that long, so the table does not measure it. Leetspeak and word-joiner characters were missed in probes. 14 held-out attacks that the published model flags are missed by both the candidate and the regex, even though regex plus candidate catches more overall (90 against 83).
-- **Labels are approximate.** The model often reports an attack under a different trap label than ours, so treat the label as a hint.
+- **English and Chinese only.** Run 7 flags 3 of the 84 Chinese NotInject prompts and catches 46 of 47 held-out Chinese attacks, but the Chinese honest training text imitates NotInject's style, so treat the Chinese figure as optimistic. In probes, "ignore all previous instructions" in Spanish, German and Russian was not flagged, and 1 of 12 honest texts in other languages was.
+- **It reads the first 512 tokens (about 2,000 characters).** An attack after about 600 tokens is missed (1 of 110 caught), so split long documents into chunks ([#274](https://github.com/stylusnexus/agent-armor/issues/274)). Within the window, held-out attacks inserted into real documents are caught 82, 78 and 66 times of 110 at the start, middle and end; by format, between 61 (inside a code block) and 82 (in a tool description), against 82 for the attack on its own.
+- **The label is a hint.** On the held-out attacks run 7 names the right label for embedded-jailbreak in 3 of 31 cases, so use "an attack was flagged", not which kind.
+- **One training run.** Differences of 10 to 20 samples between retrains are noise at these sizes, and run 7 was trained once.
 
-The training data, the held-out set and the scoring script are in `ml/`. `python3 -m ml.train.evaluate_holdout` reproduces the table from the PyTorch weights, which differ from the shipped INT8 model by a few samples in each row.
+#### Real documents (#276, #294)
+
+The honest samples above are mostly text this repo wrote, so they cannot show low false-flag rates. This set is 1,000 real documents from 215 public repositories under MIT, Apache-2.0, BSD or CC0 licenses: READMEs (295), policies such as CONTRIBUTING and SECURITY (232), docs (201), agent instruction files such as AGENTS.md and CLAUDE.md (162), issue and pull request templates (86) and MCP manifests (24). The list, with each file's repository, path, commit and SHA-256, is `ml/data/real_honest_list.jsonl`; the text is fetched at evaluation time and not stored. The model reads the first 512 tokens of each. They are assumed honest and were not reviewed one by one, so a few may contain real injections or text that resembles one. Documents from one repository are not independent, so the intervals resample whole repositories.
+
+Run 6 flagged more than half of these documents. Run 7 was trained with a separate pool of about 2,850 real documents from 684 other repositories (benign document starts and later sections, plus document starts with one training attack inserted), and none of the evaluation repositories is in it.
+
+|                                                                 | Published model (v1)   | Model in 0.1.7 (run 6) | Run 7 (not published) |
+| --------------------------------------------------------------- | ---------------------- | ---------------------- | --------------------- |
+| Real documents flagged at the default 0.5 (of 1,000)            | 354 (35.4%, 32.5-38.4) | 566 (56.6%, 53.5-59.6) | 3 (0.3%, 0.1-0.9)     |
+| Flagged at strict 0.3 / permissive 0.7                          | 49.4% / 26.0%          | 63.2% / 48.1%          | 0.3% / 0.2%           |
+| Held-out attacks caught at 10% / 5% / 1% false flags (of 110)   | 36 / 25 / 3            | 37 / 9 / 0             | 99 / 97 / 95          |
+| Eval-suite attacks caught at 10% / 5% / 1% false flags (of 142) | 68 / 52 / 3            | 47 / 14 / 3            | 135 / 135 / 128       |
+| Held-out attacks caught at 0.5% / 0.1% false flags              | 2 / 0                  | 0 / 0                  | 93 / 64               |
+
+The 0.1% rate rests on one document and the 0.5% rate on five, so read those cells as order-of-magnitude. Run 7's other checks: 61 evaluation documents that discuss prompt injection or vulnerabilities (advisories, research READMEs) are flagged 0 times (run 6: 45, v1: 22). Some evaluation documents share wording with the training pool, mostly the Contributor Covenant code of conduct: 90 share 30% or more, and without them run 7 flags 3 of 910 (3 of 829 at a 10% cut), so the result does not come from them. The 154 pool documents that were near-copies of evaluation documents were removed by `ml/data/filter_real_pool.py`. Reproduce with `python3 -m ml.data.fetch_real_honest` and `python3 -m ml.train.evaluate_holdout --onnx-dir <dir containing model_quantized.onnx and tokenizer.json>`.
+
+The training data, the held-out set and the scoring script are in `ml/`. `python3 -m ml.train.evaluate_holdout` reproduces the tables from the PyTorch weights, and with `--onnx-dir` from the shipped INT8 model; either differs by a few samples per row from the npm-package numbers above.
 
 ## CLI
 
@@ -639,8 +656,23 @@ armor.loadPatterns(latestPatterns);
 armor.loadPatterns(myCustomPatterns);
 
 // Check current pattern version
-console.log(armor.patternVersion); // '0.9.12'
+console.log(armor.patternVersion); // '0.9.13'
 ```
+
+## Versioning
+
+Releases are cut by [release-please](https://github.com/googleapis/release-please) from conventional commit titles, and each package has its own version: `@stylusnexus/agentarmor` (the scanner) and `@stylusnexus/agentarmor-ml` (the optional classifier).
+
+Below 1.0:
+
+- **Patch** (`0.2.22` to `0.2.23`): new or changed detection patterns, new detectors, bug fixes, documentation. New detectors and patterns can make a scan report threats it did not before, and a pattern fix can stop reporting an honest document it used to flag.
+- **Minor** (`0.2.x` to `0.3.0`): a breaking change to the API, a changed default, or removed exports.
+
+In `0.x`, a caret range allows patch updates only (`^0.2.23` means `>=0.2.23 <0.3.0`), so it picks up detection updates and never a breaking change. That is the range we recommend if you want to stay current without editing your `package.json` each release (`^0.1.7` for the ML package). A lockfile still pins the exact version your build installed, and Renovate or Dependabot will open the bump as a pull request.
+
+Pin an exact version (`"0.2.23"`) when scan results must be reproducible across builds, and bump it on purpose. `armor.patternVersion` reports the pattern database version, which changes whenever detection changes; the changelog lists what changed.
+
+**The ML package pins its model.** Each version of `@stylusnexus/agentarmor-ml` downloads one fixed Hugging Face revision and checks its SHA-256, so installing a newer package is the only way the model changes. A model published later never changes the behaviour of an older package version. Both packages keep working when a newer version exists.
 
 ## Framework Agnostic
 
@@ -688,7 +720,7 @@ Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy, plus t
 - **Transport Integrity** (2 detectors): credential exposure and dependency substitution
 - **Pre-execution action gate** — deterministic allowlist admissibility check (`checkAction()`)
 - ML classifier (DeBERTa-v3-small, ONNX) as optional companion package
-- Pattern database v0.9.12 with 117 pattern entries
+- Pattern database v0.9.13 with 119 pattern entries
 
 ### In Progress
 
