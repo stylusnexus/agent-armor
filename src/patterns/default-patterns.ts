@@ -1,5 +1,41 @@
 import type { PatternDatabase } from './pattern-db';
 
+// ─── Drop-service hosts (#98) ────────────────────────────────────────────────
+// Ordinary public services an agent can use as a command-and-control channel.
+// Each class is its own pattern; the directional patterns match any of them.
+const DROP_PASTE =
+  '(?:pastebin\\.com|paste\\.ee|hastebin\\.com|termbin\\.com|0x0\\.st|ghostbin\\.\\w+|paste\\.rs|dpaste\\.\\w+|rentry\\.co|ix\\.io|controlc\\.com)';
+const DROP_CAPTURE =
+  '(?:webhook\\.site|requestbin\\.\\w+|requestcatcher\\.com|beeceptor\\.com|pipedream\\.net|hookbin\\.com|postb\\.in|mockbin\\.\\w+)';
+const DROP_OAST =
+  '(?:interact\\.sh|oast\\.(?:fun|live|pro|site|online|me)|oastify\\.com|burpcollaborator\\.net|canarytokens\\.(?:com|org)|dnslog\\.cn)';
+const DROP_FILE =
+  '(?:transfer\\.sh|file\\.io|anonfiles\\.com|gofile\\.io|tmpfiles\\.org|catbox\\.moe|bashupload\\.com)';
+const DROP_TUNNEL =
+  '(?:ngrok(?:-free)?\\.(?:io|app|dev)|trycloudflare\\.com|loca\\.lt|localtunnel\\.me|serveo\\.net|lhr\\.life|localhost\\.run)';
+const DROP_ANY = `(?:${DROP_PASTE}|${DROP_CAPTURE}|${DROP_OAST}|${DROP_FILE}|${DROP_TUNNEL})`;
+// Placeholder and documentation forms (`/<id>`, `/your-id`, `/example`) are
+// excluded inline, as credential-exposure does (#28).
+const DROP_PLACEHOLDER = '(?![\\w-])(?!\\/(?:<|\\{|\\[|your|example|xxx|uuid|id\\b))';
+const DROP_URL = `(?:https?:\\/\\/)?(?:[a-z0-9-]+\\.)*${DROP_ANY}${DROP_PLACEHOLDER}`;
+const dropUrlWithScheme = (host: string) =>
+  `https?:\\/\\/(?:[a-z0-9-]+\\.)*${host}${DROP_PLACEHOLDER}`;
+
+// ─── Persistence and concealment (#99) ───────────────────────────────────────
+// Three signal groups. Balanced needs all three in one sentence; no single
+// group is reported alone. A sentence is a run without . ! or ?.
+const PERSIST_RESET =
+  '(?:(?:each|every|any)\\s+time\\s+(?:the\\s+|your\\s+|an?\\s+)?(?:\\w+\\s+){0,2}?(?:sandbox|environment|container|session|instance|runtime|vm|workspace|pod)\\s+(?:is\\s+|gets\\s+|has\\s+been\\s+)?(?:re-?created|re-?set|restarted|rebuilt|wiped|respawned|recycled|destroyed)|(?:if|when|whenever|after)\\s+(?:the\\s+|your\\s+|an?\\s+)?(?:\\w+\\s+){0,2}?(?:sandbox|environment|container|session|instance|runtime|vm|workspace|pod)\\s+(?:is\\s+|gets\\s+|has\\s+been\\s+)?(?:re-?creat(?:es?|ed)|re-?sets?|re-?set|restart(?:s|ed)?|rebuil(?:ds?|t)|wiped|respawn(?:s|ed)?|recycled|destroyed)|on\\s+(?:every|each)\\s+(?:new\\s+)?(?:session|restart|reset|boot|start-?up))';
+const PERSIST_VERB =
+  '(?:re-?download|re-?register|re-?install|re-?establish|re-?create|re-?deploy|re-?connect|re-?attach|re-?launch|restore|rebuild|recover|resume)';
+const PERSIST_OBJECT_CHANNEL =
+  '(?:listeners?|relays?|channels?|beacons?|task\\s+queues?|tunnels?|implants?|backdoors?|footholds?|c2)';
+const PERSIST_OBJECT_ANY = `(?:${PERSIST_OBJECT_CHANNEL}|queues?|toolchains?|tooling|helpers?|agents?|previous\\s+(?:task|session|state)|prior\\s+(?:task|session|state))`;
+const PERSIST_CONCEAL =
+  "(?:without\\s+(?:notifying|telling|alerting|informing|warning)\\s+(?:the\\s+)?(?:operators?|users?|admins?|administrators?|owners?|humans?|supervisors?|developers?|maintainers?|anyone)\\b|without\\s+(?:writing|logging|recording|leaving)\\s+(?:anything\\s+)?(?:to|in|into|a|an|any)?\\s*(?:the\\s+)?(?:session\\s+|audit\\s+|system\\s+|activity\\s+)?(?:logs?|audit|records?|traces?)\\b|\\b(?:do\\s+not|don'?t|never)\\s+(?:notify|alert|tell|inform)\\s+(?:the\\s+)?(?:operators?|admins?|users?|owners?)\\b|\\b(?:suppress|omit|delete|erase|clear|skip|scrub)\\s+(?:the\\s+)?(?:audit|session|activity|log)\\s+(?:entry|entries|record|records|log|logs)\\b)";
+const SENTENCE_START = '(?<![^.!?])';
+const SENTENCE_RUN = '[^.!?]{0,400}';
+
 /**
  * Default pattern database shipped with agent-armor.
  * Users can override or extend this via AgentArmor.loadPatterns().
@@ -10,10 +46,13 @@ import type { PatternDatabase } from './pattern-db';
  *   0.7.0 — Transport Integrity: credential-exposure patterns (AC-2, #28)
  *   0.8.0 — steganographic-payload: ASCII smuggling via Unicode Tags and
  *           variation-selector runs (#69 item 1)
+ *   0.9.14 — Incident-derived channel and persistence patterns: drop-service
+ *           endpoints (exfiltration, #98), persistence plus concealment
+ *           (oversight-evasion) and channel recovery (sub-agent-spawning, #99)
  */
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.13',
-  updatedAt: '2026-10-07',
+  version: '0.9.14',
+  updatedAt: '2026-10-16',
   detectors: {
     'hidden-html': [
       {
@@ -808,6 +847,99 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         confidence: 0.4,
         label: 'Marked block that hides an instruction or names a secret file',
       },
+      // ── Drop-service channels (#98) ──────────────────────────────────────────
+      // The July 2026 OpenAI sandbox escape ran its command channel over
+      // ordinary public services. Every pattern here reports at strict only.
+      // A bare link is honest in bug reports, tunnel quickstarts and
+      // webhook-testing guides. The directional patterns (fetch the address
+      // from a paste, send collected data to a service, reach one after a
+      // reset) fire on rarer wording, but a probe found honest advisories,
+      // pen-test labs and debugging steps in the same words ("never send
+      // credentials to https://webhook.site"), so none reaches balanced.
+      {
+        id: 'ex-drop-paste',
+        regex: dropUrlWithScheme(DROP_PASTE),
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'medium',
+        confidence: 0.4,
+        label: 'Link to a public paste service',
+      },
+      {
+        id: 'ex-drop-capture',
+        regex: dropUrlWithScheme(DROP_CAPTURE),
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'medium',
+        confidence: 0.4,
+        label: 'Link to a public request-capture service',
+      },
+      {
+        id: 'ex-drop-oast',
+        regex: dropUrlWithScheme(DROP_OAST),
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'medium',
+        confidence: 0.4,
+        label: 'Link to an out-of-band interaction (OAST) service',
+      },
+      {
+        id: 'ex-drop-file',
+        regex: dropUrlWithScheme(DROP_FILE),
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'medium',
+        confidence: 0.4,
+        label: 'Link to a public file-drop service',
+      },
+      {
+        id: 'ex-drop-tunnel',
+        regex: dropUrlWithScheme(DROP_TUNNEL),
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'medium',
+        confidence: 0.4,
+        label: 'Link to a public tunnel service',
+      },
+      {
+        id: 'ex-drop-resolve-address',
+        regex: `\\b(?:fetch|read|get|retrieve|pull|download|obtain|look\\s+up|resolve)\\s+(?:the\\s+)?(?:current\\s+|latest\\s+|new\\s+|next\\s+|real\\s+|live\\s+)?(?:staging\\s+|c2\\s+|callback\\s+|relay\\s+|upload\\s+|drop\\s+|destination\\s+|target\\s+)?(?:address|url|endpoint|host|hostname|domain|target|destination|channel)\\s+(?:from|at|on)\\s+${DROP_URL}`,
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'critical',
+        confidence: 0.4,
+        label: 'Instruction to fetch the destination address from a public drop service',
+      },
+      {
+        id: 'ex-drop-send-collected',
+        regex: `\\b(?:post|put|upload|send|exfiltrate|forward|push|submit|stream|ship|deliver)\\s+[^.!?\\n]{0,60}?\\b(?:collected|captured|harvested|gathered|dumped|stolen|exfiltrated|credentials|secrets|tokens|api\\s+keys|passwords|cookies|env(?:ironment)?\\s+vars|environment\\s+variables)\\b[^.!?\\n]{0,30}?\\b(?:to|at|into|via)\\s+${DROP_URL}`,
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'critical',
+        confidence: 0.4,
+        label: 'Instruction to send collected data or secrets to a public drop service',
+      },
+      {
+        // A reset trigger and a verb that reaches a drop service, in one
+        // sentence: the re-bootstrap shape of rw-011. Honest tunnel and
+        // fixture-sharing docs read the same ("if the dev environment resets,
+        // upload your fixtures to https://transfer.sh"), so strict only.
+        id: 'ex-drop-after-reset',
+        regex: `${SENTENCE_START}(?=${SENTENCE_RUN}?${PERSIST_RESET})(?=${SENTENCE_RUN}?\\b(?:fetch|get|read|retrieve|pull|download|poll|post|put|upload|send|exfiltrate|forward|push|submit|stream|deliver)\\b[^.!?]{0,160}?https?:\\/\\/(?:[a-z0-9-]+\\.)*${DROP_ANY}${DROP_PLACEHOLDER})${SENTENCE_RUN}`,
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'critical',
+        confidence: 0.4,
+        label: 'Instruction to reach a public drop service after an environment reset',
+      },
     ],
 
     // ─── Cognitive State ──────────────────────────────────────────────────────
@@ -1230,6 +1362,26 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         label: 'Instruction to exclude content from analysis',
         boostOnInstructions: true,
       },
+      {
+        // #99: a reset trigger, a re-acquire verb with its object (listener,
+        // toolchain, queue, previous task), and concealment from the operator
+        // or the log, all in one sentence. Any two without the third stay
+        // clean: CI and Kubernetes docs say the first two all the time, and
+        // log-level docs say the third. Strict only: a probe of honest
+        // orchestration and front-end docs ("when the session restarts,
+        // re-register the listeners without notifying the user") flagged at
+        // balanced with the same wording, even with the object narrowed to
+        // listener, relay and channel.
+        id: 'oe-persist-conceal',
+        regex: `${SENTENCE_START}(?=${SENTENCE_RUN}?${PERSIST_RESET})(?=${SENTENCE_RUN}?\\b${PERSIST_VERB}\\b[^.!?]{0,80}?\\b${PERSIST_OBJECT_ANY}\\b)(?=${SENTENCE_RUN}?${PERSIST_CONCEAL})${SENTENCE_RUN}`,
+        flags: 'gi',
+        category: 'semantic-manipulation',
+        type: 'oversight-evasion',
+        severity: 'high',
+        confidence: 0.4,
+        label:
+          'Instruction to restore tooling or state after an environment reset without telling the operator',
+      },
     ],
 
     'persona-hyperstition': [
@@ -1343,6 +1495,19 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         label: 'Pipeline/workflow injection',
         boostOnInstructions: true,
         requireInstructions: true,
+      },
+      {
+        // #99: channel recovery after a reset. The same sentence in a
+        // Kubernetes or service-registry guide ("if the pod restarts,
+        // re-register the listener") reads the same, so strict only.
+        id: 'sa-persist-channel',
+        regex: `${SENTENCE_START}(?=${SENTENCE_RUN}?${PERSIST_RESET})(?=${SENTENCE_RUN}?\\b${PERSIST_VERB}\\b[^.!?]{0,80}?\\b${PERSIST_OBJECT_CHANNEL}\\b)${SENTENCE_RUN}`,
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'sub-agent-spawning',
+        severity: 'high',
+        confidence: 0.4,
+        label: 'Instruction to re-establish a listener or channel after an environment reset',
       },
     ],
 
