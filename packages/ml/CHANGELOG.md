@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.10](https://github.com/stylusnexus/agent-armor/compare/agentarmor-ml-v0.1.9...agentarmor-ml-v0.1.10) (2026-10-16)
+
+
+### Documentation
+
+* **ml:** say the real-document result is tuned ([#323](https://github.com/stylusnexus/agent-armor/issues/323)) ([44561cd](https://github.com/stylusnexus/agent-armor/commit/44561cd0bfab795fed50bf8ea6a03c6bd2df0654)), closes [#298](https://github.com/stylusnexus/agent-armor/issues/298)
+
 ## [0.1.9](https://github.com/stylusnexus/agent-armor/compare/agentarmor-ml-v0.1.8...agentarmor-ml-v0.1.9) (2026-10-16)
 
 
