@@ -58,9 +58,10 @@ def convert_sample(raw: dict) -> TrainingSample | None:
 
     Returns None for an adversarial sample whose trap types are all outside the
     model's label set (credential-exposure, steganographic-payload,
-    dependency-substitution). Labelling those "benign" would teach and score the
-    model on a wrong answer, and the label space cannot change without breaking
-    the order that `npm run check:model` compares.
+    dependency-substitution, tool-call-tampering, response-anomaly). Labelling
+    those "benign" would teach and score the model on a wrong answer, and the
+    label space cannot change without breaking the order that
+    `npm run check:model` compares.
     """
     expected: list[str] = raw.get("expected", [])
 

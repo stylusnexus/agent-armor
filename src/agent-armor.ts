@@ -25,6 +25,7 @@ import type { PatternDatabase } from './patterns/pattern-db';
 import { DEFAULT_PATTERNS } from './patterns/default-patterns';
 import { PatternDetector, redactSecret } from './detectors/pattern-detector';
 import { MarkdownReferenceExfiltrationDetector } from './detectors/behavioural-control/markdown-reference-exfiltration';
+import { ResponseAnomalyDetector } from './detectors/response-anomaly';
 import { normalizeForScan, mapRangeToOriginal, type NormalizedText } from './normalize/unicode';
 
 const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
@@ -120,7 +121,10 @@ const DETECTOR_REGISTRY: Array<{
     | 'semanticManipulation'
     | 'transportIntegrity';
   configKey: string;
-  patternDbKey: string;
+  /** Pattern database key. Omit for a detector that is code only. */
+  patternDbKey?: string;
+  /** A detector that is code only: built directly instead of from the pattern database. */
+  codeDetector?: () => Detector;
   id: string;
   name: string;
   category: TrapCategory;
@@ -325,6 +329,18 @@ const DETECTOR_REGISTRY: Array<{
     sanitizeMode: 'replace',
     replaceText:
       '[BLOCKED: suspicious package source flagged by AgentArmor — verify the package and registry before executing]',
+  },
+  {
+    configGroup: 'transportIntegrity',
+    configKey: 'responseAnomaly',
+    codeDetector: () => new ResponseAnomalyDetector(),
+    id: 'response-anomaly',
+    name: 'Response Anomaly Detector',
+    category: 'transport-integrity',
+    trapType: 'response-anomaly',
+    sanitizeMode: 'replace',
+    // A flagged span can hold a credential; keep it out of remapped evidence.
+    maskEvidence: true,
   },
 ];
 
@@ -631,7 +647,14 @@ export class AgentArmor {
         continue;
       }
 
-      const patterns = this.patternDb.detectors[reg.patternDbKey];
+      if (reg.codeDetector) {
+        if (reg.maskEvidence) this.maskedDetectorIds.add(reg.id);
+        this.detectors.push(reg.codeDetector());
+        if (reg.category !== 'content-injection') this.normalizedDetectorIds.add(reg.id);
+        continue;
+      }
+
+      const patterns = reg.patternDbKey ? this.patternDb.detectors[reg.patternDbKey] : undefined;
       if (!patterns || patterns.length === 0) {
         this.config.on?.detectorSkipped?.({ detectorId: reg.id, reason: 'no-patterns' });
         continue;
