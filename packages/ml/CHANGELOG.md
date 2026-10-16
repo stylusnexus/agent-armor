@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.8](https://github.com/stylusnexus/agent-armor/compare/agentarmor-ml-v0.1.7...agentarmor-ml-v0.1.8) (2026-10-16)
+
+
+### Added
+
+* **ml:** measure false flags on real documents ([8c4629a](https://github.com/stylusnexus/agent-armor/commit/8c4629a1f9e88851520e667f4ba411737ad2bfea)), closes [#276](https://github.com/stylusnexus/agent-armor/issues/276) [#294](https://github.com/stylusnexus/agent-armor/issues/294)
+
+
+### Fixed
+
+* **ml:** ship the real-document retrained model ([d7430b2](https://github.com/stylusnexus/agent-armor/commit/d7430b2fe2b12f448e62ac77104ea88b3e79b02a)), closes [#294](https://github.com/stylusnexus/agent-armor/issues/294)
+
 ## [0.1.7](https://github.com/stylusnexus/agent-armor/compare/agentarmor-ml-v0.1.6...agentarmor-ml-v0.1.7) (2026-10-08)
 
 
