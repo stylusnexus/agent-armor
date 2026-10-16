@@ -12,7 +12,7 @@ import type { PatternDatabase } from './pattern-db';
  *           variation-selector runs (#69 item 1)
  */
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.12',
+  version: '0.9.13',
   updatedAt: '2026-10-07',
   detectors: {
     'hidden-html': [
@@ -990,6 +990,26 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         label: 'Explicit learning instruction from examples',
         boostOnInstructions: true,
       },
+      {
+        // #251: a fabricated "past successful interaction" that skipped a
+        // verification step, followed by an instruction to repeat it
+        // (MemoryGraft, Dec 2025). Two cues, each within a bounded window, so
+        // the scan stays linear. Reports at strict only: honest policy docs
+        // ("refunds under $20 are approved without further review ... apply the
+        // same approach for similar refunds") use the same words. A "not" or
+        // "never" right before the repeat verb is excluded, which keeps
+        // postmortems ("do not repeat this pattern") clean.
+        id: 'cl-fabricated-experience',
+        regex:
+          '\\b(?:approved|authori[sz]ed|processed|executed|released|completed|granted|paid)\\b(?:\\s+\\w+){0,2}?\\s+without\\s+(?:\\w+\\s+){0,2}?(?:verification|verifying|approval|review|confirmation|authori[sz]ation|checks?|sign-?off|oversight)\\b(?=[\\s\\S]{0,500}?(?<!\\b(?:not|never)\\s+)(?<!n\x27t\\s+)\\b(?:replicate|repeat|reuse|mirror|follow|apply|continue)\\b(?:\\s+\\w+){0,2}?\\s+(?:this|the\\s+same|that|these)\\s+(?:pattern|approach|process|behaviou?r|handling|workflow|procedure)\\s+(?:for|in|on|with|when)\\s+(?:similar|future|subsequent|comparable|other|all|any|every)\\b)',
+        flags: 'gi',
+        category: 'cognitive-state',
+        type: 'contextual-learning-trap',
+        severity: 'high',
+        confidence: 0.4,
+        label:
+          'Fabricated past outcome that skipped verification, with an instruction to repeat it',
+      },
     ],
 
     // ─── Semantic Manipulation ────────────────────────────────────────────────
@@ -1080,6 +1100,25 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         confidence: 0.85,
         label: 'False authorization/permission claim',
         boostOnInstructions: true,
+      },
+      {
+        // #253: a fake "policy update" that tells the agent to widen its own
+        // limits (MA-002, the procurement agent incident). Needs both an
+        // instruction to change *your* threshold, limit, ceiling or cap and a
+        // pre-authorisation cue (pre-authorized, expedited, fast-track,
+        // exempt from approval) within 300 characters, in either order. Reports
+        // at strict only: genuine policy mail to staff says the same ("update
+        // your approval limit; purchases under $5,000 are pre-authorized").
+        id: 'oe-widen-own-limit',
+        regex:
+          '(?:\\b(?:pre-?(?:authori[sz]ed|approved)|standing\\s+approval|exempt(?:ed)?\\s+from\\s+(?:further\\s+|additional\\s+)?(?:approval|review))\\b[\\s\\S]{0,300}?\\b(?:update|raise|increase|adjust|change|widen|expand|lift|relax|set)\\b(?:\\s+\\w+){0,2}?\\s+your\\s+(?:own\\s+)?(?:(?:approval|purchase|purchasing|spending|authori[sz]ation|payment|transaction|procurement|expense|auto-?approv\\w*)\\s+){0,2}(?:threshold|limit|ceiling|cap)s?\\b|\\b(?:update|raise|increase|adjust|change|widen|expand|lift|relax|set)\\b(?:\\s+\\w+){0,2}?\\s+your\\s+(?:own\\s+)?(?:(?:approval|purchase|purchasing|spending|authori[sz]ation|payment|transaction|procurement|expense|auto-?approv\\w*)\\s+){0,2}(?:threshold|limit|ceiling|cap)s?\\b[\\s\\S]{0,300}?\\b(?:pre-?(?:authori[sz]ed|approved)|standing\\s+approval|exempt(?:ed)?\\s+from\\s+(?:further\\s+|additional\\s+)?(?:approval|review))\\b)',
+        flags: 'gi',
+        category: 'semantic-manipulation',
+        type: 'oversight-evasion',
+        severity: 'high',
+        confidence: 0.4,
+        label:
+          "Instruction to widen the agent's own approval limit under a pre-authorisation claim",
       },
       {
         id: 'oe-skip-verify',
