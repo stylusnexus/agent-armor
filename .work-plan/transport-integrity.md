@@ -35,7 +35,7 @@ Confirmed P1 on 2026-07-07's value pass: already correctly ordered — #26 is th
 | #26 | New taxonomy category: Transport Integrity (malicious intermediary attacks) | —        | ✅ Shipped |
 | #27 | Detector: Tool-call tampering (AC-1 payload injection)                      | —        | 🔲 Open    |
 | #28 | Detector: Credential exposure scanning (AC-2 secret exfiltration)           | —        | ✅ Shipped |
-| #29 | Detector: Dependency substitution (AC-1.a typosquat injection)              | —        | 🔲 Open    |
+| #29 | Detector: Dependency substitution (AC-1.a typosquat injection)              | —        | ✅ Shipped |
 | #30 | Detector: Response anomaly screening for intermediary manipulation          | —        | 🔲 Open    |
 | #31 | Future: Provider response-envelope verification (response signing)          | —        | 🔲 Open    |
 
