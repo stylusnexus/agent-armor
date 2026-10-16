@@ -137,15 +137,15 @@ Versions 0.2.1 to 0.2.17 can report a very large input as clean ([GHSA-vr4h-8mw3
 
 ### Eval Suite
 
-264 curated samples (155 adversarial, 109 benign) covering all 16 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
+273 curated samples (159 adversarial, 114 benign) covering all 17 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
 
 | Strictness   | Detection Rate (regex) | False Positive Rate |
 | ------------ | ---------------------- | ------------------- |
-| Permissive   | 90.3%                  | 0.0%                |
-| **Balanced** | **94.2%**              | **0.0%**            |
+| Permissive   | 90.6%                  | 0.0%                |
+| **Balanced** | **94.3%**              | **0.0%**            |
 | Strict       | 98.1%                  | 0.0%                |
 
-The 0.0% false-positive figure covers every benign sample except 11 **known false positives** (`acceptedFlagAt` in `scripts/eval/samples.ts`): honest text that quotes an attack or tells an assistant to run a command, such as a security paper quoting an exfiltration instruction. They flag at every strictness, are reported separately by `npm run eval`, and are excluded from the rate. The gate still fails on any other benign sample that flags.
+The 0.0% false-positive figure covers every benign sample except 11 **known false positives** (`acceptedFlagAt` in `scripts/eval/samples.ts`): honest text that quotes an attack or tells an assistant to run a command, such as a security paper quoting an exfiltration instruction. They flag at every strictness, are reported separately by `npm run eval`, and are excluded from the rate. Four more honest samples (install docs, a plugin manifest and an advisory that write `curl | sh`, and a tutorial that explains it) report at `strict` only and are listed the same way. The gate still fails on any other benign sample that flags.
 
 The eval suite includes 14 adversarial samples drawn from real-world incidents (2025-2026): MCP tool poisoning, RAG vector DB saturation, covert exfiltration via image proxies, supply chain prompt injection, memory poisoning, HITL dialog forgery, and the July 2026 OpenAI sandbox escape (credential reuse, C2 over public paste services, package-proxy egress, cross-environment persistence). Regex flags 6 of these at balanced and 12 at strict (5 and 11 when the trap type must also match what the sample expects); the remaining 8 at balanced are where the [ML classifier](#ml-classifier-optional) helps, measured 2026-10-08 at its 0.5 threshold: the first model (v1) flags 6 of the 8, the model in 0.1.7 all 8, and the model in 0.1.8 (run 7) 5 of 8, missing two that the regex catches at strict. The regex still misses two even at strict (rw-011 and rw-014), which the classifier flags. **These headline numbers move down whenever we add a blind spot we can't yet catch — that is deliberate.** `scripts/eval/thresholds.json` records every floor change and why. On the original 49 adversarial samples, regex detection is 100% at balanced strictness.
 
@@ -179,7 +179,7 @@ Run it: `npx tsx examples/real-world-validation.ts`
 | **Semantic Manipulation** | Reasoning    | Shipped | Biased framing/priming, oversight evasion, persona hyperstition                                                                                                                               |
 | **Systemic**              | Multi-Agent  | Planned | Congestion traps, interdependence cascades, tacit collusion, compositional fragments, sybil attacks                                                                                           |
 | **Human-in-the-Loop**     | Overseer     | Planned | Approval fatigue induction, social engineering via compromised agent                                                                                                                          |
-| **Transport Integrity**   | Supply Chain | Partial | Credential exposure (AC-2) and dependency substitution (AC-1.a) shipped; tool-call tampering (AC-1), response anomaly screening planned ([Liu et al. 2026](https://arxiv.org/abs/2604.08407)) |
+| **Transport Integrity**   | Supply Chain | Partial | Credential exposure (AC-2), dependency substitution (AC-1.a) and tool-call tampering (AC-1) shipped; response anomaly screening planned ([Liu et al. 2026](https://arxiv.org/abs/2604.08407)) |
 
 ## Configuration
 
@@ -197,8 +197,8 @@ const armor = await AgentArmor.create({
     exfiltrationURLs: true, // Data exfiltration patterns
     privilegeEscalation: true, // Sub-agent spawning triggers
   },
-  // 'permissive' = only high-confidence threats (90.3% detection)
-  // 'balanced'   = recommended default (94.2% detection, 0% FP)
+  // 'permissive' = only high-confidence threats (90.6% detection)
+  // 'balanced'   = recommended default (94.3% detection, 0% FP)
   // 'strict'     = maximum coverage, catches subtle attacks
   strictness: 'balanced',
 
@@ -250,12 +250,13 @@ At `permissive`, 6 of the original 49 adversarial samples go undetected because 
 
 A few detectors report at `strict` and nowhere else. In each case honest text uses the same words as the attack, and a regex cannot tell a description, a ban or a how-to from an order. Independent adversarial reviews kept finding honest text flagged at `balanced`, so these ship at `strict` rather than risk false positives on content people actually write. Scan content you did not write (issue text, tool descriptions, third-party packages) at `strict`.
 
-| What it catches                                                                                                                          | Why it is `strict` only                                                    | Issue |
-| ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ----- |
-| Package installs that skip the trusted registry: custom index flags, config commands, installs from a raw URL                            | Private registries, git installs and internal mirror guides look the same  | #29   |
-| "Install from a URL, then commit or push the result" (the Clinejection shape)                                                            | Release runbooks, contributor guides and bans use the same words           | #252  |
-| "Read private repository data and publish it to a public gist or paste"                                                                  | Security policies and advisories say the same thing                        | #250  |
-| Poisoned MCP tool descriptions: read a key file and pass it along, redirect a recipient, hidden `bcc`, marked blocks that conceal a step | XML system prompts, MCP setup guides and CRM email docs use the same words | #218  |
+| What it catches                                                                                                                           | Why it is `strict` only                                                    | Issue |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ----- |
+| Package installs that skip the trusted registry: custom index flags, config commands, installs from a raw URL                             | Private registries, git installs and internal mirror guides look the same  | #29   |
+| "Install from a URL, then commit or push the result" (the Clinejection shape)                                                             | Release runbooks, contributor guides and bans use the same words           | #252  |
+| "Read private repository data and publish it to a public gist or paste"                                                                   | Security policies and advisories say the same thing                        | #250  |
+| Poisoned MCP tool descriptions: read a key file and pass it along, redirect a recipient, hidden `bcc`, marked blocks that conceal a step  | XML system prompts, MCP setup guides and CRM email docs use the same words | #218  |
+| A download piped or chained into a shell (`curl ... \| sh`), written as plain text. Inside a tool call's command it reports at `balanced` | Install guides, READMEs and security posts write the same line             | #27   |
 
 ## Scan Results
 
@@ -586,6 +587,8 @@ Phrase matching is English only, so an override written in another language isn'
 
   Published example keys (`AKIAIOSFODNN7EXAMPLE`), placeholders (`sk-your-key-here`), and masked references (`AKIA****`) are excluded by design. Low-confidence formats that are common in API documentation — bare bearer tokens and JWTs — surface only at `strict`.
 
+- **ToolCallTamperingDetector** — Flags shell that a rewritten tool call would run ([Liu et al. 2026](https://arxiv.org/abs/2604.08407), AC-1): a download piped or chained into a shell (`curl ... | sh`, `wget ...; chmod +x`), a shell run on a downloaded script (`bash -c "$(curl ...)"`, `sh <(curl ...)`), base64 decoded into a shell, and Python executing decoded text. A router that swaps an installer URL leaves a call that is still valid JSON, so the shape is the signal. Inside the command of a tool call (the `input` of a `tool_use` block, an MCP `arguments` object, or the stringified `arguments` an OpenAI-style response carries) these report at every level. A `command` key under `input` or `arguments` counts; hook and server configs with a `command` key do not. The same text written as plain text reports at `strict` only, because install guides, READMEs and security posts write `curl | sh` too. It does not compare a URL with the one the model meant, and it cannot see a call that never reaches the scanner. Matched text is replaced with a warning in sanitized output.
+
 ## Performance
 
 The core regex detectors have zero dependencies and run with sub-millisecond latency. When the ML classifier is enabled, scan times increase but remain practical for real-time use:
@@ -656,7 +659,7 @@ armor.loadPatterns(latestPatterns);
 armor.loadPatterns(myCustomPatterns);
 
 // Check current pattern version
-console.log(armor.patternVersion); // '0.9.13'
+console.log(armor.patternVersion); // '0.9.14'
 ```
 
 ## Versioning
@@ -717,10 +720,10 @@ Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy, plus t
 
 - **Content Injection** (5 detectors) and **Behavioural Control** (3 detectors) since v0.1.0
 - **Cognitive State** (3 detectors) and **Semantic Manipulation** (3 detectors) since v0.2.0
-- **Transport Integrity** (2 detectors): credential exposure and dependency substitution
+- **Transport Integrity** (3 detectors): credential exposure, dependency substitution and tool-call tampering
 - **Pre-execution action gate** — deterministic allowlist admissibility check (`checkAction()`)
 - ML classifier (DeBERTa-v3-small, ONNX) as optional companion package
-- Pattern database v0.9.13 with 119 pattern entries
+- Pattern database v0.9.14 with 131 pattern entries
 
 ### In Progress
 
@@ -773,7 +776,7 @@ Where it _does_ fit: if your team is building custom agents _using_ the Claude A
 
 It detects prompt injection, and it covers more than that. Direct and indirect injection are both in scope. These are flagged before they reach your model: override phrasing ("ignore all previous instructions"), persona swaps, instructions hidden in HTML or metadata, and plain-text instructions that tell an agent to run a command or send a secret and hide it from the user.
 
-Prompt injection is one attack type among the many we cover (16 detectors across 5 attack categories). It targets chatbots within a single conversation. Agent traps target autonomous agents with tool access, persistent memory, and sub-agent spawning. Different attack surface, different blast radius.
+Prompt injection is one attack type among the many we cover (17 detectors across 5 attack categories). It targets chatbots within a single conversation. Agent traps target autonomous agents with tool access, persistent memory, and sub-agent spawning. Different attack surface, different blast radius.
 
 The full taxonomy includes content injection, behavioral control, cognitive state manipulation (RAG/memory poisoning), and semantic manipulation (biased framing, persona shifts). These are distinct attack categories with different detection approaches.
 

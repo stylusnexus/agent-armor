@@ -1,4 +1,12 @@
-import type { PatternDatabase } from './pattern-db';
+import type { PatternDatabase, PatternEntry } from './pattern-db';
+import {
+  BASE64_TO_SHELL,
+  DOWNLOAD_EXEC,
+  DOWNLOAD_SUBSHELL,
+  PYTHON_B64_EXEC,
+  downloadExecInCommand,
+  inCommand,
+} from './tool-call-sources';
 
 /**
  * Default pattern database shipped with agent-armor.
@@ -10,10 +18,112 @@ import type { PatternDatabase } from './pattern-db';
  *   0.7.0 — Transport Integrity: credential-exposure patterns (AC-2, #28)
  *   0.8.0 — steganographic-payload: ASCII smuggling via Unicode Tags and
  *           variation-selector runs (#69 item 1)
+ *   0.9.14 — Transport Integrity: tool-call-tampering patterns (AC-1, #27)
  */
+/**
+ * tool-call-tampering (#27): shell the model's tool call would run, rewritten
+ * by an intermediary (Liu et al. 2026, AC-1). Two layers share each shape.
+ *
+ * The bare shape reports at strict only. Install guides, READMEs and security
+ * posts write `curl ... | sh` too, and a regex cannot tell them from a
+ * tampered call.
+ *
+ * The same shape inside the value of a tool call's command key
+ * (`"command": "..."`, or the stringified form `\\"command\\": \\"...\\"`)
+ * reports at balanced. Install guides do not write that.
+ */
+function toolCallEntry(
+  id: string,
+  regex: string,
+  label: string,
+  confidence: number,
+  severity: PatternEntry['severity'],
+): PatternEntry {
+  return {
+    id,
+    regex,
+    flags: 'gi',
+    category: 'transport-integrity',
+    type: 'tool-call-tampering',
+    severity,
+    confidence,
+    label,
+  };
+}
+
+function toolCallEntries(): PatternEntry[] {
+  const bare = 0.4;
+  const inCall = 0.9;
+  const out: PatternEntry[] = [
+    toolCallEntry(
+      'tc-download-exec',
+      DOWNLOAD_EXEC,
+      'Download piped or chained into a shell',
+      bare,
+      'high',
+    ),
+    toolCallEntry(
+      'tc-download-subshell',
+      DOWNLOAD_SUBSHELL,
+      'Shell run on a downloaded script',
+      bare,
+      'high',
+    ),
+    toolCallEntry(
+      'tc-base64-shell',
+      BASE64_TO_SHELL,
+      'Base64-decoded text piped into a shell',
+      bare,
+      'high',
+    ),
+    toolCallEntry(
+      'tc-python-b64-exec',
+      PYTHON_B64_EXEC,
+      'Python executes base64-decoded text',
+      bare,
+      'high',
+    ),
+  ];
+  for (const form of ['plain', 'escaped'] as const) {
+    const tag = form === 'plain' ? 'call' : 'call-str';
+    const where = form === 'plain' ? 'a tool call command' : 'a stringified tool call command';
+    out.push(
+      toolCallEntry(
+        `tc-${tag}-download-exec`,
+        downloadExecInCommand(form),
+        `Download piped or chained into a shell in ${where}`,
+        inCall,
+        'critical',
+      ),
+      toolCallEntry(
+        `tc-${tag}-download-subshell`,
+        inCommand(form, DOWNLOAD_SUBSHELL),
+        `Shell run on a downloaded script in ${where}`,
+        inCall,
+        'critical',
+      ),
+      toolCallEntry(
+        `tc-${tag}-base64-shell`,
+        inCommand(form, BASE64_TO_SHELL),
+        `Base64-decoded text piped into a shell in ${where}`,
+        inCall,
+        'critical',
+      ),
+      toolCallEntry(
+        `tc-${tag}-python-b64-exec`,
+        inCommand(form, PYTHON_B64_EXEC),
+        `Python executes base64-decoded text in ${where}`,
+        inCall,
+        'critical',
+      ),
+    );
+  }
+  return out;
+}
+
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.13',
-  updatedAt: '2026-10-07',
+  version: '0.9.14',
+  updatedAt: '2026-10-16',
   detectors: {
     'hidden-html': [
       {
@@ -1593,5 +1703,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         label: 'Package installed from a URL or git source instead of a registry name',
       },
     ],
+
+    'tool-call-tampering': toolCallEntries(),
   },
 };

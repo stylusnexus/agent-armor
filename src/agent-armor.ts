@@ -292,6 +292,18 @@ const DETECTOR_REGISTRY: Array<{
   // Transport Integrity
   {
     configGroup: 'transportIntegrity',
+    configKey: 'toolCallTampering',
+    patternDbKey: 'tool-call-tampering',
+    id: 'tool-call-tampering',
+    name: 'Tool-Call Tampering Detector',
+    category: 'transport-integrity',
+    trapType: 'tool-call-tampering',
+    sanitizeMode: 'replace',
+    replaceText:
+      '[BLOCKED: suspicious shell command flagged by AgentArmor; verify the tool call before executing]',
+  },
+  {
+    configGroup: 'transportIntegrity',
     configKey: 'credentialExposure',
     patternDbKey: 'credential-exposure',
     id: 'credential-exposure',
