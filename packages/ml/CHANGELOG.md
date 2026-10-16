@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.9](https://github.com/stylusnexus/agent-armor/compare/agentarmor-ml-v0.1.8...agentarmor-ml-v0.1.9) (2026-10-16)
+
+
+### Fixed
+
+* **ml:** accept an absolute --dir in download ([#316](https://github.com/stylusnexus/agent-armor/issues/316)) ([ab4c010](https://github.com/stylusnexus/agent-armor/commit/ab4c010678715d630a8be027799c9fcc108b8f38)), closes [#315](https://github.com/stylusnexus/agent-armor/issues/315)
+
 ## [0.1.8](https://github.com/stylusnexus/agent-armor/compare/agentarmor-ml-v0.1.7...agentarmor-ml-v0.1.8) (2026-10-16)
 
 
