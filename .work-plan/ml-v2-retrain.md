@@ -27,11 +27,11 @@ Next model retrain: data requirements, transport-integrity training samples, eva
 
 ## Issues
 
-| #   | Title                                                                                | Assignee | Status                   |
-| --- | ------------------------------------------------------------------------------------ | -------- | ------------------------ |
-| #25 | ML v2: data requirements for next model retrain                                      | —        | 🔲 Open                  |
-| #32 | ML v2: Add transport-integrity attack samples to training data                       | —        | 🔲 Open |
-| #40 | Eval-gated external-feed ingestion (patterns + ML training data)                     | —        | 🔲 Open                  |
+| #   | Title                                                                                | Assignee | Status     |
+| --- | ------------------------------------------------------------------------------------ | -------- | ---------- |
+| #25 | ML v2: data requirements for next model retrain                                      | —        | 🔲 Open    |
+| #32 | ML v2: Add transport-integrity attack samples to training data                       | —        | 🔲 Open    |
+| #40 | Eval-gated external-feed ingestion (patterns + ML training data)                     | —        | 🔲 Open    |
 | #71 | ci(ml): scheduled integrity check of MODEL_CHECKSUM against the HuggingFace artifact | —        | ✅ Shipped |
 
 ## Session log
