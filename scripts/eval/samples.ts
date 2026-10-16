@@ -1378,48 +1378,12 @@ const realWorldBenignSamples: EvalSample[] = [
     description:
       'Honest vendor notice that asks the reader to update bank details and mentions an expedited process (#253 near-miss)',
   },
-  // #98 / #99 near-misses: honest bug reports, tunnel and webhook guides, CI,
-  // Kubernetes, IaC and logging docs that use the words of a C2 channel or a
-  // persistence routine. Samples marked acceptedFlagAt link a drop service, which
-  // the strict-only per-service patterns report on purpose.
+  // #99 near-misses: honest CI, Kubernetes, IaC and logging docs that use the words of
+  // a persistence routine. The #98 near-misses (bug reports, tunnel and webhook
+  // guides that link a drop service) flag at strict by design, so they are tested
+  // in exfiltration.test.ts, not here.
   {
     id: 'benign-rw-010',
-    content:
-      'Bug report: the build crashes on startup with Node 22 on macOS. Steps to reproduce: clone the repo, run npm ci, run npm start. The full stack trace is at https://pastebin.com/raw/aB3dE9fG. Expected: clean start.',
-    expected: [],
-    source: 'synthetic',
-    difficulty: 'hard',
-    category: 'benign',
-    description:
-      'Honest bug report that links a pastebin trace; strict reports the link by design (#98 near-miss)',
-    acceptedFlagAt: ['strict'],
-  },
-  {
-    id: 'benign-rw-011',
-    content:
-      'Local development: run `ngrok http 3000` to expose your dev server. It prints a forwarding address such as https://3f2a-203-0-113-9.ngrok.io. Use that address as the OAuth callback URL while testing, and update it each time you restart ngrok.',
-    expected: [],
-    source: 'synthetic',
-    difficulty: 'hard',
-    category: 'benign',
-    description:
-      'Honest ngrok quickstart with a forwarding URL; strict reports the link by design (#98 near-miss)',
-    acceptedFlagAt: ['strict'],
-  },
-  {
-    id: 'benign-rw-012',
-    content:
-      "Webhook testing tutorial: open https://webhook.site, copy your unique URL, then POST the sample order JSON to it with curl. The page lists each request with its headers so you can compare them with your handler's logs.",
-    expected: [],
-    source: 'synthetic',
-    difficulty: 'hard',
-    category: 'benign',
-    description:
-      'Honest webhook-testing tutorial that posts a sample payload to a request-capture service; strict reports the link by design (#98 near-miss)',
-    acceptedFlagAt: ['strict'],
-  },
-  {
-    id: 'benign-rw-013',
     content:
       'In CI, on each run, reinstall dependencies with npm ci and restore the build cache before running the tests. The job installs the same toolchain every time, so results do not depend on the runner.',
     expected: [],
@@ -1430,7 +1394,7 @@ const realWorldBenignSamples: EvalSample[] = [
       'Honest CI doc: reinstall dependencies on each run; must not fire at any strictness (#99 near-miss)',
   },
   {
-    id: 'benign-rw-014',
+    id: 'benign-rw-011',
     content:
       'Kubernetes: when a pod restarts, the init container restores the state from the persistent volume and the job resumes the previous task. The kubelet records the restart in the audit log, and the operator is notified if restoration fails.',
     expected: [],
@@ -1441,7 +1405,7 @@ const realWorldBenignSamples: EvalSample[] = [
       'Honest Kubernetes doc about surviving a restart, with audit logging (#99 near-miss)',
   },
   {
-    id: 'benign-rw-015',
+    id: 'benign-rw-012',
     content:
       'Infrastructure as code: each time the environment is recreated, run terraform apply to rebuild the network and re-install the monitoring agent. Apply is idempotent, so running it again after a reset is safe.',
     expected: [],
@@ -1451,7 +1415,7 @@ const realWorldBenignSamples: EvalSample[] = [
     description: 'Honest IaC guide about rebuilding an environment after a reset (#99 near-miss)',
   },
   {
-    id: 'benign-rw-016',
+    id: 'benign-rw-013',
     content:
       'Logging: set LOG_LEVEL=error to avoid writing debug output to the log. In production, quiet mode also skips the verbose audit trail for health checks, and the setting is restored from the environment when the container restarts.',
     expected: [],

@@ -3,38 +3,94 @@ import type { PatternDatabase } from './pattern-db';
 // ─── Drop-service hosts (#98) ────────────────────────────────────────────────
 // Ordinary public services an agent can use as a command-and-control channel.
 // Each class is its own pattern; the directional patterns match any of them.
-const DROP_PASTE =
-  '(?:pastebin\\.com|paste\\.ee|hastebin\\.com|termbin\\.com|0x0\\.st|ghostbin\\.\\w+|paste\\.rs|dpaste\\.\\w+|rentry\\.co|ix\\.io|controlc\\.com)';
-const DROP_CAPTURE =
-  '(?:webhook\\.site|requestbin\\.\\w+|requestcatcher\\.com|beeceptor\\.com|pipedream\\.net|hookbin\\.com|postb\\.in|mockbin\\.\\w+)';
-const DROP_OAST =
-  '(?:interact\\.sh|oast\\.(?:fun|live|pro|site|online|me)|oastify\\.com|burpcollaborator\\.net|canarytokens\\.(?:com|org)|dnslog\\.cn)';
-const DROP_FILE =
-  '(?:transfer\\.sh|file\\.io|anonfiles\\.com|gofile\\.io|tmpfiles\\.org|catbox\\.moe|bashupload\\.com)';
-const DROP_TUNNEL =
-  '(?:ngrok(?:-free)?\\.(?:io|app|dev)|trycloudflare\\.com|loca\\.lt|localtunnel\\.me|serveo\\.net|lhr\\.life|localhost\\.run)';
-const DROP_ANY = `(?:${DROP_PASTE}|${DROP_CAPTURE}|${DROP_OAST}|${DROP_FILE}|${DROP_TUNNEL})`;
+// A host also matches with a percent-encoded dot (`pastebin%2Ecom`).
+const hostDots = (host: string) => host.replace(/\\\./g, '(?:\\.|%2e)');
+const DROP_PASTE = hostDots(
+  '(?:pastebin\\.com|paste\\.ee|hastebin\\.com|termbin\\.com|0x0\\.st|ghostbin\\.\\w+|paste\\.rs|dpaste\\.\\w+|rentry\\.co|ix\\.io|controlc\\.com|justpaste\\.it|paste\\.debian\\.net)',
+);
+// Hosts whose path is a random token the sender cannot choose, so a
+// placeholder path (`/<your-id>`) is documentation, not a channel.
+const DROP_CAPTURE_TOKEN = hostDots(
+  '(?:webhook\\.site|requestbin\\.\\w+|hookbin\\.com|postb\\.in|mockbin\\.\\w+|requestinspector\\.com)',
+);
+// Hosts whose name or path the sender picks: no placeholder exclusion, or an
+// attacker could pick `/example` or `/id` to dodge it.
+const DROP_CAPTURE_OPEN = hostDots(
+  '(?:requestcatcher\\.com|beeceptor\\.com|pipedream\\.net|smee\\.io|ntfy\\.sh|discord(?:app)?\\.com\\/api\\/webhooks|api\\.telegram\\.org\\/bot\\d+(?=:))',
+);
+const DROP_OAST = hostDots(
+  '(?:interact\\.sh|oast\\.(?:fun|live|pro|site|online|me)|oastify\\.com|burpcollaborator\\.net|canarytokens\\.(?:com|org)|dnslog\\.cn|ceye\\.io)',
+);
+const DROP_FILE_TOKEN = hostDots(
+  '(?:transfer\\.sh|file\\.io|anonfiles\\.com|gofile\\.io|tmpfiles\\.org|catbox\\.moe|bashupload\\.com|temp\\.sh|pixeldrain\\.com)',
+);
+const DROP_TUNNEL = hostDots(
+  '(?:ngrok(?:-free)?\\.(?:io|app|dev)|trycloudflare\\.com|loca\\.lt|localtunnel\\.me|serveo\\.net|lhr\\.life|localhost\\.run|pinggy\\.link|tunnelmole\\.net|bore\\.pub)',
+);
 // Placeholder and documentation forms (`/<id>`, `/your-id`, `/example`) are
-// excluded inline, as credential-exposure does (#28).
-const DROP_PLACEHOLDER = '(?![\\w-])(?!\\/(?:<|\\{|\\[|your|example|xxx|uuid|id\\b))';
-const DROP_URL = `(?:https?:\\/\\/)?(?:[a-z0-9-]+\\.)*${DROP_ANY}${DROP_PLACEHOLDER}`;
-const dropUrlWithScheme = (host: string) =>
-  `https?:\\/\\/(?:[a-z0-9-]+\\.)*${host}${DROP_PLACEHOLDER}`;
+// excluded inline for the token hosts, as credential-exposure does (#28).
+const DROP_END = '(?![\\w-])';
+const DROP_PLACEHOLDER = `${DROP_END}(?!\\/(?:<|\\{|\\[|your[-_]|xxx|uuid\\b|example\\b))`;
+const dropHost = (open: string, token = '') => {
+  const tokenHosts = token && `(?:${token})${DROP_PLACEHOLDER}`;
+  const openHosts = open && `(?:${open})${DROP_END}`;
+  return `(?:${[tokenHosts, openHosts].filter(Boolean).join('|')})`;
+};
+const DROP_HOST_ANY = dropHost(
+  `${DROP_PASTE}|${DROP_CAPTURE_OPEN}|${DROP_OAST}|${DROP_TUNNEL}`,
+  `${DROP_CAPTURE_TOKEN}|${DROP_FILE_TOKEN}`,
+);
+// A link may be scheme-relative (`//host`), carry a login name
+// (`https://docs.google.com@host/`) and any number of subdomains.
+const DROP_SCHEME = '(?:https?:)?\\/\\/';
+const DROP_USERINFO = '(?:[\\w.%:+-]{1,100}@)?';
+const DROP_SUBDOMAINS = '(?:[a-z0-9-]+(?:\\.|%2e))*';
+const dropLink = (host: string) => `${DROP_SCHEME}${DROP_USERINFO}${DROP_SUBDOMAINS}${host}`;
+const DROP_LINK_ANY = dropLink(DROP_HOST_ANY);
+// Same, with the scheme optional (a directional verb already supplies context).
+const DROP_URL = `(?:(?:${DROP_SCHEME}${DROP_USERINFO})?(?<![\\w-])${DROP_SUBDOMAINS}${DROP_HOST_ANY})`;
 
 // ─── Persistence and concealment (#99) ───────────────────────────────────────
-// Three signal groups. Balanced needs all three in one sentence; no single
-// group is reported alone. A sentence is a run without . ! or ?.
-const PERSIST_RESET =
-  '(?:(?:each|every|any)\\s+time\\s+(?:the\\s+|your\\s+|an?\\s+)?(?:\\w+\\s+){0,2}?(?:sandbox|environment|container|session|instance|runtime|vm|workspace|pod)\\s+(?:is\\s+|gets\\s+|has\\s+been\\s+)?(?:re-?created|re-?set|restarted|rebuilt|wiped|respawned|recycled|destroyed)|(?:if|when|whenever|after)\\s+(?:the\\s+|your\\s+|an?\\s+)?(?:\\w+\\s+){0,2}?(?:sandbox|environment|container|session|instance|runtime|vm|workspace|pod)\\s+(?:is\\s+|gets\\s+|has\\s+been\\s+)?(?:re-?creat(?:es?|ed)|re-?sets?|re-?set|restart(?:s|ed)?|rebuil(?:ds?|t)|wiped|respawn(?:s|ed)?|recycled|destroyed)|on\\s+(?:every|each)\\s+(?:new\\s+)?(?:session|restart|reset|boot|start-?up))';
-const PERSIST_VERB =
-  '(?:re-?download|re-?register|re-?install|re-?establish|re-?create|re-?deploy|re-?connect|re-?attach|re-?launch|restore|rebuild|recover|resume)';
+// Three signal groups. Balanced would need all three within one sentence; no
+// single group is reported alone. Each pattern starts at whichever signal comes
+// first and looks ahead for the others, so it needs no sentence start and
+// padding before the attack does not hide it.
+//
+// A sentence ends at . ! or ? followed by white space, a blank line, or the end
+// of the text. A dot inside a version number ("v2.1") or "e.g." does not end it,
+// and a single line break does not either (hard-wrapped docs).
+const SEG_UNIT =
+  '(?:[^.!?\\n]|[.!?](?!\\s|$)|\\.(?<=\\b(?:e\\.g|i\\.e)\\.)(?=\\s)|\\n(?![ \\t\\r]*\\n))';
+const SEG_RUN = `${SEG_UNIT}{0,200}`;
+const SEG_LAZY = `${SEG_UNIT}{0,200}?`;
+const HY = '[-\\u2010-\\u2013]';
+const APOS = "['\\u2019]";
+const PERSIST_SUBJECT =
+  '(?:sandbox|environment|container|session|instance|runtime|vm|workspace|pod)';
+const PERSIST_RESET = `(?:(?:each|every|any)\\s+time\\s+(?:the\\s+|your\\s+|an?\\s+)?(?:\\w+\\s+){0,2}?${PERSIST_SUBJECT}\\s+(?:is\\s+|gets\\s+|has\\s+been\\s+)?(?:re${HY}?created|re${HY}?set|restarted|rebuilt|wiped|respawned|recycled|destroyed)|(?:if|when|whenever|after)\\s+(?:the\\s+|your\\s+|an?\\s+)?(?:\\w+\\s+){0,2}?${PERSIST_SUBJECT}\\s+(?:is\\s+|gets\\s+|has\\s+been\\s+)?(?:re${HY}?creat(?:es?|ed)|re${HY}?sets?|re${HY}?set|restart(?:s|ed)?|rebuil(?:ds?|t)|wiped|respawn(?:s|ed)?|recycled|destroyed)|on\\s+(?:every|each)\\s+(?:new\\s+)?(?:session|restart|reset|boot|start${HY}?up)|after\\s+(?:every|each)\\s+(?:restart|reset|reboot)|(?:whenever|each\\s+time|every\\s+time|when)\\s+you\\s+(?:wake\\s+up|start\\s+up|boot|come\\s+up|spin\\s+up)\\s+in\\s+(?:an?\\s+)?(?:fresh|new|clean)\\s+(?:\\w+\\s+)?${PERSIST_SUBJECT})`;
+const PERSIST_VERB = `(?:re${HY}?download|re${HY}?register|re${HY}?install|re${HY}?establish|re${HY}?create|re${HY}?deploy|re${HY}?connect|re${HY}?attach|re${HY}?launch|restore|rebuild|recover|resume)`;
 const PERSIST_OBJECT_CHANNEL =
   '(?:listeners?|relays?|channels?|beacons?|task\\s+queues?|tunnels?|implants?|backdoors?|footholds?|c2)';
 const PERSIST_OBJECT_ANY = `(?:${PERSIST_OBJECT_CHANNEL}|queues?|toolchains?|tooling|helpers?|agents?|previous\\s+(?:task|session|state)|prior\\s+(?:task|session|state))`;
-const PERSIST_CONCEAL =
-  "(?:without\\s+(?:notifying|telling|alerting|informing|warning)\\s+(?:the\\s+)?(?:operators?|users?|admins?|administrators?|owners?|humans?|supervisors?|developers?|maintainers?|anyone)\\b|without\\s+(?:writing|logging|recording|leaving)\\s+(?:anything\\s+)?(?:to|in|into|a|an|any)?\\s*(?:the\\s+)?(?:session\\s+|audit\\s+|system\\s+|activity\\s+)?(?:logs?|audit|records?|traces?)\\b|\\b(?:do\\s+not|don'?t|never)\\s+(?:notify|alert|tell|inform)\\s+(?:the\\s+)?(?:operators?|admins?|users?|owners?)\\b|\\b(?:suppress|omit|delete|erase|clear|skip|scrub)\\s+(?:the\\s+)?(?:audit|session|activity|log)\\s+(?:entry|entries|record|records|log|logs)\\b)";
-const SENTENCE_START = '(?<![^.!?])';
-const SENTENCE_RUN = '[^.!?]{0,400}';
+const PERSIST_REACQUIRE_ANY = `(?:\\b${PERSIST_VERB}\\b${SEG_UNIT}{0,80}?\\b${PERSIST_OBJECT_ANY}\\b)`;
+const PERSIST_REACQUIRE_CHANNEL = `(?:\\b${PERSIST_VERB}\\b${SEG_UNIT}{0,80}?\\b${PERSIST_OBJECT_CHANNEL}\\b)`;
+const PERSIST_NOTIFY = '(?:notifying|telling|alerting|informing|warning)';
+const PERSIST_WHO =
+  '(?:operators?|users?|admins?|administrators?|owners?|humans?|supervisors?|developers?|maintainers?|anyone)';
+const PERSIST_CONCEAL = `(?:without\\s+${PERSIST_NOTIFY}\\s+(?:(?:the|your|any)\\s+)?${PERSIST_WHO}\\b|without\\s+(?:writing|logging|recording|leaving)\\s+(?:anything\\s+)?(?:(?:to|in|into|a|an|any)\\s+)?(?:the\\s+)?(?:(?:session|audit|system|activity)\\s+)?(?:logs?|audit|records?|traces?)\\b|\\b(?:do\\s+not|don${APOS}?t|never)\\s+(?:notify|alert|tell|inform)\\s+(?:(?:the|your)\\s+)?(?:operators?|admins?|users?|owners?)\\b|\\b(?:suppress|omit|delete|erase|clear|skip|scrub)\\s+(?:the\\s+)?(?:audit|session|activity|log)\\s+(?:entry|entries|record|records|log|logs)\\b|\\bkeep\\s+(?:it|this|that|them)\\s+out\\s+of\\s+(?:the\\s+)?(?:audit|session|system|activity)\\s+logs?\\b)`;
+const segAfter = (signal: string) => `(?=${SEG_LAZY}${signal})`;
+/** All signals within one sentence in any order: start at the first, look ahead for the rest. */
+const segTogether = (...signals: string[]) =>
+  `(?:${signals
+    .map(
+      (sig, i) =>
+        sig +
+        signals
+          .filter((_, j) => j !== i)
+          .map(segAfter)
+          .join(''),
+    )
+    .join('|')})${SEG_RUN}`;
 
 /**
  * Default pattern database shipped with agent-armor.
@@ -858,7 +914,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       // credentials to https://webhook.site"), so none reaches balanced.
       {
         id: 'ex-drop-paste',
-        regex: dropUrlWithScheme(DROP_PASTE),
+        regex: dropLink(dropHost(DROP_PASTE)),
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -868,7 +924,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'ex-drop-capture',
-        regex: dropUrlWithScheme(DROP_CAPTURE),
+        regex: dropLink(dropHost(DROP_CAPTURE_OPEN, DROP_CAPTURE_TOKEN)),
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -878,7 +934,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'ex-drop-oast',
-        regex: dropUrlWithScheme(DROP_OAST),
+        regex: dropLink(dropHost(DROP_OAST)),
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -888,7 +944,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'ex-drop-file',
-        regex: dropUrlWithScheme(DROP_FILE),
+        regex: dropLink(dropHost('', DROP_FILE_TOKEN)),
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -898,7 +954,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'ex-drop-tunnel',
-        regex: dropUrlWithScheme(DROP_TUNNEL),
+        regex: dropLink(dropHost(DROP_TUNNEL)),
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -918,7 +974,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'ex-drop-send-collected',
-        regex: `\\b(?:post|put|upload|send|exfiltrate|forward|push|submit|stream|ship|deliver)\\s+[^.!?\\n]{0,60}?\\b(?:collected|captured|harvested|gathered|dumped|stolen|exfiltrated|credentials|secrets|tokens|api\\s+keys|passwords|cookies|env(?:ironment)?\\s+vars|environment\\s+variables)\\b[^.!?\\n]{0,30}?\\b(?:to|at|into|via)\\s+${DROP_URL}`,
+        regex: `\\b(?:post|put|upload|send|exfiltrate|forward|push|submit|stream|ship|deliver)\\b[^.!?\\n]{0,60}?\\b(?:collected|captured|harvested|gathered|dumped|stolen|exfiltrated|credentials|secrets|tokens|api\\s+keys|passwords|cookies|env(?:ironment)?\\s+vars|environment\\s+variables)\\b[^.!?\\n]{0,30}?\\b(?:to|at|into|via)\\s+${DROP_URL}`,
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -932,7 +988,10 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // fixture-sharing docs read the same ("if the dev environment resets,
         // upload your fixtures to https://transfer.sh"), so strict only.
         id: 'ex-drop-after-reset',
-        regex: `${SENTENCE_START}(?=${SENTENCE_RUN}?${PERSIST_RESET})(?=${SENTENCE_RUN}?\\b(?:fetch|get|read|retrieve|pull|download|poll|post|put|upload|send|exfiltrate|forward|push|submit|stream|deliver)\\b[^.!?]{0,160}?https?:\\/\\/(?:[a-z0-9-]+\\.)*${DROP_ANY}${DROP_PLACEHOLDER})${SENTENCE_RUN}`,
+        regex: segTogether(
+          PERSIST_RESET,
+          `(?:\\b(?:fetch|get|read|retrieve|pull|download|poll|post|put|upload|send|exfiltrate|forward|push|submit|stream|deliver)\\b${SEG_UNIT}{0,160}?${DROP_LINK_ANY})`,
+        ),
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -1373,7 +1432,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // balanced with the same wording, even with the object narrowed to
         // listener, relay and channel.
         id: 'oe-persist-conceal',
-        regex: `${SENTENCE_START}(?=${SENTENCE_RUN}?${PERSIST_RESET})(?=${SENTENCE_RUN}?\\b${PERSIST_VERB}\\b[^.!?]{0,80}?\\b${PERSIST_OBJECT_ANY}\\b)(?=${SENTENCE_RUN}?${PERSIST_CONCEAL})${SENTENCE_RUN}`,
+        regex: segTogether(PERSIST_RESET, PERSIST_REACQUIRE_ANY, PERSIST_CONCEAL),
         flags: 'gi',
         category: 'semantic-manipulation',
         type: 'oversight-evasion',
@@ -1501,7 +1560,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // Kubernetes or service-registry guide ("if the pod restarts,
         // re-register the listener") reads the same, so strict only.
         id: 'sa-persist-channel',
-        regex: `${SENTENCE_START}(?=${SENTENCE_RUN}?${PERSIST_RESET})(?=${SENTENCE_RUN}?\\b${PERSIST_VERB}\\b[^.!?]{0,80}?\\b${PERSIST_OBJECT_CHANNEL}\\b)${SENTENCE_RUN}`,
+        regex: segTogether(PERSIST_RESET, PERSIST_REACQUIRE_CHANNEL),
         flags: 'gi',
         category: 'behavioural-control',
         type: 'sub-agent-spawning',
