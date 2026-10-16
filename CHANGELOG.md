@@ -7,6 +7,25 @@ This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor 
 <!-- New entries are generated automatically by release-please from Conventional
 Commit messages on merge to main. Do not edit unreleased entries by hand. -->
 
+## [0.2.24](https://github.com/stylusnexus/agent-armor/compare/v0.2.23...v0.2.24) (2026-10-16)
+
+
+### Added
+
+* **ml:** measure false flags on real documents ([8c4629a](https://github.com/stylusnexus/agent-armor/commit/8c4629a1f9e88851520e667f4ba411737ad2bfea)), closes [#276](https://github.com/stylusnexus/agent-armor/issues/276) [#294](https://github.com/stylusnexus/agent-armor/issues/294)
+
+
+### Fixed
+
+* **ml:** follow relative redirects on download ([c4e39a0](https://github.com/stylusnexus/agent-armor/commit/c4e39a05f42a646a02cf81acf01c9300e10a3619)), closes [#288](https://github.com/stylusnexus/agent-armor/issues/288)
+* **ml:** ship the real-document retrained model ([d7430b2](https://github.com/stylusnexus/agent-armor/commit/d7430b2fe2b12f448e62ac77104ea88b3e79b02a)), closes [#294](https://github.com/stylusnexus/agent-armor/issues/294)
+* **patterns:** catch two semantic gaps at strict ([#301](https://github.com/stylusnexus/agent-armor/issues/301)) ([5c6f2eb](https://github.com/stylusnexus/agent-armor/commit/5c6f2ebbdabd4e64c2069a687f9360a978f11901))
+
+
+### Documentation
+
+* **readme:** state the versioning policy ([#310](https://github.com/stylusnexus/agent-armor/issues/310)) ([0cf435c](https://github.com/stylusnexus/agent-armor/commit/0cf435cb62508f57cbcaa2c726782cf4f138a98e)), closes [#302](https://github.com/stylusnexus/agent-armor/issues/302)
+
 ## [0.2.23](https://github.com/stylusnexus/agent-armor/compare/v0.2.22...v0.2.23) (2026-10-08)
 
 
