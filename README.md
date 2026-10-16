@@ -659,6 +659,21 @@ armor.loadPatterns(myCustomPatterns);
 console.log(armor.patternVersion); // '0.9.13'
 ```
 
+## Versioning
+
+Releases are cut by [release-please](https://github.com/googleapis/release-please) from conventional commit titles, and each package has its own version: `@stylusnexus/agentarmor` (the scanner) and `@stylusnexus/agentarmor-ml` (the optional classifier).
+
+Below 1.0:
+
+- **Patch** (`0.2.22` to `0.2.23`): new or changed detection patterns, new detectors, bug fixes, documentation. New detectors and patterns can make a scan report threats it did not before, and a pattern fix can stop reporting an honest document it used to flag.
+- **Minor** (`0.2.x` to `0.3.0`): a breaking change to the API, a changed default, or removed exports.
+
+In `0.x`, a caret range allows patch updates only (`^0.2.23` means `>=0.2.23 <0.3.0`), so it picks up detection updates and never a breaking change. That is the range we recommend if you want to stay current without editing your `package.json` each release (`^0.1.7` for the ML package). A lockfile still pins the exact version your build installed, and Renovate or Dependabot will open the bump as a pull request.
+
+Pin an exact version (`"0.2.23"`) when scan results must be reproducible across builds, and bump it on purpose. `armor.patternVersion` reports the pattern database version, which changes whenever detection changes; the changelog lists what changed.
+
+**The ML package pins its model.** Each version of `@stylusnexus/agentarmor-ml` downloads one fixed Hugging Face revision and checks its SHA-256, so installing a newer package is the only way the model changes. A model published later never changes the behaviour of an older package version. Both packages keep working when a newer version exists.
+
 ## Framework Agnostic
 
 Agent Armor works with any LLM agent framework:
