@@ -1,5 +1,5 @@
 import { readdir, rm, stat } from 'fs/promises';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { mkdirSync, copyFileSync } from 'fs';
 
 import { getDefaultCacheDir, REQUIRED_MODEL_FILES, MODEL_VERSION } from './constants';
@@ -72,7 +72,7 @@ async function cmdDownload(args: string[]): Promise<void> {
     });
 
     // Copy from cache to target dir
-    const resolvedDir = join(process.cwd(), dir);
+    const resolvedDir = resolve(dir);
     mkdirSync(resolvedDir, { recursive: true });
     for (const file of REQUIRED_MODEL_FILES) {
       const src = join(result.modelDir, file);
