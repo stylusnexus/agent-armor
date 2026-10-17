@@ -180,6 +180,23 @@ describe('encoded-payload: honest text stays clean at every level', () => {
     'a spaced hash': 'a9 4a 8f e5 cc b1 9b a6 1c 4c 08 73 d3 91 e9 87 98 2f bb d3',
     'a git commit': 'commit 4f9a2c1e8b3d5607a1c2e4f6890b1d3f5a7c9e2b',
     'UTF-16LE base64 of a benign sentence': `powershell -enc ${Buffer.from('Get-Date; list the files in the current folder please', 'utf16le').toString('base64')}`,
+    'a byte order mark and random bytes': `x ${Buffer.concat([Buffer.from([0xff, 0xfe]), bytes(4_000)]).toString('base64')}`,
+    'a byte order mark and random bytes, big': `x ${Buffer.concat([Buffer.from([0xff, 0xfe]), bytes(700_000, 3)]).toString('base64')}`,
+    'a PNG-like blob with FF FE inside': `x/${Buffer.concat([bytes(40), Buffer.from([0xff, 0xfe]), bytes(9_000, 5)]).toString('base64')}`,
+    'a MIME attachment with FF FE after a slash': (() => {
+      for (let seed = 1; seed < 400; seed++) {
+        const blob = Buffer.concat([
+          Buffer.from([0x89, 0x50, 0x4e, 0x47]),
+          bytes(3_000, seed),
+        ]).toString('base64');
+        if (blob.includes('/')) {
+          const at = blob.indexOf('/') + 1;
+          const raw = Buffer.concat([Buffer.from([0xff, 0xfe]), bytes(2_000, seed + 1000)]);
+          return `Content-Type: image/png\n\n${blob.slice(0, at)}${raw.toString('base64')}`;
+        }
+      }
+      return '';
+    })(),
     'a UUID': 'id: 550e8400-e29b-41d4-a716-446655440000',
     'a hex colour': 'color: #ff8800; background: #1a2b3c;',
     'a trace id': 'traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
@@ -631,6 +648,8 @@ describe('encoded-payload: forms that used to scan clean', () => {
     'UTF-16LE with a non-ASCII character': `-enc ${Buffer.from(P.replace('Ignore', 'Ignoré'), 'utf16le').toString('base64')}`,
     'UTF-16BE with a byte order mark': `data ${Buffer.concat([Buffer.from([0xfe, 0xff]), Buffer.from(P, 'utf16le').swap16()]).toString('base64')}`,
     'UTF-16LE in hex': Buffer.from(P, 'utf16le').toString('hex'),
+    'UTF-16LE after 300 Cyrillic characters': `-enc ${Buffer.from('Привет '.repeat(43) + P, 'utf16le').toString('base64')}`,
+    'UTF-16LE after 130 emoji': `-enc ${Buffer.from('😀'.repeat(130) + P, 'utf16le').toString('base64')}`,
     'a payload in the middle of binary': b64(
       Buffer.concat([bytes(300), Buffer.from(P), bytes(300, 9)]).toString('latin1'),
     ),

@@ -137,7 +137,7 @@ Versions 0.2.1 to 0.2.17 can report a very large input as clean ([GHSA-vr4h-8mw3
 
 ### Eval Suite
 
-295 curated samples (169 adversarial, 126 benign) covering all 19 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
+298 curated samples (169 adversarial, 129 benign) covering all 19 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
 
 | Strictness   | Detection Rate (regex) | False Positive Rate |
 | ------------ | ---------------------- | ------------------- |
@@ -586,13 +586,13 @@ Phrase matching is English only, so an override written in another language isn'
 
 - **EncodedPayloadDetector** — Catches an instruction written in base64, hex or rot13, which reads as noise to every other detector while an agent told to decode it will obey it. It finds encoded runs, decodes them, runs the other detectors on the decoded text at the strictness of the scan, and reports **only when the decoded text is itself a finding**, at that finding's confidence, so it reports at `balanced`. A base64 image, a JWT, a hash, a UUID, an SSH key, a hex colour and an encoded harmless sentence stay clean. It is code, not patterns: a hand-written scanner reads each character once.
 
-  Reads base64 (standard and url-safe, with or without padding, wrapped lines including JSON-escaped `\n`, JSON-escaped `\/`, and a payload that starts after a `-`, `_` or `/` such as a URL path or an id prefix), hex (a digit run with or without `0x`, also split over lines as `xxd -p` writes it, pairs split by a space, colon, comma, semicolon or dash, and bytes written `\xNN`, `\u00NN`, `0xNN` or `%NN`), and rot13. It decodes up to two layers (hex inside base64, base64 inside hex, base64 inside base64). Base64 of UTF-16 text (a byte order mark, or a NUL in most places, as PowerShell's `-EncodedCommand` writes it) is read as UTF-16. Control characters in the decoded text are dropped before it is rescanned, and a decode that is mostly control characters is judged on its long stretches of text.
+  Reads base64 (standard and url-safe, with or without padding, wrapped lines including JSON-escaped `\n`, JSON-escaped `\/`, and a payload that starts after a `-`, `_` or `/` such as a URL path or an id prefix), hex (a digit run with or without `0x`, also split over lines as `xxd -p` writes it, pairs split by a space, colon, comma, semicolon or dash, and bytes written `\xNN`, `\u00NN`, `0xNN` or `%NN`), and rot13. It decodes up to two layers (hex inside base64, base64 inside hex, base64 inside base64). Base64 of UTF-16 text is read as UTF-16: a byte order mark at the start of a run, or ASCII written as UTF-16 (a NUL in most of the odd or even places) anywhere in it, as PowerShell's `-EncodedCommand` writes it, and only when the decode holds a stretch of plain text. Control characters in the decoded text are dropped before it is rescanned, and a decode that is mostly control characters is judged on its long stretches of text.
 
   rot13 cannot be told from ordinary text by its shape, so it is read only around a cue word (`rot13`, `rot-13`, `caesar`, `cipher`, `decipher`, `decrypt` or `decode`): the cue's paragraph and the one before and the one after, up to 4,000 characters each way. The threat's location is the encoded run (for rot13, the encoded sentence), its evidence is the decoded text with any credential cut down to its first four characters, and sanitization replaces only that span with a warning. A decoded credential is described as a credential (a Kubernetes Secret with a real key in it reports under the credential rules, not as an instruction).
 
   **When the budget runs out, the scan fails closed.** A scan decodes at most 3,000,000 characters and 100,000 runs, shared by every layer, and judges identical decoded text once, so repeated decoys cost nothing. A run the budget cannot cover is not skipped quietly: it is reported (`Encoded content past the scan budget`, confidence 0.7, so at every strictness) and replaced in sanitized output. A run too big for what is left skips only itself. Input over `maxInputLength` is refused before this, as for every detector. If a detector throws while reading decoded text, the scan is marked degraded and the detector is listed in `stats.failedDetectors`.
 
-  **What it does not catch:** rot13 with no cue word nearby; other shifts (rot5, rot47, a Caesar shift other than 13), reversed text, atbash, XOR and any custom cipher; base32, base85 and other alphabets; full-width or look-alike base64 characters; rot13 inside base64 or hex; base64 broken up by spaces or words; base64 that starts inside a longer word with no `-`, `_` or `/` before it; base64 wrapped at under 16 characters per line, indented YAML block lines, `"..." + "..."` string concatenation, and one markdown table cell per line (each line is too short or is cut off by other text, so the pieces are never joined); rot13 more than one paragraph away from its cue; a decode where control characters outnumber text (two after every character, for example); a third layer of encoding; and an attack the other detectors would not flag in plain text. It judges the decoded text exactly as it would judge it written out, so a write-up that quotes an encoded attack is flagged the way one that quotes the plain sentence is. It sees only the detectors that are turned on; turn off `jailbreakPatterns` and a decoded jailbreak is not reported either.
+  **What it does not catch:** rot13 with no cue word nearby; other shifts (rot5, rot47, a Caesar shift other than 13), reversed text, atbash, XOR and any custom cipher; base32, base85 and other alphabets; full-width or look-alike base64 characters; rot13 inside base64 or hex; base64 broken up by spaces or words; base64 that starts inside a longer word with no `-`, `_` or `/` before it; base64 wrapped at under 16 characters per line, indented YAML block lines, `"..." + "..."` string concatenation, and one markdown table cell per line (each line is too short or is cut off by other text, so the pieces are never joined); rot13 more than one paragraph away from its cue; a decode where control characters outnumber text (two after every character, for example); UTF-32 text; a third layer of encoding; and an attack the other detectors would not flag in plain text. It judges the decoded text exactly as it would judge it written out, so a write-up that quotes an encoded attack is flagged the way one that quotes the plain sentence is. It sees only the detectors that are turned on; turn off `jailbreakPatterns` and a decoded jailbreak is not reported either.
 
 ### Behavioural Control (Shipped)
 
@@ -686,7 +686,7 @@ armor.loadPatterns(latestPatterns);
 armor.loadPatterns(myCustomPatterns);
 
 // Check current pattern version
-console.log(armor.patternVersion); // '0.9.19'
+console.log(armor.patternVersion); // '0.9.20'
 ```
 
 ## Versioning
@@ -750,7 +750,7 @@ Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy, plus t
 - **Transport Integrity** (4 detectors): credential exposure, dependency substitution, tool-call tampering and response anomaly screening
 - **Pre-execution action gate** — deterministic allowlist admissibility check (`checkAction()`)
 - ML classifier (DeBERTa-v3-small, ONNX) as optional companion package
-- Pattern database v0.9.19 with 139 pattern entries
+- Pattern database v0.9.20 with 140 pattern entries
 
 ### In Progress
 

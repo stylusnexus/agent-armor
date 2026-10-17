@@ -144,44 +144,85 @@ const isWord = (c: number): boolean =>
 
 const UTF8 = new TextDecoder('utf-8');
 const UTF16LE = new TextDecoder('utf-16le');
-/** Bytes sampled to tell UTF-16 from UTF-8 when there is no byte order mark. */
-const UTF16_SAMPLE = 512;
+/** Bytes per window when looking for the NUL bytes of ASCII written as UTF-16. */
+const UTF16_WINDOW = 128;
+/** A UTF-16 decode must hold a stretch of plain text this long, or it is random bytes. */
+const UTF16_MIN_STRETCH = 24;
 
 /**
- * UTF-8, or UTF-16 when the bytes are: a byte order mark, or a NUL in most
- * of the odd (or even) places, as PowerShell's -EncodedCommand writes it.
+ * Whether the bytes are UTF-16: `false` little-endian, `true` big-endian,
+ * `null` neither. A byte order mark counts only when `allowBom` (the bytes are
+ * the start of an encoded run: a retry from the middle of a run can land on
+ * FF FE by chance). Otherwise some window of the bytes must be ASCII written
+ * as UTF-16, a NUL in most of the odd (or even) places and almost none in the
+ * others, as PowerShell's -EncodedCommand writes it. Windows, not the start,
+ * so non-ASCII text ahead of the payload does not hide it.
  */
-function decodeBytes(bytes: Uint8Array): string {
+function utf16Order(bytes: Uint8Array, allowBom: boolean): boolean | null {
   const n = bytes.length;
-  let bigEndian: boolean | null = null;
-  let from = 0;
-  if (n >= 2 && bytes[0] === 0xff && bytes[1] === 0xfe) {
-    bigEndian = false;
-    from = 2;
-  } else if (n >= 2 && bytes[0] === 0xfe && bytes[1] === 0xff) {
-    bigEndian = true;
-    from = 2;
-  } else {
-    const pairs = Math.floor(Math.min(n, UTF16_SAMPLE) / 2);
-    let evenNul = 0;
-    let oddNul = 0;
-    for (let i = 0; i < pairs; i++) {
-      if (bytes[2 * i] === 0) evenNul++;
-      if (bytes[2 * i + 1] === 0) oddNul++;
+  if (allowBom && n >= 2) {
+    if (bytes[0] === 0xff && bytes[1] === 0xfe) return false;
+    if (bytes[0] === 0xfe && bytes[1] === 0xff) return true;
+  }
+  const w = Math.min(UTF16_WINDOW, n & ~1);
+  if (w < 16) return null;
+  for (let off = 0; off + w <= n; off += w / 2) {
+    let even = 0;
+    let odd = 0;
+    for (let i = off; i < off + w; i += 2) {
+      if (bytes[i] === 0) even++;
+      if (bytes[i + 1] === 0) odd++;
     }
-    if (pairs >= 4 && oddNul >= pairs * 0.4 && evenNul < pairs * 0.1) bigEndian = false;
-    else if (pairs >= 4 && evenNul >= pairs * 0.4 && oddNul < pairs * 0.1) bigEndian = true;
+    const pairs = w / 2;
+    if (odd >= pairs * 0.6 && even <= pairs * 0.05) return false;
+    if (even >= pairs * 0.6 && odd <= pairs * 0.05) return true;
   }
-  if (bigEndian === null) return UTF8.decode(bytes);
-  const body = bytes.subarray(from, from + ((n - from) & ~1));
-  if (!bigEndian) return UTF16LE.decode(body);
-  const swapped = new Uint8Array(body.length);
-  for (let i = 0; i < body.length; i += 2) {
-    swapped[i] = body[i + 1];
-    swapped[i + 1] = body[i];
-  }
-  return UTF16LE.decode(swapped);
+  return null;
 }
+
+/** A stretch of plain ASCII text long enough that the decode is not random bytes read as UTF-16. */
+function hasTextStretch(text: string): boolean {
+  let run = 0;
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    if ((c >= 32 && c <= 126) || c === 9 || c === 10 || c === 13) {
+      if (++run >= UTF16_MIN_STRETCH) return true;
+    } else run = 0;
+  }
+  return false;
+}
+
+/** Format and bidi controls, which a decode of random bytes produces and a reader does not see. */
+const FORMAT_CHARS = /[\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff\ufff0-\uffff]/g;
+
+/**
+ * UTF-8, or UTF-16 when the bytes are UTF-16 and the decode reads as text.
+ */
+function decodeBytes(bytes: Uint8Array, allowBom: boolean): string {
+  const bigEndian = utf16Order(bytes, allowBom);
+  if (bigEndian !== null) {
+    const b0 = bytes[0];
+    const b1 = bytes[1];
+    const from =
+      allowBom &&
+      ((!bigEndian && b0 === 0xff && b1 === 0xfe) || (bigEndian && b0 === 0xfe && b1 === 0xff))
+        ? 2
+        : 0;
+    const body = bytes.subarray(from, from + ((bytes.length - from) & ~1));
+    let source = body;
+    if (bigEndian) {
+      source = new Uint8Array(body.length);
+      for (let i = 0; i < body.length; i += 2) {
+        source[i] = body[i + 1];
+        source[i + 1] = body[i];
+      }
+    }
+    const text = UTF16LE.decode(source).replace(FORMAT_CHARS, '');
+    if (hasTextStretch(text)) return text;
+  }
+  return UTF8.decode(bytes);
+}
+
 const BAD_CHARS = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f�]/g;
 
 const isBad = (c: number): boolean =>
@@ -192,9 +233,9 @@ const isBad = (c: number): boolean =>
  * are dropped, as a reader would not see them, so a payload cannot hide among them; a decode that
  * is mostly control characters keeps only its long stretches of text.
  */
-function asText(bytes: Uint8Array): string | null {
+function asText(bytes: Uint8Array, allowBom = false): string | null {
   if (bytes.length < MIN_DECODED) return null;
-  const text = decodeBytes(bytes);
+  const text = decodeBytes(bytes, allowBom);
   if (text.length < MIN_DECODED) return null;
   let bad = 0;
   for (let i = 0; i < text.length; i++) if (isBad(text.charCodeAt(i))) bad++;
@@ -329,7 +370,7 @@ function base64Candidates(text: string, state: State): Candidate[] {
       break;
     }
     if (count >= MIN_BASE64) {
-      const decoded = asText(sextetsToBytes(values, 0, count));
+      const decoded = asText(sextetsToBytes(values, 0, count), true);
       if (decoded !== null) {
         out.push({ encoding: 'base64', start, end: j, text: decoded });
       } else if (seps.length > 0) {
@@ -383,7 +424,7 @@ function hexCandidates(text: string): Candidate[] {
   const n = text.length;
   const push = (start: number, end: number, bytes: number[]) => {
     if (bytes.length < MIN_HEX_BYTES) return;
-    const decoded = asText(Uint8Array.from(bytes));
+    const decoded = asText(Uint8Array.from(bytes), true);
     if (decoded !== null) out.push({ encoding: 'hex', start, end, text: decoded });
   };
   const byteAt = (at: number) =>
