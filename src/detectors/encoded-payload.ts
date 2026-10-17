@@ -33,9 +33,15 @@ import { redactCredentialsIn } from './credentials';
  *    replaced in sanitized output, because a payload hidden behind enough
  *    decoys must not scan clean. A run too big for what is left skips only
  *    itself;
- *  - rot13 is tried only in the paragraphs around a cue word (see `CUE`).
+ *  - rot13 is read in the paragraphs around a cue word (see `CUE`), and also
+ *    over the whole text, with no cue (see `wholeRot13`). That second pass is
+ *    its own rescan, charged to the same budget and made before any other
+ *    decode, so decoys cannot use the budget up before it runs. It reads the
+ *    first `ROT13_WHOLE_CAP` characters; past that, rot13 is read only near a
+ *    cue word.
  *
- * What it cannot catch: rot13 with no cue word nearby, other shifts (rot5,
+ * What it cannot catch: rot13 past `ROT13_WHOLE_CAP` characters with no cue word
+ * nearby, rot13 with fewer than `MIN_ROT13_LETTERS` letters, other shifts (rot5,
  * rot47, a Caesar shift other than 13), reversed text, atbash, XOR, any custom
  * cipher, base32 and other alphabets, full-width base64, rot13 inside base64 or
  * hex, base64 broken up by spaces or words, base64 that starts inside a longer
@@ -65,6 +71,10 @@ const WRAP_MIN_LINE = 16;
 const ROT13_REACH = 4_000;
 /** After this many cue words the rest of the text counts as one window. */
 const ROT13_MAX_CUES = 2_000;
+/** The no-cue rot13 pass reads this many characters at most: the default `maxInputLength`. */
+export const ROT13_WHOLE_CAP = 1_000_000;
+/** The no-cue rot13 pass is skipped for text with fewer letters than this. */
+const MIN_ROT13_LETTERS = 16;
 /** A decoded text with more than this share of control or replacement characters is binary. */
 const MAX_BAD_SHARE = 0.5;
 /** In a binary-looking decode, only a stretch of text this long is kept. */
@@ -633,6 +643,16 @@ function rot13Candidates(text: string): Candidate[] {
   return out;
 }
 
+/** Letters rot13 would change, counted without allocating. */
+function countLetters(text: string, upTo: number): number {
+  let letters = 0;
+  for (let i = 0; i < upTo; i++) {
+    const c = text.charCodeAt(i) | 32;
+    if (c >= 97 && c <= 122) letters++;
+  }
+  return letters;
+}
+
 // ---------------------------------------------------------------------------
 // Detector
 // ---------------------------------------------------------------------------
@@ -674,6 +694,8 @@ export class EncodedPayloadDetector implements Detector {
     if (depth === 0) candidates.push(...rot13Candidates(text));
     candidates.sort((a, b) => a.start - b.start);
     const out: Found[] = [];
+    // First, so that no run of decoys can use the budget up before it.
+    const whole = depth === 0 ? this.wholeRot13(text, strictness, state) : [];
     for (const c of candidates) {
       const key = `${depth}|${c.text}`;
       let entry = state.memo.get(key);
@@ -729,6 +751,65 @@ export class EncodedPayloadDetector implements Detector {
         end = c.start + Math.max(...inner.map((t) => t.location!.offset + t.location!.length));
       }
       out.push({ start, end, chain, threats });
+    }
+    // A sentence the cue-word path found is reported once, by that path.
+    for (const w of whole) {
+      if (
+        !out.some(
+          (o) => !o.unscanned && o.chain[0] === 'rot13' && o.start < w.end && w.start < o.end,
+        )
+      ) {
+        out.push(w);
+      }
+    }
+    return out;
+  }
+
+  /**
+   * rot13 with no cue word: decode the whole text (letters only, one pass) and
+   * rescan it on its own, never joined to another reading. It reports only
+   * findings of the decoded text. One finding per stretch of overlapping
+   * threats, each pointing at its own sentence, so sanitizing replaces the
+   * sentence and not what lies between two of them. The decoded text is
+   * rot13-decoded plain English in almost every case, which no detector flags.
+   */
+  private wholeRot13(text: string, strictness: Strictness, state: State): Found[] {
+    const n = Math.min(text.length, ROT13_WHOLE_CAP);
+    if (n < MIN_DECODED || countLetters(text, n) < MIN_ROT13_LETTERS) return [];
+    const decoded = rot13(n === text.length ? text : text.slice(0, n));
+    const key = `0|rot13|${decoded}`;
+    let entry = state.memo.get(key);
+    if (!entry) {
+      // Never reached with the default limits: this pass runs first and reads at
+      // most a third of the character budget. Only a test's small limits get here.
+      if (state.runs <= 0 || state.chars < n) return [];
+      state.runs--;
+      state.chars -= n;
+      entry = { inner: this.rescan(decoded, strictness), nested: [] };
+      state.memo.set(key, entry);
+    }
+    // A finding on a span rot13 left unchanged (invisible characters, digits,
+    // punctuation) is a finding of the text itself, which the other detectors
+    // already report. Only a span the decode changed is a decoded finding.
+    const located = entry.inner
+      .filter((t) => {
+        if (!t.location) return false;
+        const { offset, length } = t.location;
+        return decoded.slice(offset, offset + length) !== text.slice(offset, offset + length);
+      })
+      .sort((a, b) => a.location!.offset - b.location!.offset);
+    const out: Found[] = [];
+    let cur: Found | null = null;
+    for (const t of located) {
+      const s = t.location!.offset;
+      const e = Math.min(n, s + t.location!.length);
+      if (cur && s < cur.end) {
+        cur.end = Math.max(cur.end, e);
+        cur.threats.push(t);
+      } else {
+        cur = { start: s, end: e, chain: ['rot13'], threats: [t] };
+        out.push(cur);
+      }
     }
     return out;
   }
