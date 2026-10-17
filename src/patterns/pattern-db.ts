@@ -24,6 +24,9 @@ export interface PatternEntry {
   label: string;
   /** Which capture group to extract text from (0 = full match) */
   extractGroup?: number;
+  /** Capture group whose span is the finding's `location` (and so what a sanitized
+   *  result replaces). Needs the `d` flag. The default is the whole match. */
+  locationGroup?: number;
   /** Minimum extracted text length to trigger (avoids false positives) */
   minLength?: number;
   /** Whether to boost confidence when instruction signals are found */

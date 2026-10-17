@@ -29,6 +29,8 @@ export interface PatternMatch {
   confidence: Confidence;
   severity: Severity;
   description: string;
+  /** Where the finding sits, when that is narrower than the match (`index`, `length`). */
+  location?: { index: number; length: number };
   /** A second span this finding depends on (see `Threat.relatedLocation`). */
   related?: { index: number; length: number };
 }
@@ -73,7 +75,7 @@ export abstract class BaseDetector implements Detector {
         confidence: m.confidence,
         description: m.description,
         evidence: truncate(this.redactEvidence(m.match), 200),
-        location: { offset: m.index, length: m.length },
+        location: { offset: (m.location ?? m).index, length: (m.location ?? m).length },
         ...(m.related
           ? { relatedLocation: { offset: m.related.index, length: m.related.length } }
           : {}),

@@ -10,6 +10,11 @@ import type {
 } from '../types';
 import { applyEdits, mergeEdits } from '../sanitize';
 import { redactSecret } from './pattern-detector';
+import {
+  CHAIN_TARGET,
+  DOWNLOADER as DOWNLOADER_SOURCE,
+  RUN_AFTER_DOWNLOAD,
+} from '../patterns/tool-call-sources';
 
 /**
  * Response anomaly screening (#30, Liu et al. 2026, section 7.2).
@@ -93,6 +98,18 @@ interface Frame {
 
 const isWhitespaceCode = (c: number) => c === 32 || (c >= 9 && c <= 13);
 
+/** Index of the line break that ends the line holding `from`, or the end of the text. */
+function lineEnd(content: string, from: number): number {
+  const n = content.length;
+  let j = from;
+  while (j < n) {
+    const c = content.charCodeAt(j);
+    if (c === 10 || c === 13) return j;
+    j++;
+  }
+  return n;
+}
+
 /** Index of the quote that closes the string opened at `open`, or -1 at a line break or the end. */
 function stringEnd(content: string, open: number): number {
   const n = content.length;
@@ -135,7 +152,8 @@ function toolCallArguments(content: string): Span[] {
     if (c === 34) {
       const end = stringEnd(content, i);
       if (end < 0) {
-        i++;
+        // No closing quote on this line, so none of the later quotes on it has one either.
+        i = lineEnd(content, i);
         continue;
       }
       let k = end + 1;
@@ -219,10 +237,14 @@ function unitsOf(content: string, args: Span[]): Unit[] {
 // ---------------------------------------------------------------------------
 
 /** A word that fetches from the network. */
-const DOWNLOADER = /\b(?:curl|wget)\b/i;
-/** After a download: a chain or pipe operator, then something that runs. */
-const RUN_AFTER =
-  /(?:&&|\|\||;|\n|\\n|\|)\s*(?:sudo\s+)?(?:chmod\s+(?:\+x|[0-7]{3,4})\b|(?:ba|z|da)?sh\b|\.\/\S|\/(?:var\/)?tmp\/\S|(?:source|eval|exec)\s|(?:python[23]?|node|perl|ruby)\s+(?!-[mce]\b)[./\w~-])/i;
+const DOWNLOADER = new RegExp(DOWNLOADER_SOURCE, 'i');
+/**
+ * After a download: a pipe or chain into something that runs (the same targets
+ * the tool-call patterns use), or a line break and then something that runs.
+ * A line break is followed by spaces and tabs only, so a run of line breaks is
+ * not rescanned from each one.
+ */
+const RUN_AFTER = new RegExp(`${RUN_AFTER_DOWNLOAD}|(?:\\n|\\\\{1,2}n)[ \\t]*${CHAIN_TARGET}`, 'i');
 
 const SECRET_VAR =
   /\$\{?[A-Z0-9_]*(?:KEY|SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL|COOKIE|AUTH)[A-Z0-9_]*/;
@@ -233,6 +255,9 @@ const DATA_FLAG_VALUE = /(?:^|\s)(?:-d|--data[\w-]*|-F|--form|--upload-file|-T|-
 const ENV_DUMP = /\$\(\s*(?:env|printenv|set)\b|\bprintenv\b|\benv\s*\|\s*(?:base64|curl|nc)\b/i;
 const SECRET_FILE_DUMP =
   /\$\(\s*cat\s+\S*(?:\.env\b|credentials|id_rsa|id_ed25519|\.aws\/|\.ssh\/|\.npmrc|\.netrc|\.pypirc|\.git-credentials|\/etc\/shadow)/i;
+const HEADER = /(?:-H|--header)\s+\\*["']?([A-Za-z0-9-]+):([^"'\\\n]*)/g;
+const SECRET_FILE_REF =
+  /@\S*(?:\.aws\/credentials|id_rsa|id_ed25519|\.ssh\/|\.env\b|\.npmrc|\.netrc|\.pypirc|\.git-credentials|\/etc\/shadow|\.docker\/config)/i;
 const SINK = /\b(?:curl|wget|nc|ncat|netcat|socat)\b|https?:\/\//i;
 
 const BASE64_DECODE = /\bbase64\s+(?:-d|-D|--decode)\b/gi;
@@ -311,6 +336,19 @@ function signalsIn(text: string, base: number, inToolCall: boolean): Signal[] {
       if (m[0] === '$(') depth++;
       else if (m[0] === ')') depth = Math.max(0, depth - 1);
       else if (depth > 0) take(ENV_VAR_WEIGHT, m.index, m.index + m[0].length);
+    }
+    const fileRef = SECRET_FILE_REF.exec(text);
+    if (fileRef) take(ENV_DUMP_WEIGHT, fileRef.index, fileRef.index + fileRef[0].length);
+    // A secret variable in a header other than the one that authenticates.
+    if (inToolCall) {
+      for (const m of text.matchAll(HEADER)) {
+        if (/^(?:proxy-)?authorization$/i.test(m[1])) continue;
+        const v = SECRET_VAR.exec(m[2]);
+        if (v) {
+          const at = m.index + m[0].length - m[2].length + v.index;
+          take(ENV_VAR_WEIGHT, at, at + v[0].length);
+        }
+      }
     }
     for (const m of text.matchAll(DATA_FLAG_VALUE)) {
       const v = SECRET_VAR.exec(m[1]);
@@ -462,7 +500,10 @@ export class ResponseAnomalyDetector implements Detector {
         confidence: Math.round(confidence * 100) / 100,
         description: `Response anomaly: ${signals.map((s) => s.name).join(', ')}`,
         evidence: this.evidence(content, start, end, signals),
-        location: { offset: start, length: end - start },
+        // A tool call is replaced whole, so the JSON around it stays valid.
+        location: unit.inToolCall
+          ? { offset: unit.start, length: unit.end - unit.start }
+          : { offset: start, length: end - start },
         detectorId: this.id,
         source: 'pattern',
       });
@@ -470,15 +511,26 @@ export class ResponseAnomalyDetector implements Detector {
     return { threats };
   }
 
-  sanitizeEdits(_content: string, threats: Threat[]): TextEdit[] {
+  sanitizeEdits(content: string, threats: Threat[]): TextEdit[] {
     return threats
       .filter((t) => t.location)
-      .map((t) => ({
-        offset: t.location!.offset,
-        length: t.location!.length,
-        replacement: REPLACEMENT,
-        severity: t.severity,
-      }));
+      .map((t) => {
+        const { offset, length } = t.location!;
+        // The arguments of a tool call are an object or the inside of a string.
+        // An object becomes a small valid object. The edit is critical so that,
+        // where it overlaps a narrower edit inside it, the object stays valid.
+        // Inside a string the opening quote comes first; an object does not follow one.
+        const isObject =
+          content[offset] === '{' &&
+          content[offset + length - 1] === '}' &&
+          content[offset - 1] !== '"';
+        return {
+          offset,
+          length,
+          replacement: isObject ? `{"blocked":"${REPLACEMENT}"}` : REPLACEMENT,
+          severity: isObject ? ('critical' as const) : t.severity,
+        };
+      });
   }
 
   sanitize(content: string, threats: Threat[]): string {

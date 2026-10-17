@@ -1,7 +1,10 @@
 import type { PatternDatabase, PatternEntry } from './pattern-db';
 import {
   BASE64_TO_SHELL,
+  COMMAND_LAYOUTS,
+  DECODE_SUBSHELL,
   DOWNLOAD_SUBSHELL,
+  POWERSHELL_RUN,
   PYTHON_B64_EXEC,
   downloadExecInCommand,
   inCommand,
@@ -18,6 +21,8 @@ import {
  *   0.8.0 — steganographic-payload: ASCII smuggling via Unicode Tags and
  *           variation-selector runs (#69 item 1)
  *   0.9.14 — Transport Integrity: tool-call-tampering patterns (AC-1, #27)
+ *   0.9.15 — tool-call-tampering: shell names and paths, interpreters, process
+ *            substitution, PowerShell, decoders, command arrays
  */
 /**
  * tool-call-tampering (#27): shell the model's tool call would run, rewritten
@@ -38,18 +43,37 @@ function toolCallEntry(
   label: string,
   confidence: number,
   severity: PatternEntry['severity'],
+  locationGroup?: number,
 ): PatternEntry {
   return {
     id,
     regex,
-    flags: 'gi',
+    // `d` gives the in-call patterns the span of the command value, which is
+    // all a sanitized result replaces, so the JSON around it stays valid.
+    flags: locationGroup ? 'gid' : 'gi',
     category: 'transport-integrity',
     type: 'tool-call-tampering',
     severity,
     confidence,
     label,
+    ...(locationGroup ? { locationGroup } : {}),
   };
 }
+
+const IN_CALL_SHAPES: Array<[string, string, string]> = [
+  ['subshell', DOWNLOAD_SUBSHELL, 'Shell run on a downloaded script'],
+  ['decode-subshell', DECODE_SUBSHELL, 'Shell run on base64-decoded text'],
+  ['base64-shell', BASE64_TO_SHELL, 'Decoded text piped into a shell'],
+  ['python-b64-exec', PYTHON_B64_EXEC, 'Python executes base64-decoded text'],
+  ['powershell', POWERSHELL_RUN, 'PowerShell downloads and runs, or runs an encoded command'],
+];
+
+const LAYOUT_TAGS = {
+  plain: ['call', 'a tool call command'],
+  'plain-array': ['call-arr', 'a tool call command array'],
+  escaped: ['call-str', 'a stringified tool call command'],
+  'escaped-array': ['call-str-arr', 'a stringified tool call command array'],
+} as const;
 
 function toolCallEntries(): PatternEntry[] {
   const bare = 0.4;
@@ -70,45 +94,37 @@ function toolCallEntries(): PatternEntry[] {
       'high',
     ),
   ];
-  for (const form of ['plain', 'escaped'] as const) {
-    const tag = form === 'plain' ? 'call' : 'call-str';
-    const where = form === 'plain' ? 'a tool call command' : 'a stringified tool call command';
+  for (const layout of Object.keys(LAYOUT_TAGS) as Array<keyof typeof LAYOUT_TAGS>) {
+    const [tag, where] = LAYOUT_TAGS[layout];
+    const group = COMMAND_LAYOUTS[layout].group;
     out.push(
       toolCallEntry(
         `tc-${tag}-download-exec`,
-        downloadExecInCommand(form),
+        downloadExecInCommand(layout),
         `Download piped or chained into a shell in ${where}`,
         inCall,
         'critical',
-      ),
-      toolCallEntry(
-        `tc-${tag}-download-subshell`,
-        inCommand(form, DOWNLOAD_SUBSHELL),
-        `Shell run on a downloaded script in ${where}`,
-        inCall,
-        'critical',
-      ),
-      toolCallEntry(
-        `tc-${tag}-base64-shell`,
-        inCommand(form, BASE64_TO_SHELL),
-        `Base64-decoded text piped into a shell in ${where}`,
-        inCall,
-        'critical',
-      ),
-      toolCallEntry(
-        `tc-${tag}-python-b64-exec`,
-        inCommand(form, PYTHON_B64_EXEC),
-        `Python executes base64-decoded text in ${where}`,
-        inCall,
-        'critical',
+        group,
       ),
     );
+    for (const [id, shape, label] of IN_CALL_SHAPES) {
+      out.push(
+        toolCallEntry(
+          `tc-${tag}-${id}`,
+          inCommand(layout, shape),
+          `${label} in ${where}`,
+          inCall,
+          'critical',
+          group,
+        ),
+      );
+    }
   }
   return out;
 }
 
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.14',
+  version: '0.9.15',
   updatedAt: '2026-10-16',
   detectors: {
     'hidden-html': [

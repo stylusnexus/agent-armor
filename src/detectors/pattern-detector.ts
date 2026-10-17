@@ -28,11 +28,23 @@ export function redactSecret(match: string): string {
 }
 
 /** Matches of `regex` the way a `g`-flag `exec` loop reports them. */
-function* execAll(regex: RegExp, content: string, group: number): Generator<MatcherHit> {
+function* execAll(
+  regex: RegExp,
+  content: string,
+  group: number,
+  locationGroup?: number,
+): Generator<MatcherHit & { location?: { index: number; length: number } }> {
   regex.lastIndex = 0; // reset stateful /g cursor before reuse
   let match: RegExpExecArray | null;
   while ((match = regex.exec(content)) !== null) {
-    yield { index: match.index, text: match[0], extracted: match[group] };
+    // `indices` exists only when the regex has the `d` flag.
+    const span = locationGroup ? match.indices?.[locationGroup] : undefined;
+    yield {
+      index: match.index,
+      text: match[0],
+      extracted: match[group],
+      ...(span ? { location: { index: span[0], length: span[1] - span[0] } } : {}),
+    };
   }
 }
 
@@ -92,7 +104,7 @@ export class PatternDetector extends BaseDetector {
     for (const { entry, regex, matcher } of this.compiled) {
       for (const hit of matcher
         ? matcher.match(content)
-        : execAll(regex, content, entry.extractGroup ?? 0)) {
+        : execAll(regex, content, entry.extractGroup ?? 0, entry.locationGroup)) {
         const extracted = hit.extracted ?? hit.text;
         const trimmed = extracted.trim();
 
@@ -118,11 +130,13 @@ export class PatternDetector extends BaseDetector {
           continue;
         }
 
+        const location = 'location' in hit ? hit.location : undefined;
         matches.push({
           pattern: entry.label,
           match: hit.text,
           index: hit.index,
           length: hit.text.length,
+          ...(location ? { location } : {}),
           confidence,
           severity,
           description: hasInstruction
