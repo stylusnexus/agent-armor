@@ -394,6 +394,8 @@ export class AgentArmor {
   private detectors: Detector[] = [];
   /** The shipped detectors that scan text another detector decoded. */
   private rescanDetectors: Detector[] = [];
+  /** Detectors that threw on decoded text during the detector scan now running. */
+  private rescanFailures = new Set<string>();
   private patternDb: PatternDatabase;
   private mlDetector: Detector | null = null;
   /** Built-in detector IDs that scan the normalized skeleton, not raw input. */
@@ -776,6 +778,8 @@ export class AgentArmor {
           useNorm ? this.remapThreats(result.threats, norm!, text) : result.threats,
         );
       } catch (err) {
+        // The scan that asked for this rescan cannot vouch for the content now.
+        this.rescanFailures.add(detector.id);
         const error = err instanceof Error ? err : new Error(String(err));
         const message = `[AgentArmor] Detector "${detector.id}" threw while scanning decoded text: ${error.message}`;
         if (this.config.on?.error) {
@@ -898,6 +902,8 @@ export class AgentArmor {
           console.warn(message);
         }
       }
+      for (const id of this.rescanFailures) if (!failed.includes(id)) failed.push(id);
+      this.rescanFailures.clear();
     }
 
     allThreats.sort((a, b) => {
@@ -969,6 +975,8 @@ export class AgentArmor {
           console.warn(message);
         }
       }
+      for (const id of this.rescanFailures) if (!failed.includes(id)) failed.push(id);
+      this.rescanFailures.clear();
     }
 
     allThreats.sort((a, b) => {
