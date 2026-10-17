@@ -30,7 +30,9 @@ Pattern-based detection using a two-pass approach:
 1. Structural pattern match (regex from a versioned pattern database)
 2. Instruction signal check (context-sensitive validation to reduce false positives)
 
-Three strictness levels: permissive, balanced, strict.
+Three strictness levels: permissive, balanced, strict. Any other value throws.
+
+If a detector throws during a scan, `result.stats.degraded` is true, `result.stats.failedDetectors` lists the detector ids, and `result.clean` is false even with no threats found. `clean: true` always means a full scan.
 
 Detection is deterministic by default: the same input always yields the same verdict. Patterns run first (sub-millisecond, zero dependencies); the optional ML classifier is an added layer, not the decision boundary. Inference is probabilistic — the execution gate is not.
 

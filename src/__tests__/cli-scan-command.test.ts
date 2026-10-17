@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -115,5 +115,46 @@ describe('runScan', () => {
       ml: false,
     });
     expect(exitCode).toBe(2);
+  });
+});
+
+describe('runScan --ml unavailable', () => {
+  let dir: string;
+  let file: string;
+
+  beforeEach(() => {
+    dir = mkdtempSync(path.join(tmpdir(), 'agentarmor-ml-test-'));
+    file = path.join(dir, 'clean.md');
+    writeFileSync(file, 'Use TypeScript strict mode.');
+  });
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+    vi.restoreAllMocks();
+  });
+
+  const base = () =>
+    ({
+      paths: [file],
+      strictness: 'balanced',
+      format: 'text',
+      failOn: 'low',
+      ml: true,
+    }) as const;
+
+  it('warns loudly on stderr and still scans when the classifier is missing', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { exitCode, output } = await runScan(base());
+    expect(exitCode).toBe(0);
+    expect(output).toContain('[ok]');
+    expect(err).toHaveBeenCalledWith(expect.stringContaining('ML classifier is unavailable'));
+  });
+
+  it('--require-ml exits 2 instead of scanning regex-only', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { exitCode, output } = await runScan({ ...base(), requireMl: true });
+    expect(exitCode).toBe(2);
+    expect(output).toContain('--require-ml');
   });
 });

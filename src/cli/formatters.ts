@@ -17,8 +17,11 @@ export function formatText(results: FileScanResult[]): string {
       continue;
     }
     blocked++;
+    const degraded = result.stats.degraded
+      ? ` DEGRADED, detector(s) failed: ${(result.stats.failedDetectors ?? []).join(', ')},`
+      : '';
     lines.push(
-      `[BLOCKED] ${file} - ${result.threats.length} threat(s), risk: ${result.riskLevel}:`,
+      `[BLOCKED] ${file} - ${result.threats.length} threat(s),${degraded} risk: ${result.riskLevel}:`,
     );
     for (const threat of result.threats) {
       lines.push(
