@@ -27,6 +27,19 @@ export async function runScan(options: ScanCliOptions): Promise<ScanCommandResul
     ? await AgentArmor.create({ strictness: options.strictness, ml: { enabled: true } })
     : AgentArmor.regexOnly({ strictness: options.strictness });
 
+  if (options.ml && !armor.mlActive) {
+    if (options.requireMl) {
+      return {
+        output: 'Error: --require-ml was given but the ML classifier could not be loaded.',
+        exitCode: 2,
+      };
+    }
+    console.error(
+      'WARNING: --ml was requested but the ML classifier is unavailable. ' +
+        'Scanning with regex detectors only. Use --require-ml to fail instead.',
+    );
+  }
+
   const results: FileScanResult[] = [];
   for (const file of files) {
     let content: string;
@@ -47,7 +60,13 @@ export async function runScan(options: ScanCliOptions): Promise<ScanCommandResul
         ? formatSarif(results)
         : formatText(results);
 
-  const anyFailure = results.some(({ result }) => meetsOrExceeds(result.riskLevel, options.failOn));
+  // A degraded scan (a detector threw) has no threat to rank, so it fails on its own.
+  const anyFailure =
+    options.failOn !== 'none' &&
+    results.some(
+      ({ result }) =>
+        meetsOrExceeds(result.riskLevel, options.failOn) || result.stats.degraded === true,
+    );
 
   return { output, exitCode: anyFailure ? 1 : 0 };
 }

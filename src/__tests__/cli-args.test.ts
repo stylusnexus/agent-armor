@@ -10,6 +10,7 @@ describe('parseScanArgs', () => {
       format: 'text',
       failOn: 'low',
       ml: false,
+      requireMl: false,
       include: undefined,
     });
   });
@@ -59,5 +60,12 @@ describe('parseScanArgs', () => {
 
   it('throws CliUsageError when a flag is missing its value', () => {
     expect(() => parseScanArgs(['file.md', '--strictness'])).toThrow(CliUsageError);
+  });
+
+  it('--require-ml implies --ml', () => {
+    const opts = parseScanArgs(['file.md', '--require-ml']);
+    expect(opts.ml).toBe(true);
+    expect(opts.requireMl).toBe(true);
+    expect(opts.paths).toEqual(['file.md']);
   });
 });

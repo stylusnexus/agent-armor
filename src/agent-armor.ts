@@ -19,6 +19,8 @@ import type {
   TrapType,
 } from './types';
 import { createHash, randomUUID } from 'node:crypto';
+
+const STRICTNESS_VALUES: readonly Strictness[] = ['permissive', 'balanced', 'strict'];
 import { evaluateAction } from './action-gate';
 import { alignedEdits, applyEdits, mergeEdits } from './sanitize';
 import type { PatternDatabase } from './patterns/pattern-db';
@@ -380,6 +382,11 @@ export class AgentArmor {
   private skipWarned = new Set<string>();
 
   constructor(config?: AgentArmorConfig) {
+    if (config?.strictness !== undefined && !STRICTNESS_VALUES.includes(config.strictness)) {
+      throw new Error(
+        `Invalid strictness ${JSON.stringify(config.strictness)}: expected one of ${STRICTNESS_VALUES.join(', ')}`,
+      );
+    }
     this.config = {
       ...DEFAULT_CONFIG,
       ...config,
@@ -591,8 +598,14 @@ export class AgentArmor {
       this.emitAudit(this.buildAuditRecord(result, 'scanSession', undefined, { batchId, index }));
       return result;
     });
-    const { crossTurnThreats, windowChars } = this.scanCrossTurn(turns);
-    return this.assembleSession(perTurn, crossTurnThreats, windowChars, performance.now() - start);
+    const { crossTurnThreats, windowChars, failedDetectors } = this.scanCrossTurn(turns);
+    return this.assembleSession(
+      perTurn,
+      crossTurnThreats,
+      windowChars,
+      performance.now() - start,
+      failedDetectors,
+    );
   }
 
   /**
@@ -612,20 +625,26 @@ export class AgentArmor {
     // Cross-turn split-payload detection is pattern-based (needs match offsets
     // to prove a span crosses a turn boundary); the sync window scan is reused.
     // ML threats carry no offsets and so do not produce cross-turn threats.
-    const { crossTurnThreats, windowChars } = this.scanCrossTurn(turns);
+    const { crossTurnThreats, windowChars, failedDetectors } = this.scanCrossTurn(turns);
     // Cross-turn semantic accumulation: show the ML classifier a window of
     // recent turns so accumulated signal invisible per-turn can surface (#35).
-    const accumulationThreats = await this.scanAccumulation(turns, perTurn);
+    const accumulationThreats = await this.scanAccumulation(turns, perTurn, failedDetectors);
     return this.assembleSession(
       perTurn,
       [...crossTurnThreats, ...accumulationThreats],
       windowChars,
       performance.now() - start,
+      failedDetectors,
     );
   }
 
   get strictness(): Strictness {
     return this.config.strictness;
+  }
+
+  /** True when an ML classifier is loaded and will run on `scan()` and the other async methods. */
+  get mlActive(): boolean {
+    return this.mlDetector !== null;
   }
 
   // ---------------------------------------------------------------------------
@@ -811,6 +830,7 @@ export class AgentArmor {
     if (content.length > this.config.maxInputLength) return this.oversizedResult(content);
     const start = performance.now();
     const allThreats: Threat[] = [];
+    const failed: string[] = [];
     const norm = this.config.normalizeUnicode ? normalizeForScan(content) : null;
 
     for (const detector of this.detectors) {
@@ -825,6 +845,7 @@ export class AgentArmor {
           useNorm ? this.remapThreats(result.threats, norm!, content) : result.threats,
         );
       } catch (err) {
+        if (!failed.includes(detector.id)) failed.push(detector.id);
         const error = err instanceof Error ? err : new Error(String(err));
         const message = `[AgentArmor] Detector "${detector.id}" threw during scan: ${error.message}`;
         if (this.config.on?.error) {
@@ -846,15 +867,17 @@ export class AgentArmor {
     const durationMs = performance.now() - start;
 
     return {
-      clean: allThreats.length === 0,
+      // A scan where a detector failed cannot vouch for the content: fail closed.
+      clean: allThreats.length === 0 && failed.length === 0,
       threats: allThreats,
       sanitized,
       durationMs,
       riskLevel: computeRiskLevel(allThreats[0]?.severity ?? null, allThreats[0]?.confidence ?? 0),
       stats: {
-        detectorsRun: this.detectors.length,
+        detectorsRun: this.detectors.length - failed.length,
         threatsFound: allThreats.length,
         highestSeverity: allThreats[0]?.severity ?? null,
+        ...(failed.length > 0 ? { degraded: true, failedDetectors: failed } : {}),
       },
     };
   }
@@ -863,6 +886,7 @@ export class AgentArmor {
     if (content.length > this.config.maxInputLength) return this.oversizedResult(content);
     const start = performance.now();
     const allThreats: Threat[] = [];
+    const failed: string[] = [];
     const skipped: Array<{ detectorId: string; reason: string }> = [];
     const norm = this.config.normalizeUnicode ? normalizeForScan(content) : null;
 
@@ -892,6 +916,7 @@ export class AgentArmor {
           );
         }
       } catch (err) {
+        if (!failed.includes(detector.id)) failed.push(detector.id);
         const error = err instanceof Error ? err : new Error(String(err));
         const message = `[AgentArmor] Detector "${detector.id}" threw during scan: ${error.message}`;
         if (this.config.on?.error) {
@@ -913,15 +938,17 @@ export class AgentArmor {
     const durationMs = performance.now() - start;
 
     return {
-      clean: allThreats.length === 0,
+      // A scan where a detector failed cannot vouch for the content: fail closed.
+      clean: allThreats.length === 0 && failed.length === 0,
       threats: allThreats,
       sanitized,
       durationMs,
       riskLevel: computeRiskLevel(allThreats[0]?.severity ?? null, allThreats[0]?.confidence ?? 0),
       stats: {
-        detectorsRun: this.detectors.length,
+        detectorsRun: this.detectors.length - failed.length,
         threatsFound: allThreats.length,
         highestSeverity: allThreats[0]?.severity ?? null,
+        ...(failed.length > 0 ? { degraded: true, failedDetectors: failed } : {}),
         ...(skipped.length > 0 ? { detectorsSkipped: skipped } : {}),
       },
     };
@@ -972,7 +999,10 @@ export class AgentArmor {
       batchId: extra?.batchId,
       source,
       index: extra?.index,
-      decision: this.deriveDecision(result.riskLevel, options?.exception),
+      decision: this.deriveDecision(
+        result.stats.degraded ? 'high' : result.riskLevel,
+        options?.exception,
+      ),
       strictness: this.config.strictness,
       patternDbVersion: this.patternDb.version,
       mlModelVersion,
@@ -990,6 +1020,9 @@ export class AgentArmor {
       })),
       exception: options?.exception,
       durationMs: result.durationMs,
+      ...(result.stats.degraded
+        ? { degraded: true, failedDetectors: result.stats.failedDetectors }
+        : {}),
     };
   }
 
@@ -1066,6 +1099,7 @@ export class AgentArmor {
   private async scanAccumulation(
     turns: ConversationTurn[],
     perTurn: ScanResult[],
+    failedDetectors: string[],
   ): Promise<CrossTurnThreat[]> {
     const canRunML =
       !!this.mlDetector &&
@@ -1114,6 +1148,7 @@ export class AgentArmor {
       } else {
         console.warn(message);
       }
+      if (!failedDetectors.includes(this.mlDetector!.id)) failedDetectors.push(this.mlDetector!.id);
       return [];
     }
 
@@ -1134,8 +1169,9 @@ export class AgentArmor {
   private scanCrossTurn(turns: ConversationTurn[]): {
     crossTurnThreats: CrossTurnThreat[];
     windowChars: number;
+    failedDetectors: string[];
   } {
-    if (turns.length < 2) return { crossTurnThreats: [], windowChars: 0 };
+    if (turns.length < 2) return { crossTurnThreats: [], windowChars: 0, failedDetectors: [] };
 
     const SEP = '\n';
     const maxTurns = this.config.session.windowTurns ?? 8;
@@ -1145,6 +1181,7 @@ export class AgentArmor {
 
     const crossTurnThreats: CrossTurnThreat[] = [];
     const seen = new Set<string>();
+    const failedDetectors: string[] = [];
     let windowChars = 0;
 
     for (let i = firstBoundary; i < turns.length - 1; i++) {
@@ -1159,7 +1196,11 @@ export class AgentArmor {
       const aEnd = aSlice.length; // earlier turn occupies [0, aEnd)
       const bStart = aEnd + SEP.length; // later turn occupies [bStart, end)
 
-      for (const threat of this.runScanPipeline(joined).threats) {
+      const windowResult = this.runScanPipeline(joined);
+      for (const id of windowResult.stats.failedDetectors ?? []) {
+        if (!failedDetectors.includes(id)) failedDetectors.push(id);
+      }
+      for (const threat of windowResult.threats) {
         if (!threat.location) continue; // no offset → cannot prove a span
         const rel = threat.relatedLocation;
         const spanStart = rel
@@ -1186,7 +1227,7 @@ export class AgentArmor {
       }
     }
 
-    return { crossTurnThreats, windowChars };
+    return { crossTurnThreats, windowChars, failedDetectors };
   }
 
   /**
@@ -1199,7 +1240,11 @@ export class AgentArmor {
     crossTurnThreats: CrossTurnThreat[],
     windowChars: number,
     durationMs: number,
+    windowFailed: string[],
   ): SessionScanResult {
+    const failedDetectors = [
+      ...new Set([...perTurn.flatMap((r) => r.stats.failedDetectors ?? []), ...windowFailed]),
+    ];
     const perTurnThreatCount = perTurn.reduce((n, r) => n + r.threats.length, 0);
     const severities = [
       ...perTurn.flatMap((r) => r.threats.map((t) => t.severity)),
@@ -1211,7 +1256,8 @@ export class AgentArmor {
         : null;
 
     return {
-      clean: perTurnThreatCount === 0 && crossTurnThreats.length === 0,
+      clean:
+        perTurnThreatCount === 0 && crossTurnThreats.length === 0 && failedDetectors.length === 0,
       turns: perTurn,
       crossTurnThreats,
       durationMs,
@@ -1221,6 +1267,7 @@ export class AgentArmor {
         threatsFound: perTurnThreatCount + crossTurnThreats.length,
         crossTurnThreatsFound: crossTurnThreats.length,
         highestSeverity,
+        ...(failedDetectors.length > 0 ? { degraded: true, failedDetectors } : {}),
       },
     };
   }
