@@ -17,6 +17,8 @@ const SOLO_FLAGS = {
   'oversight-evasion': ['semanticManipulation', 'oversightEvasion'],
   'persona-hyperstition': ['semanticManipulation', 'personaHyperstition'],
   'dependency-substitution': ['transportIntegrity', 'dependencySubstitution'],
+  'tool-call-tampering': ['transportIntegrity', 'toolCallTampering'],
+  'response-anomaly': ['transportIntegrity', 'responseAnomaly'],
 } as const;
 
 export type SoloDetectorId = keyof typeof SOLO_FLAGS;

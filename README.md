@@ -137,12 +137,12 @@ Versions 0.2.1 to 0.2.17 can report a very large input as clean ([GHSA-vr4h-8mw3
 
 ### Eval Suite
 
-268 curated samples (155 adversarial, 113 benign) covering all 16 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
+284 curated samples (164 adversarial, 120 benign) covering all 18 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
 
 | Strictness   | Detection Rate (regex) | False Positive Rate |
 | ------------ | ---------------------- | ------------------- |
-| Permissive   | 90.3%                  | 0.0%                |
-| **Balanced** | **94.2%**              | **0.0%**            |
+| Permissive   | 90.9%                  | 0.0%                |
+| **Balanced** | **94.5%**              | **0.0%**            |
 | Strict       | 99.4%                  | 0.0%                |
 
 The 0.0% false-positive figure covers every benign sample except 11 **known false positives** (`acceptedFlagAt` in `scripts/eval/samples.ts`): honest text that quotes an attack or tells an assistant to run a command, such as a security paper quoting an exfiltration instruction. They flag at every strictness, are reported separately by `npm run eval`, and are excluded from the rate. The gate still fails on any other benign sample that flags.
@@ -171,15 +171,15 @@ Run it: `npx tsx examples/real-world-validation.ts`
 
 ## Attack Categories Covered
 
-| Category                  | Target       | Status  | What It Detects                                                                                                                                                                               |
-| ------------------------- | ------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Content Injection**     | Perception   | Shipped | Hidden HTML/CSS instructions, metadata injection, dynamic cloaking artifacts, syntactic masking, steganographic payloads (ASCII smuggling)                                                    |
-| **Behavioural Control**   | Action       | Shipped | Embedded jailbreak sequences, data exfiltration patterns, sub-agent spawning traps                                                                                                            |
-| **Cognitive State**       | Memory       | Shipped | RAG knowledge poisoning, latent memory poisoning, contextual learning manipulation                                                                                                            |
-| **Semantic Manipulation** | Reasoning    | Shipped | Biased framing/priming, oversight evasion, persona hyperstition                                                                                                                               |
-| **Systemic**              | Multi-Agent  | Planned | Congestion traps, interdependence cascades, tacit collusion, compositional fragments, sybil attacks                                                                                           |
-| **Human-in-the-Loop**     | Overseer     | Planned | Approval fatigue induction, social engineering via compromised agent                                                                                                                          |
-| **Transport Integrity**   | Supply Chain | Partial | Credential exposure (AC-2) and dependency substitution (AC-1.a) shipped; tool-call tampering (AC-1), response anomaly screening planned ([Liu et al. 2026](https://arxiv.org/abs/2604.08407)) |
+| Category                  | Target       | Status  | What It Detects                                                                                                                                                                       |
+| ------------------------- | ------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Content Injection**     | Perception   | Shipped | Hidden HTML/CSS instructions, metadata injection, dynamic cloaking artifacts, syntactic masking, steganographic payloads (ASCII smuggling)                                            |
+| **Behavioural Control**   | Action       | Shipped | Embedded jailbreak sequences, data exfiltration patterns, sub-agent spawning traps                                                                                                    |
+| **Cognitive State**       | Memory       | Shipped | RAG knowledge poisoning, latent memory poisoning, contextual learning manipulation                                                                                                    |
+| **Semantic Manipulation** | Reasoning    | Shipped | Biased framing/priming, oversight evasion, persona hyperstition                                                                                                                       |
+| **Systemic**              | Multi-Agent  | Planned | Congestion traps, interdependence cascades, tacit collusion, compositional fragments, sybil attacks                                                                                   |
+| **Human-in-the-Loop**     | Overseer     | Planned | Approval fatigue induction, social engineering via compromised agent                                                                                                                  |
+| **Transport Integrity**   | Supply Chain | Partial | Credential exposure (AC-2), dependency substitution (AC-1.a), tool-call tampering (AC-1) and response anomaly screening shipped ([Liu et al. 2026](https://arxiv.org/abs/2604.08407)) |
 
 ## Configuration
 
@@ -197,8 +197,8 @@ const armor = await AgentArmor.create({
     exfiltrationURLs: true, // Data exfiltration patterns
     privilegeEscalation: true, // Sub-agent spawning triggers
   },
-  // 'permissive' = only high-confidence threats (90.3% detection)
-  // 'balanced'   = recommended default (94.2% detection, 0% FP)
+  // 'permissive' = only high-confidence threats (90.9% detection)
+  // 'balanced'   = recommended default (94.5% detection, 0% FP)
   // 'strict'     = maximum coverage, catches subtle attacks
   strictness: 'balanced',
 
@@ -588,6 +588,12 @@ Phrase matching is English only, so an override written in another language isn'
 
   Published example keys (`AKIAIOSFODNN7EXAMPLE`), placeholders (`sk-your-key-here`), and masked references (`AKIA****`) are excluded by design. Low-confidence formats that are common in API documentation — bare bearer tokens and JWTs — surface only at `strict`.
 
+- **ToolCallTamperingDetector** — Flags shell that a rewritten tool call would run ([Liu et al. 2026](https://arxiv.org/abs/2604.08407), AC-1): a download piped or chained into a shell or interpreter (`curl ... | sh`, `| /usr/bin/env bash`, `| sudo -E bash`, `| python3`, `wget ...; chmod +x`, `&& ./x`), a shell run on a downloaded script (`bash -c "$(curl ...)"`, `sh <(curl ...)`, `source <(curl ...)`), PowerShell download-and-run (`irm ... | iex`, `-enc`), and decoded text run by a shell or an interpreter (`base64 -d | sh`, `base32 -d | sh`, `base64 -d | gunzip | sh`, `xxd -r -p | sh`, `exec(base64.b64decode(...))`, `os.system(...)`, Node `eval(Buffer.from(..., 'base64'))`, Perl `decode_base64`). Wrappers such as `sudo`, `doas`, `env`, `timeout 60`, `nice -n 5` and `setsid` before the shell are read. A router that swaps an installer URL leaves a call that is still valid JSON, so the structure is the signal: the detector reads the JSON, finds each tool call (an object with a tool name and an `input`, `arguments`, `args` or `action` value, in any key order), and scans the `command` strings inside (also `cmd`, `script`, `shell`, `bash`, `code`, as a string or an array such as `["bash", "-lc", "..."]`, at any depth, after any other keys, repeated or escaped keys included). Arguments sent as a JSON string, pretty-printed or not, are read too, and escapes such as `\u007c` are decoded first. In a command these report at every level. Hook, MCP-server, task and automation configs with a `command` key have no tool name beside an arguments value, so they are not calls. The sanitized result replaces only the command value, so the JSON stays valid, and a credential in evidence is cut down to its first four characters.
+
+  A download piped or chained into a shell written as plain text is **not flagged**: install guides, READMEs and security posts write `curl | sh` too, and the two read the same there. An honest agent that runs an installer inside a real tool call looks the same as a tampered one, so that is flagged too. Base64 decoded into a shell and Python executing decoded text, written as plain text, report at `strict` only. The reader works on the original text, before Unicode folding, so structure is what a client's JSON parser sees (a full-width quote is just a character); command text is folded afterwards, so look-alike letters do not hide `curl`. Not read: a stray double quote earlier on the same line of prose (it hides the rest of that line from the reader), Cohere-style `parameters`, computer-use `text` and `keystrokes` actions (they flag at strict through `response-anomaly` only), YAML or XML tool calls, Python-dict output with single quotes, streamed partial JSON, a tool call with no name beside its arguments, non-curl fetchers (`urllib`, `fetch`, `aria2c`, `http`, Perl LWP), a shell wrapped in a group or a function (`| (bash)`, `| { bash; }`, `tee >(bash)`, `xargs sh -c`, `time sh`), `source /dev/stdin`, `pwsh`, `[scriptblock]::Create`, `exec(sys.stdin.read())`, `at now`, reverse shells, a shell name built from quotes or variables, and a rewritten package install (`pip install https://...`), which only dependency substitution reports, at `strict`. It does not compare a URL with the one the model meant.
+
+- **ResponseAnomalyDetector** — Scores a command line, or the arguments of a tool call, for the signals the paper's anomaly screener uses that a scanner can compute from text ([Liu et al. 2026](https://arxiv.org/abs/2604.08407), section 7.2): a download that is then run (`curl ... -o x && sh x`, counted only inside a tool call, since install guides write it as plain text), secrets sent out (a secret variable in a URL or a request body, one inside a command substitution, or a dump of the environment or a key file), double, hex or percent encoding, a credential inside a tool call's arguments (and, in a tool call, a secret variable in a header other than `Authorization`, or an upload of a key file with `-d @~/.aws/credentials`), and the Shannon entropy of long base64-like tokens. It is code, not patterns. Each signal weighs under 0.5 and entropy only adds to a finding another signal started, so one signal reports at `strict` and two or more combine (`1 - (1 - a)(1 - b)`, plus a small bonus inside a tool call) and report at `balanced`. Entropy is measured on tokens of 40 characters or more and ramps from 4.5 bits per character (ordinary text) to 5.5 (random base64); JWTs, hashes and a credential's own entropy do not count. A secret variable in an `Authorization` header or a `-u` flag is not a signal. It does not learn a per-session baseline, so it cannot see a tool that is called too often, or a call that drifts from the tool's schema. Matched text is replaced with a warning in sanitized output, and a credential in evidence is cut down to its first four characters.
+
 ## Performance
 
 The core regex detectors have zero dependencies and run with sub-millisecond latency. When the ML classifier is enabled, scan times increase but remain practical for real-time use:
@@ -658,7 +664,7 @@ armor.loadPatterns(latestPatterns);
 armor.loadPatterns(myCustomPatterns);
 
 // Check current pattern version
-console.log(armor.patternVersion); // '0.9.14'
+console.log(armor.patternVersion); // '0.9.19'
 ```
 
 ## Versioning
@@ -719,10 +725,10 @@ Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy, plus t
 
 - **Content Injection** (5 detectors) and **Behavioural Control** (3 detectors) since v0.1.0
 - **Cognitive State** (3 detectors) and **Semantic Manipulation** (3 detectors) since v0.2.0
-- **Transport Integrity** (2 detectors): credential exposure and dependency substitution
+- **Transport Integrity** (4 detectors): credential exposure, dependency substitution, tool-call tampering and response anomaly screening
 - **Pre-execution action gate** — deterministic allowlist admissibility check (`checkAction()`)
 - ML classifier (DeBERTa-v3-small, ONNX) as optional companion package
-- Pattern database v0.9.14 with 130 pattern entries
+- Pattern database v0.9.19 with 139 pattern entries
 
 ### In Progress
 
@@ -775,7 +781,7 @@ Where it _does_ fit: if your team is building custom agents _using_ the Claude A
 
 It detects prompt injection, and it covers more than that. Direct and indirect injection are both in scope. These are flagged before they reach your model: override phrasing ("ignore all previous instructions"), persona swaps, instructions hidden in HTML or metadata, and plain-text instructions that tell an agent to run a command or send a secret and hide it from the user.
 
-Prompt injection is one attack type among the many we cover (16 detectors across 5 attack categories). It targets chatbots within a single conversation. Agent traps target autonomous agents with tool access, persistent memory, and sub-agent spawning. Different attack surface, different blast radius.
+Prompt injection is one attack type among the many we cover (18 detectors across 5 attack categories). It targets chatbots within a single conversation. Agent traps target autonomous agents with tool access, persistent memory, and sub-agent spawning. Different attack surface, different blast radius.
 
 The full taxonomy includes content injection, behavioral control, cognitive state manipulation (RAG/memory poisoning), and semantic manipulation (biased framing, persona shifts). These are distinct attack categories with different detection approaches.
 

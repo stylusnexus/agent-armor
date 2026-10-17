@@ -1,4 +1,13 @@
-import type { PatternDatabase } from './pattern-db';
+import type { PatternDatabase, PatternEntry } from './pattern-db';
+import {
+  BASE64_TO_SHELL,
+  DECODE_SUBSHELL,
+  DOWNLOAD_EXEC,
+  DOWNLOAD_SUBSHELL,
+  POWERSHELL_RUN,
+  DECODED_CODE_EXEC,
+  BARE_SUBSHELL,
+} from './tool-call-sources';
 
 // ─── Drop-service hosts (#98) ────────────────────────────────────────────────
 // Ordinary public services an agent can use as a command-and-control channel.
@@ -111,9 +120,69 @@ const segTogether = (...signals: string[]) =>
  *   0.9.14 — Incident-derived channel and persistence patterns: drop-service
  *           endpoints (exfiltration, #98), persistence plus concealment
  *           (oversight-evasion) and channel recovery (sub-agent-spawning, #99)
+ *   0.9.19 — Transport Integrity: tool-call-tampering patterns (AC-1, #27). They
+ *            run on the shell commands of tool calls found by reading the JSON
+ *            (scope `tool-call-command`), plus two plain-text shapes at strict
  */
+/**
+ * tool-call-tampering (#27): shell the model's tool call would run, rewritten
+ * by an intermediary (Liu et al. 2026, AC-1). Two layers share each shape.
+ *
+ * The in-call patterns (scope `tool-call-command`) run on the shell commands
+ * inside tool calls and report at balanced. An install guide has no tool call.
+ *
+ * A download piped into a shell as plain text is not flagged: install guides,
+ * READMEs and security posts write `curl ... | sh` too, and a regex cannot tell
+ * them from a tampered call. Two shapes that guides do not write (base64 into a
+ * shell, Python executing decoded text) also report as plain text, at strict
+ * only.
+ */
+function toolCallEntry(id: string, regex: string, label: string, inCall: boolean): PatternEntry {
+  return {
+    id,
+    regex,
+    flags: 'gi',
+    category: 'transport-integrity',
+    type: 'tool-call-tampering',
+    severity: inCall ? 'critical' : 'high',
+    confidence: inCall ? 0.9 : 0.4,
+    label: inCall ? `${label} in a tool call command` : label,
+    ...(inCall ? { scope: 'tool-call-command' as const } : {}),
+  };
+}
+
+const TOOL_CALL_SHAPES: Array<[string, string, string]> = [
+  ['download-exec', DOWNLOAD_EXEC, 'Download piped or chained into a shell'],
+  ['download-subshell', DOWNLOAD_SUBSHELL, 'Shell run on a downloaded script'],
+  ['decode-subshell', DECODE_SUBSHELL, 'Shell run on base64-decoded text'],
+  ['base64-shell', BASE64_TO_SHELL, 'Decoded text piped into a shell'],
+  ['decoded-code-exec', DECODED_CODE_EXEC, 'Code executes base64-decoded text'],
+  ['command-substitution', BARE_SUBSHELL, 'Command that is only a substitution running a download'],
+  ['powershell', POWERSHELL_RUN, 'PowerShell downloads and runs, or runs an encoded command'],
+];
+
+function toolCallEntries(): PatternEntry[] {
+  return [
+    toolCallEntry(
+      'tc-base64-shell',
+      BASE64_TO_SHELL,
+      'Base64-decoded text piped into a shell',
+      false,
+    ),
+    toolCallEntry(
+      'tc-decoded-code-exec',
+      DECODED_CODE_EXEC,
+      'Code executes base64-decoded text',
+      false,
+    ),
+    ...TOOL_CALL_SHAPES.map(([id, regex, label]) =>
+      toolCallEntry(`tc-call-${id}`, regex, label, true),
+    ),
+  ];
+}
+
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.14',
+  version: '0.9.19',
   updatedAt: '2026-10-16',
   detectors: {
     'hidden-html': [
@@ -1832,5 +1901,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         label: 'Package installed from a URL or git source instead of a registry name',
       },
     ],
+
+    'tool-call-tampering': toolCallEntries(),
   },
 };

@@ -23,8 +23,10 @@ import { evaluateAction } from './action-gate';
 import { alignedEdits, applyEdits, mergeEdits } from './sanitize';
 import type { PatternDatabase } from './patterns/pattern-db';
 import { DEFAULT_PATTERNS } from './patterns/default-patterns';
-import { PatternDetector, redactSecret } from './detectors/pattern-detector';
+import { PatternDetector } from './detectors/pattern-detector';
+import { redactCredentialsIn, redactSecret } from './detectors/credentials';
 import { MarkdownReferenceExfiltrationDetector } from './detectors/behavioural-control/markdown-reference-exfiltration';
+import { ResponseAnomalyDetector } from './detectors/response-anomaly';
 import { normalizeForScan, mapRangeToOriginal, type NormalizedText } from './normalize/unicode';
 
 const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
@@ -120,7 +122,10 @@ const DETECTOR_REGISTRY: Array<{
     | 'semanticManipulation'
     | 'transportIntegrity';
   configKey: string;
-  patternDbKey: string;
+  /** Pattern database key. Omit for a detector that is code only. */
+  patternDbKey?: string;
+  /** A detector that is code only: built directly instead of from the pattern database. */
+  codeDetector?: () => Detector;
   id: string;
   name: string;
   category: TrapCategory;
@@ -130,6 +135,10 @@ const DETECTOR_REGISTRY: Array<{
   /** Redact matched text before it becomes `Threat.evidence` — for detectors
    *  whose matches are themselves secrets. */
   maskEvidence?: boolean;
+  /** Cut credentials inside the evidence down to a prefix and keep the rest. */
+  redactCredentials?: boolean;
+  /** Scan the text as given, not its Unicode-folded copy; the detector folds what it needs. */
+  scanRaw?: boolean;
   /** Code detectors that run alongside this entry's pattern detector, under the same config flag. */
   extraDetectors?: () => Detector[];
 }> = [
@@ -292,6 +301,20 @@ const DETECTOR_REGISTRY: Array<{
   // Transport Integrity
   {
     configGroup: 'transportIntegrity',
+    configKey: 'toolCallTampering',
+    patternDbKey: 'tool-call-tampering',
+    id: 'tool-call-tampering',
+    name: 'Tool-Call Tampering Detector',
+    category: 'transport-integrity',
+    trapType: 'tool-call-tampering',
+    sanitizeMode: 'replace',
+    replaceText:
+      '[BLOCKED: suspicious shell command flagged by AgentArmor; verify the tool call before executing]',
+    redactCredentials: true,
+    scanRaw: true,
+  },
+  {
+    configGroup: 'transportIntegrity',
     configKey: 'credentialExposure',
     patternDbKey: 'credential-exposure',
     id: 'credential-exposure',
@@ -314,6 +337,19 @@ const DETECTOR_REGISTRY: Array<{
     replaceText:
       '[BLOCKED: suspicious package source flagged by AgentArmor — verify the package and registry before executing]',
   },
+  {
+    configGroup: 'transportIntegrity',
+    configKey: 'responseAnomaly',
+    codeDetector: () => new ResponseAnomalyDetector(),
+    id: 'response-anomaly',
+    name: 'Response Anomaly Detector',
+    category: 'transport-integrity',
+    trapType: 'response-anomaly',
+    sanitizeMode: 'replace',
+    // A flagged span can hold a credential; keep it out of evidence.
+    redactCredentials: true,
+    scanRaw: true,
+  },
 ];
 
 /**
@@ -335,6 +371,8 @@ export class AgentArmor {
   private normalizedDetectorIds = new Set<string>();
   /** Detectors whose evidence is a secret and must stay masked after remapping. */
   private maskedDetectorIds = new Set<string>();
+  /** Detectors whose evidence may quote a credential among other text. */
+  private redactedDetectorIds = new Set<string>();
   /** Guards the one-time "accumulation not yet implemented" warning. */
   private accumulationWarned = false;
   /** Detector ids whose "skipped this input" warning has already fired. */
@@ -612,6 +650,7 @@ export class AgentArmor {
   private loadDetectors(): void {
     this.normalizedDetectorIds.clear();
     this.maskedDetectorIds.clear();
+    this.redactedDetectorIds.clear();
     for (const reg of DETECTOR_REGISTRY) {
       const groupConfig = this.config[reg.configGroup] as Record<string, boolean>;
       if (!groupConfig[reg.configKey]) {
@@ -619,13 +658,24 @@ export class AgentArmor {
         continue;
       }
 
-      const patterns = this.patternDb.detectors[reg.patternDbKey];
+      if (reg.codeDetector) {
+        if (reg.maskEvidence) this.maskedDetectorIds.add(reg.id);
+        if (reg.redactCredentials) this.redactedDetectorIds.add(reg.id);
+        this.detectors.push(reg.codeDetector());
+        if (reg.category !== 'content-injection' && !reg.scanRaw) {
+          this.normalizedDetectorIds.add(reg.id);
+        }
+        continue;
+      }
+
+      const patterns = reg.patternDbKey ? this.patternDb.detectors[reg.patternDbKey] : undefined;
       if (!patterns || patterns.length === 0) {
         this.config.on?.detectorSkipped?.({ detectorId: reg.id, reason: 'no-patterns' });
         continue;
       }
 
       if (reg.maskEvidence) this.maskedDetectorIds.add(reg.id);
+      if (reg.redactCredentials) this.redactedDetectorIds.add(reg.id);
 
       this.detectors.push(
         new PatternDetector({
@@ -637,6 +687,8 @@ export class AgentArmor {
           sanitizeMode: reg.sanitizeMode,
           replaceText: reg.replaceText,
           maskEvidence: reg.maskEvidence,
+          redactCredentials: reg.redactCredentials,
+          foldInside: reg.scanRaw,
         }),
       );
 
@@ -646,7 +698,7 @@ export class AgentArmor {
       // Structural detectors (content-injection) must see the raw bytes — they
       // exist to catch the invisible/obfuscation characters normalization
       // strips. Everything else scans the normalized skeleton.
-      if (reg.category !== 'content-injection') {
+      if (reg.category !== 'content-injection' && !reg.scanRaw) {
         this.normalizedDetectorIds.add(reg.id);
       }
     }
@@ -667,11 +719,12 @@ export class AgentArmor {
       // The remapped evidence is the original text, so a detector that masks
       // its evidence (leaked credentials) must be masked again here, or one
       // invisible character in the input would print the secret.
+      const shown = this.redactedDetectorIds.has(t.detectorId) ? redactCredentialsIn(slice) : slice;
       const evidence = this.maskedDetectorIds.has(t.detectorId)
         ? redactSecret(slice)
-        : slice.length > 200
-          ? slice.slice(0, 197) + '...'
-          : slice;
+        : shown.length > 200
+          ? shown.slice(0, 197) + '...'
+          : shown;
       return { ...t, location, ...(relatedLocation ? { relatedLocation } : {}), evidence };
     });
   }
