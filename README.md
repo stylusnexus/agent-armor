@@ -265,7 +265,7 @@ Every scan returns a `ScanResult` with full threat details:
 
 ```typescript
 interface ScanResult {
-  clean: boolean; // true if no threats found
+  clean: boolean; // true only if every detector ran and found nothing
   threats: Threat[]; // sorted by severity, then confidence
   sanitized: string; // content with threats neutralized
   durationMs: number; // scan time in milliseconds
@@ -275,6 +275,8 @@ interface ScanResult {
     threatsFound: number;
     highestSeverity: 'low' | 'medium' | 'high' | 'critical' | null;
     detectorsSkipped?: { detectorId: string; reason: string }[]; // only when a detector could not judge the input
+    degraded?: boolean; // true only when a detector threw; the scan was not complete
+    failedDetectors?: string[]; // ids of the detectors that threw
   };
 }
 
@@ -296,6 +298,12 @@ The `source` field indicates which detection method found the threat:
 - `'pattern'` — matched by a regex pattern from the built-in pattern database
 - `'ml'` — flagged by the ML classifier
 - `'custom'` — found by a user-provided custom detector
+
+### Degraded scans and bad config
+
+A scan where a detector throws is **degraded**. `stats.degraded` is `true`, `stats.failedDetectors` lists the detector ids, `stats.detectorsRun` does not count them, and `clean` is `false` even when no threat was found, so a detector that throws can no longer hide behind `clean: true`. `clean: true` is still not proof that every check you wanted ran: a detector that reports it skipped an input (`stats.detectorsSkipped`), `scanSync()` with the ML classifier loaded (ML inference runs only on the async methods), and an ML classifier that was unavailable under `onUnavailable: 'warn-and-skip'` all leave `clean` true. `riskLevel` still reflects only the threats that were found, so check `stats.degraded` if you branch on it. The audit record carries `degraded` and `failedDetectors`, and its `decision` is `block` (never `allow`) unless you recorded an exception. Session scans carry the same two fields on `stats`. When nothing fails, none of these fields appear and the result is unchanged.
+
+An unknown `strictness` (for example `'Strict'`) throws from the constructor, `create()` and `regexOnly()` instead of scanning with no threshold.
 
 ### `riskLevel` — one-line allow/deny
 
@@ -457,11 +465,14 @@ npx @stylusnexus/agentarmor scan <path...> [options]
 | `--format`     | `text`, `json`, `sarif`                     | `text`                        | Output format                                                 |
 | `--fail-on`    | `none`, `low`, `medium`, `high`, `critical` | `low`                         | Minimum risk level that fails the run                         |
 | `--ml`         | flag                                        | off                           | Use the ML classifier (requires `@stylusnexus/agentarmor-ml`) |
+| `--require-ml` | flag                                        | off                           | Like `--ml`, but exit `2` if the classifier cannot load       |
 | `--include`    | comma-separated extensions                  | `.md,.txt,.json,.cursorrules` | Override default extensions when scanning a directory         |
 
 A file path is always scanned regardless of extension; a directory path recurses, filtered by `--include` (skips `node_modules/`, `.git/`, `dist/`, `coverage/`).
 
-Exit codes: `0` clean, `1` threat(s) at/above `--fail-on`, `2` usage/IO error.
+With `--ml` alone, a missing classifier prints a warning on stderr and the scan runs with regex detectors only. A degraded scan (a detector threw) counts as a failure and exits `1` unless `--fail-on none`.
+
+Exit codes: `0` clean, `1` threat(s) at/above `--fail-on` or a degraded scan, `2` usage/IO error or `--require-ml` could not load the classifier.
 
 ### GitHub Actions
 

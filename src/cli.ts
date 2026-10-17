@@ -12,6 +12,9 @@ Options:
   --format <text|json|sarif>                  Output format (default: text)
   --fail-on <none|low|medium|high|critical>   Minimum risk level that fails the run (default: low)
   --ml                                        Use the ML classifier (requires @stylusnexus/agentarmor-ml)
+  --require-ml                                Like --ml, but exit 2 if the classifier cannot load
+                                               (without it, a missing classifier prints a warning
+                                               and the scan runs regex-only)
   --include <.ext,.ext,...>                   Override default file extensions for directory scans
                                                (default: ${DEFAULT_INCLUDE_EXTENSIONS.join(', ')})
   --help, -h                                  Show this help
@@ -19,7 +22,7 @@ Options:
 Exit codes:
   0   clean (no threat at or above --fail-on)
   1   threat(s) found at or above --fail-on
-  2   usage error or I/O error
+  2   usage error, I/O error, or --require-ml could not load the classifier
 
 Examples:
   npx agentarmor scan CLAUDE.md
