@@ -21,11 +21,14 @@ const CONFIDENCE_BOOST = 0.35;
  */
 function* execAll(regex: RegExp, content: string, group: number): Generator<MatcherHit> {
   regex.lastIndex = 0; // reset stateful /g cursor before reuse
+  const unicode = /[uv]/.test(regex.flags);
   let match: RegExpExecArray | null;
   while ((match = regex.exec(content)) !== null) {
     if (match[0].length === 0) {
-      const code = regex.unicode ? content.codePointAt(regex.lastIndex) : undefined;
-      regex.lastIndex += code !== undefined && code > 0xffff ? 2 : 1;
+      // Always move the cursor strictly past this match, one code point in
+      // unicode modes (`u` and `v`), so the loop ends whatever the flags.
+      const code = unicode ? content.codePointAt(match.index) : undefined;
+      regex.lastIndex = match.index + (code !== undefined && code > 0xffff ? 2 : 1);
       continue;
     }
     yield { index: match.index, text: match[0], extracted: match[group] };

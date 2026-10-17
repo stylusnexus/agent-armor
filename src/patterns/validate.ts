@@ -41,7 +41,7 @@ const PROBE_LIMIT_MS = 200;
 const SPEED_CHECK_TIMEOUT_MS = 10_000;
 
 /** Inputs a zero-width match is looked for in. */
-const EMPTY_PROBES = ['', ' ', 'a', 'x y', '\n', '<a>', '1'];
+const EMPTY_PROBES = ['', ' ', 'a', 'x y', '\n', '<a>', '1', '\u{1F600}'];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);

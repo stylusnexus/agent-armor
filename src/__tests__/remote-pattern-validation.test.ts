@@ -296,6 +296,49 @@ describe('scans cannot be stalled by an unvalidated database', () => {
   });
 });
 
+// The `v` flag needs Node 20 or later.
+const supportsV = (() => {
+  try {
+    new RegExp('', 'v');
+    return true;
+  } catch {
+    return false;
+  }
+})();
+
+describe('zero-width patterns on astral characters', () => {
+  const EMOJI_TEXT = `look \u{1F600} here ${'\u{1F600}'.repeat(20)} ${ATTACK}`;
+  const ZERO_WIDTH = [
+    '(?=\\u{1F600})',
+    '(?<=\\u{1F600})',
+    '(?:)(?=\\u{1F600})',
+    '\\B(?=\\u{1F600})',
+    'x*',
+  ];
+
+  it.each(['gv', 'gmv', 'giv', 'gu', 'gi'].filter((f) => supportsV || !f.includes('v')))(
+    'loadPatterns alone cannot hang a scan on emoji text (flags %s)',
+    (flags) => {
+      for (const regex of ZERO_WIDTH) {
+        const armor = new AgentArmor();
+        armor.loadPatterns(withExtra({ regex, flags }));
+        expect(armor.scanSync(EMOJI_TEXT).clean).toBe(false);
+      }
+    },
+  );
+
+  it.each(['gv', 'gu'].filter((f) => supportsV || !f.includes('v')))(
+    'validatePatternDatabase rejects them (flags %s)',
+    async (flags) => {
+      for (const regex of ZERO_WIDTH) {
+        await expect(validatePatternDatabase(withExtra({ regex, flags }))).rejects.toThrow(
+          /match empty text/,
+        );
+      }
+    },
+  );
+});
+
 describe('hardening against a file that weakens detection', () => {
   it('rejects a minLength above the input limit', async () => {
     await expect(validatePatternDatabase(withExtra({ minLength: 1e9 }))).rejects.toThrow(
@@ -311,7 +354,7 @@ describe('hardening against a file that weakens detection', () => {
     );
   });
 
-  // Needs `npm run build` first; CI builds before it tests this file's sibling gates.
+  // Needs `npm run build` first. CI's test run does not build, so it skips there; run it locally after a build.
   it.skipIf(!existsSync('dist/index.js'))(
     'does not load worker_threads when the package is imported',
     async () => {
