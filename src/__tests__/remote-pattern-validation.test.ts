@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AgentArmor, DEFAULT_PATTERNS, PatternValidationError } from '../index';
 import { validatePatternDatabase } from '../patterns/validate';
@@ -267,4 +268,63 @@ describe('AgentArmor.fetchLatestPatterns', () => {
     stubFetch(() => new Response('no', { status: 404, statusText: 'Not Found' }));
     await expect(AgentArmor.fetchLatestPatterns('https://a.example.com/p')).rejects.toThrow(/404/);
   });
+});
+
+describe('scans cannot be stalled by an unvalidated database', () => {
+  const TEXT = `${ATTACK} ${'😀 '.repeat(50)} ignore QZ gno`;
+
+  it.each([
+    ['a lookahead', '(?=ignore)'],
+    ['a lookbehind', '(?<=QZ)'],
+    ['a word boundary lookahead', '\\B(?=gno)'],
+    ['an empty group and lookahead', '(?:)(?=ignore)'],
+    ['a star', 'x*'],
+  ])('a zero-width pattern (%s) loaded with loadPatterns does not hang a scan', (_n, regex) => {
+    for (const flags of ['gi', 'giu']) {
+      const armor = new AgentArmor();
+      armor.loadPatterns(withExtra({ regex, flags }));
+      const result = armor.scanSync(TEXT);
+      expect(result.clean).toBe(false); // the shipped patterns still fire
+    }
+  });
+
+  it('a pattern without the g flag loaded with loadPatterns does not hang and still matches', () => {
+    const armor = new AgentArmor();
+    armor.loadPatterns(withExtra({ regex: 'zzz-marker', flags: 'i' }));
+    const result = armor.scanSync('please zzz-marker now, zzz-marker again');
+    expect(result.threats.some((t) => t.evidence === 'zzz-marker')).toBe(true);
+  });
+});
+
+describe('hardening against a file that weakens detection', () => {
+  it('rejects a minLength above the input limit', async () => {
+    await expect(validatePatternDatabase(withExtra({ minLength: 1e9 }))).rejects.toThrow(
+      /minLength/,
+    );
+  });
+
+  it('rejects a shipped detector whose patterns are all scoped to tool calls', async () => {
+    const db = clone();
+    for (const e of db.detectors['jailbreak-patterns']) e.scope = 'tool-call-command';
+    await expect(validatePatternDatabase(db)).rejects.toThrow(
+      /jailbreak-patterns: needs at least one pattern that runs on the whole text/,
+    );
+  });
+
+  // Needs `npm run build` first; CI builds before it tests this file's sibling gates.
+  it.skipIf(!existsSync('dist/index.js'))(
+    'does not load worker_threads when the package is imported',
+    async () => {
+      const { execFileSync } = await import('node:child_process');
+      const out = execFileSync(
+        process.execPath,
+        [
+          '-e',
+          "const Module=require('module');const orig=Module._load;let hit=false;Module._load=function(r){if(r==='node:worker_threads'||r==='worker_threads')hit=true;return orig.apply(this,arguments)};require('./dist/index.js');console.log(hit)",
+        ],
+        { cwd: process.cwd(), encoding: 'utf8' },
+      );
+      expect(out.trim()).toBe('false');
+    },
+  );
 });

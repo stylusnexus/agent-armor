@@ -53,8 +53,10 @@ export interface PatternDatabase {
 }
 
 /**
- * Compile a PatternEntry's regex string into a RegExp object.
+ * Compile a PatternEntry's regex string into a RegExp object. The scanner
+ * walks matches with a global `exec` loop, which never advances without the
+ * `g` flag, so it is added when missing.
  */
 export function compilePattern(entry: PatternEntry): RegExp {
-  return new RegExp(entry.regex, entry.flags);
+  return new RegExp(entry.regex, entry.flags.includes('g') ? entry.flags : `${entry.flags}g`);
 }

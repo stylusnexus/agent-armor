@@ -1,4 +1,3 @@
-import { Worker } from 'node:worker_threads';
 import { DEFAULT_PATTERNS } from './default-patterns';
 import type { PatternEntry } from './pattern-db';
 
@@ -26,6 +25,9 @@ const CATEGORIES = new Set([
 ]);
 const SEVERITIES = new Set(['low', 'medium', 'high', 'critical']);
 const KNOWN_FLAGS = /^[dgimsuvy]*$/;
+
+/** The default `maxInputLength`: a `minLength` above it can never be met. */
+const MAX_INPUT_CHARS = 1_000_000;
 
 /** Lowest confidence that still reports at `balanced`, the default strictness. */
 const BALANCED_THRESHOLD = 0.5;
@@ -108,6 +110,9 @@ function checkEntry(
   for (const key of ['boostOnInstructions', 'requireInstructions'] as const) {
     if (e[key] !== undefined && typeof e[key] !== 'boolean') bad(`${key} must be a boolean`);
   }
+  if (typeof e.minLength === 'number' && e.minLength > MAX_INPUT_CHARS) {
+    bad(`minLength ${e.minLength} is above the ${MAX_INPUT_CHARS}-character input limit`);
+  }
   for (const key of ['extractGroup', 'minLength'] as const) {
     const v = e[key];
     if (v !== undefined && !(typeof v === 'number' && Number.isInteger(v) && v >= 0)) {
@@ -168,9 +173,11 @@ parentPort.postMessage({ done: true, slow });
  * report the ones that are slow. A regex that never finishes is caught by
  * terminating the worker, and is named from the last pattern it started.
  */
-function checkSpeed(entries: PatternEntry[], problems: string[]): Promise<void> {
-  if (entries.length === 0) return Promise.resolve();
-  return new Promise((resolve) => {
+async function checkSpeed(entries: PatternEntry[], problems: string[]): Promise<void> {
+  if (entries.length === 0) return;
+  // Loaded here so the package itself loads on runtimes without worker threads.
+  const { Worker } = await import('node:worker_threads');
+  await new Promise<void>((resolve) => {
     const worker = new Worker(SPEED_WORKER, {
       eval: true,
       workerData: {
@@ -220,15 +227,18 @@ function checkSpeed(entries: PatternEntry[], problems: string[]): Promise<void> 
  *
  * Checks: the shape of every field; the `g` flag; regexes that compile and
  * cannot match empty text; every detector the package ships is still present
- * and keeps at least one pattern that reports at `balanced` (so a file cannot
- * silently turn detection off); and a speed check of each regex that is not
- * identical to a shipped one.
+ * with a whole-text pattern that reports at `balanced`; and a speed check of
+ * each regex that is not identical to a shipped one.
+ *
+ * These checks catch mistakes. They do not stop a hostile pattern host: a
+ * pattern that never matches passes, and so does a regex that is slow only on
+ * input the probes do not contain. Signatures are a separate piece of work.
  *
  * The speed check runs each new regex against fixed probes (20,000 characters of
- * one repeated fragment, bare and followed by a stop character) and rejects any over 200 ms or that never finishes.
- * It catches exponential and clearly quadratic regexes. It cannot prove a regex
- * is linear: a regex that is slow only on input shaped like its own trigger
- * wording can pass. Review new patterns as well.
+ * one repeated fragment, bare and followed by a stop character) and rejects any
+ * over 200 ms or that never finishes. It only sees slowness on input made of
+ * those fragments. A regex that is slow on input shaped like its own wording
+ * (for example `ignore(?:\s*\w+)*$`) can pass. Review new patterns as well.
  */
 export async function validatePatternDatabase(db: unknown): Promise<void> {
   const problems: string[] = [];
@@ -263,6 +273,10 @@ export async function validatePatternDatabase(db: unknown): Promise<void> {
   for (const [detectorId, shipped] of Object.entries(DEFAULT_PATTERNS.detectors)) {
     if (!(detectorId in valid)) {
       problems.push(`${detectorId}: shipped detector is missing`);
+    } else if (!valid[detectorId].some((e) => e.scope === undefined)) {
+      problems.push(
+        `${detectorId}: needs at least one pattern that runs on the whole text (no scope)`,
+      );
     } else if (shipped.some(reachesBalanced) && !valid[detectorId].some(reachesBalanced)) {
       problems.push(
         `${detectorId}: no valid pattern reports at balanced strictness (confidence 0.5 or more)`,

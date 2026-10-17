@@ -14,11 +14,20 @@ const INSTRUCTION_SIGNALS =
 
 const CONFIDENCE_BOOST = 0.35;
 
-/** Matches of `regex` the way a `g`-flag `exec` loop reports them. */
+/**
+ * Matches of `regex` the way a `g`-flag `exec` loop reports them. A zero-width
+ * match is skipped and the cursor moved on, so a pattern that can match empty
+ * text (a bare lookahead, say) cannot stall the loop.
+ */
 function* execAll(regex: RegExp, content: string, group: number): Generator<MatcherHit> {
   regex.lastIndex = 0; // reset stateful /g cursor before reuse
   let match: RegExpExecArray | null;
   while ((match = regex.exec(content)) !== null) {
+    if (match[0].length === 0) {
+      const code = regex.unicode ? content.codePointAt(regex.lastIndex) : undefined;
+      regex.lastIndex += code !== undefined && code > 0xffff ? 2 : 1;
+      continue;
+    }
     yield { index: match.index, text: match[0], extracted: match[group] };
   }
 }
