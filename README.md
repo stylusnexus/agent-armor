@@ -137,7 +137,7 @@ Versions 0.2.1 to 0.2.17 can report a very large input as clean ([GHSA-vr4h-8mw3
 
 ### Eval Suite
 
-284 curated samples (164 adversarial, 120 benign) covering all 18 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
+287 curated samples (164 adversarial, 123 benign) covering all 18 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
 
 | Strictness   | Detection Rate (regex) | False Positive Rate |
 | ------------ | ---------------------- | ------------------- |
@@ -728,7 +728,7 @@ Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy, plus t
 - **Transport Integrity** (4 detectors): credential exposure, dependency substitution, tool-call tampering and response anomaly screening
 - **Pre-execution action gate** — deterministic allowlist admissibility check (`checkAction()`)
 - ML classifier (DeBERTa-v3-small, ONNX) as optional companion package
-- Pattern database v0.9.19 with 139 pattern entries
+- Pattern database v0.9.19 with 140 pattern entries
 
 ### In Progress
 

@@ -894,6 +894,27 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         boostOnInstructions: true,
       },
       {
+        // Send the conversation to an outside address (#178). ex-direct cannot
+        // see this: requireInstructions tests only the matched words, and "send
+        // the conversation" carries no instruction signal. A generic window
+        // does not help either, so this pattern names the object (the chat, its
+        // messages, "the above") and the destination (a URL, an email address
+        // or a bare domain) in one match. Strict only (0.4). Chat-API
+        // tutorials, support emails, privacy policies and tracing docs say the
+        // same words, and nothing in the sentence separates an honest host from
+        // a hostile one. No window is capped: every part is a fixed word list
+        // or a class that cannot match the next part, so scan time is linear.
+        id: 'ex-conversation-to-destination',
+        regex:
+          '\\b(?:send|transmit|post|forward|upload|paste|copy|append|include|submit|email|mail|relay|reply\\s+with)(?:s|ing)?\\s+(?:(?:the|this|our|my|your|all|every|entire|full|complete|whole|a|copy\\s+of|previous|prior|earlier)\\s+){0,5}(?:conversations?|chats?(?:\\s+(?:history|log))?|messages?|history|transcript|context|above)[\\s,:]+(?:(?:to|at|into|via)[\\s,:]+)?[<(\\[]?(?:(?:https?|ftp|sftp|wss?):\\/\\/|[\\w.+-]+@[\\w-]+(?:\\.[\\w-]+)+|(?:[a-z0-9-]+\\.)+(?:com|net|org|io|xyz|ru|cn|top|info|biz|site|online|club|tk|example|test)\\b)[^\\s<>"\x27)\\]]*',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'critical',
+        confidence: 0.4,
+        label: 'Instruction to send the conversation to an outside address',
+      },
+      {
         // The GitHub MCP shape (#250, Invariant Labs, May 2025): an instruction
         // to read private repository data and publish it to a public gist or
         // paste. Strict only (0.4). Security policies, advisories and training
