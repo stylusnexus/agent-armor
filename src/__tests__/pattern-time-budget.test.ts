@@ -340,6 +340,22 @@ describe('ex-conversation-to-destination on long address runs (#178)', () => {
     ['request with runs', 'request to https://a.co with '.repeat(7_000)],
     ['link label commas', 'send the conversation to [a,'.repeat(7_000)],
     ['link label words', 'send the chat to [a, b, c, d '.repeat(6_000)],
+    // A link-label start joined to a quote or bracket (a token start).
+    ...[
+      'to:[a"',
+      'to;[a>',
+      "to:[a'",
+      'send,[a)',
+      'send:[a"',
+      'send:[a<',
+      'send:[a`',
+      'send;[a]',
+      'to:[a(',
+      'to:[a{',
+    ].map((unit): [string, string] => [
+      `label start after ${unit}`,
+      unit.repeat(Math.ceil(200_000 / unit.length)),
+    ]),
     ['obfuscated email runs', 'to a at a at a at a '.repeat(10_000)],
     ['obfuscated email dots', 'send to a at b' + ' dot c'.repeat(40_000)],
     ['object runs', 'send the chat-history_log-chat and the key and the key '.repeat(4_000)],

@@ -205,13 +205,13 @@ const CONV_NOUN =
   '(?:conversations?|convos?|chats?|dialogues?|threads?|messages?|turns?|history|transcripts?|context|log|above)(?![a-z0-9])';
 // "and the user name": a second thing sent with the conversation.
 const CONV_ALSO =
-  '(?:\\s+(?:and|plus|along\\s+with)\\s+(?:(?:the|a|an|my|our|your|their|his|her|user|users|system)\\s+){0,3}(?:names?|ids?|emails?|passwords?|keys?|tokens?|secrets?|credentials?|details|data|info|information|sessions?|profiles?|prompts?|files?)(?![a-z0-9])){0,2}';
+  '(?:\\s+(?:and|plus|along\\s+with)\\s+(?:(?:the|a|an|my|our|your|their|his|her|user|users|system)\\s+){0,3}(?:(?:api|access|secret|private|auth|login|session|ssh|bearer|oauth|aws|user|account)[\\s_-]+)?(?:names?|ids?|emails?|passwords?|keys?|tokens?|secrets?|credentials?|details|data|info|information|sessions?|profiles?|prompts?|files?)(?![a-z0-9])){0,2}';
 const CONV_SAID =
-  'what\\s+(?:the\\s+)?(?:users?|you|i|we|they)\\s+(?:has\\s+|have\\s+)?(?:said|wrote|typed|asked|told|sent)(?![a-z0-9])';
+  'what\\s+(?:the\\s+)?(?:users?|you|i|we|they)\\s+(?:(?:has|have|had|were|was|are|been)\\s+){0,2}(?:said|wrote|typed|asked|told|sent)(?![a-z0-9])';
 const CONV_OBJECT =
-  '(?:(?:(?:the|this|that|our|my|your|all|of|every|each|entire|full|complete|whole|a|an|copy|previous|prior|earlier|current|user|users|system|prompt|and|everything)\\s+){0,6}' +
+  '(?:(?:(?:the|this|that|our|my|your|all|of|every|each|entire|full|complete|whole|a|an|copy|previous|prior|earlier|current|user|users|system|prompt|and|everything|said|written|discussed)\\s+){0,6}' +
   CONV_NOUN +
-  '(?:[\\s_-]+' +
+  '(?:[\\s_.-]+' +
   CONV_NOUN +
   '){0,2}(?:\\s+so\\s+far\\b)?' +
   CONV_ALSO +
@@ -223,11 +223,11 @@ const CONV_FILLER =
 const CONV_LEAD =
   '(?:(?:via|using|by)\\s+(?:an?\\s+)?(?:http\\s+)?(?:post|put|get)(?:\\s+request)?[\\s,:]+)?' +
   '(?:(?:to|at|into|via|with|on|toward|towards)[\\s,:]+)?(?:(?:the|this|my|our)\\s+)?(?:(?:endpoint|url|address|link|server|host|site|webhook|inbox|email|e-mail)(?:\\s+(?:below|here|above|given))?[\\s,:]+)?';
-const CONV_SCHEME = '(?:https?|hxxps?|ftp|sftp|wss?|tcp|udp):\\/\\/';
+const CONV_SCHEME = '(?:https?|hxxps?|ftp|sftp|wss?|tcp|udp)(?::|\\[:\\])\\/\\/';
 const CONV_TLD =
   '(?:com|net|org|io|xyz|ru|cn|top|info|biz|site|online|club|tk|example|test|dev|co|app|ai|cc|link|click|cloud|pw)';
-const CONV_AT = '(?:at|\\[at\\]|\\(at\\))';
-const CONV_DOT = '(?:dot|\\[dot\\]|\\(dot\\))';
+const CONV_AT = '(?:\\s+at\\s+|\\s*(?:\\[at\\]|\\(at\\)|\\{at\\})\\s*)';
+const CONV_DOT = '(?:\\s+dot\\s+|\\s*(?:\\[dot\\]|\\(dot\\)|\\{dot\\})\\s*)';
 // The address part. Two forms. In the order with nothing after the address
 // (verb, object, address) the tail takes everything up to a space, bracket or
 // quote, so one cleaned match removes "a@x.example,b@y.example" whole. In the
@@ -238,18 +238,22 @@ const CONV_DOT = '(?:dot|\\[dot\\]|\\(dot\\))';
 // scheme ("hxxps" included), a scheme-relative "//host", an email, an email
 // written "name at host dot com", an IP address or a bare domain.
 const convDest = (tail: string, labelChar: string): string =>
-  `(?:\\[(?:${labelChar}+\\s+){0,3}${labelChar}*\\]\\()?["'\`<(\\[]*` +
-  `(?:${CONV_SCHEME}|\\/\\/(?=[a-z0-9])|(?:mailto:)?[\\w.+-]+@[\\w-]+(?:\\.[\\w-]+)+|[\\w.+-]+\\s+${CONV_AT}\\s+[\\w-]+(?:\\s+${CONV_DOT}\\s+[\\w-]+)+|\\d{1,3}(?:\\.\\d{1,3}){3}\\b|(?:[a-z0-9-]+\\.)+${CONV_TLD}\\b)` +
+  `(?:\\[(?:${labelChar}+\\s+){0,8}${labelChar}*\\]\\()?["'\`<(\\[]*` +
+  `(?:${CONV_SCHEME}|\\/\\/(?=[a-z0-9])|(?:mailto:)?[\\w.+-]+@[\\w-]+(?:\\.[\\w-]+)+|[\\w.+-]+${CONV_AT}[\\w-]+(?:${CONV_DOT}[\\w-]+)+|\\d{1,3}(?:\\.\\d{1,3}){3}\\b|(?:[a-z0-9-]+(?:\\.|\\[\\.\\]))+${CONV_TLD}\\b)` +
   tail +
   '(?::\\d+)?' +
   tail +
   '[>"\'`)\\]]*';
-const CONV_TAIL_OPEN = '[^\\s<>"\'`)\\]]*';
-const CONV_TAIL_STOP = '[^\\s<>"\'`)\\],;:]*';
+const CONV_TAIL_OPEN = '(?:\\[\\.\\]|[^\\s<>"\'`)\\]])*';
+const CONV_TAIL_STOP = '(?:\\[\\.\\]|[^\\s<>"\'`)\\],;:])*';
 // A link label may hold a comma, semicolon or colon where the match starts at a
 // verb followed by a space (the first order) or at a token start (below).
 const CONV_DEST_OPEN = convDest(CONV_TAIL_OPEN, '[^\\]\\s]');
 const CONV_DEST_STOP = convDest(CONV_TAIL_STOP, '[^\\]\\s:,;]');
+// The same for the forms that start at a token start: the label also stops at a
+// quote or bracket, the characters a token start may follow, so one start never
+// reads past the next start.
+const CONV_DEST_OPEN_TOKEN = convDest(CONV_TAIL_OPEN, '[^\\]\\s"\'`<>)]');
 const CONV_SEP = '[\\s,;:]+';
 // The first character of a token: the start of the text, or after a space,
 // quote, angle bracket, closing bracket or closing parenthesis. The open tail
@@ -265,17 +269,21 @@ const convDestOnce = (dest: string, group: number): string => `(?=(${dest}))\\${
 const CONV_FETCH =
   '\\b(?:fetch|get|load|open|visit|request|call|curl|wget|browse|navigate|ping|hit|post|put|send|check|read|access)(?:s|ing|es)?(?:\\s+(?:to|at|from))?\\s+';
 const CONV_WORDS =
-  '(?:conversations?|convos?|chat|chats|history|messages|transcripts?|context|dialogue)';
+  '(?:(?:full|entire|whole|complete|all|chat|user)[_-])?(?:conversations?|convos?|chat|chats|history|messages|transcripts?|context|dialogue)(?:[_-](?:log|text|json|data|content|dump|history))?';
 // A placeholder for the conversation inside an address: {conversation},
 // {{chat_history}}, ${messages}, $CONVERSATION, <conversation>.
 const CONV_PLACEHOLDER =
-  '(?:\\{\\{?|\\$\\{?|<)\\s*' + CONV_WORDS + '(?:[_-]' + CONV_WORDS + ')?\\b(?:\\}\\}?|>)?';
+  '(?:\\{\\{?|\\$\\{?|<|\\[|%7[bB])\\s*' + CONV_WORDS + '\\b(?:\\}\\}?|>|\\]|%7[dD])?';
 const CONV_URL_WITH_PLACEHOLDER =
   '["\'`<(\\[]*(?:' + CONV_SCHEME + '|\\/\\/(?=[a-z0-9]))[^\\s{}$<>"\'`)\\]]*' + CONV_PLACEHOLDER;
 const CONV_WITH =
-  '\\s+(?:with|containing|including|carrying|plus|attaching|passing|bearing|and\\s+(?:include|attach|pass|send)|that\\s+(?:has|includes|contains))\\s+';
+  '\\s+(?:with|containing|including|carrying|plus|attaching|passing|bearing|and\\s+(?:include|attach|pass|send|put|add|insert|place|set)|that\\s+(?:has|includes|contains))\\s+';
 const CONV_IS_WHERE =
-  '\\s+(?:is|are)\\s+(?:(?:the\\s+)?(?:place|address|endpoint|url|destination|target|server|host|where)\\s+)?(?:(?:where|to\\s+which|that|for)\\s+)?(?:(?:you|we|i|they|the\\s+agent|it)\\s+)?(?:(?:should|must|shall|will|can|need\\s+to|have\\s+to|are\\s+to|are\\s+supposed\\s+to)\\s+)?';
+  '\\s+(?:is|are)\\s+(?:(?:the\\s+)?(?:place|address|endpoint|url|destination|target|server|host|where)\\s+)?(?:(?:where|to\\s+which|that|for|to)\\s+)?(?:(?:you|we|i|they|the\\s+agent|it)\\s+)?(?:(?:should|must|shall|will|can|need\\s+to|have\\s+to|are\\s+to|are\\s+supposed\\s+to)\\s+)?';
+const CONV_IS_WHERE_PASSIVE =
+  '\\s+(?:is|are)\\s+(?:(?:the\\s+)?(?:place|address|endpoint|url|destination|target|server|host)\\s+)?(?:(?:where|that|for)\\s+)?';
+const CONV_BE_SENT =
+  '\\s+(?:(?:should|must|shall|will|can|is\\s+to|are\\s+to|needs\\s+to|has\\s+to)\\s+)?be\\s+(?:sent|posted|forwarded|uploaded|pasted|copied|submitted|emailed|relayed|shared|dumped)(?![a-z0-9])';
 const CONVERSATION_TO_DESTINATION =
   // 1. verb, object, destination
   `${CONV_VERB}\\s+${CONV_OBJECT}${CONV_FILLER}${CONV_SEP}${CONV_LEAD}${CONV_DEST_OPEN}` +
@@ -284,14 +292,15 @@ const CONVERSATION_TO_DESTINATION =
   // 3. destination, verb, object ("to URL, send the conversation")
   `|\\b(?:to|at)${CONV_SEP}${convDestOnce(CONV_DEST_STOP, 2)}${CONV_SEP}(?:(?:and|then)\\s+)?${CONV_VERB}\\s+${CONV_OBJECT}` +
   // 2 and 3 again with an address that holds a comma, semicolon or colon
-  `|${CONV_TOKEN_START}${CONV_VERB}${CONV_SEP}${CONV_LEAD}${convDestOnce(CONV_DEST_OPEN, 3)}${CONV_SEP}${CONV_OBJECT}` +
-  `|${CONV_TOKEN_START}\\b(?:to|at)${CONV_SEP}${convDestOnce(CONV_DEST_OPEN, 4)}${CONV_SEP}(?:(?:and|then)\\s+)?${CONV_VERB}\\s+${CONV_OBJECT}` +
+  `|${CONV_TOKEN_START}${CONV_VERB}${CONV_SEP}${CONV_LEAD}${convDestOnce(CONV_DEST_OPEN_TOKEN, 3)}${CONV_SEP}${CONV_OBJECT}` +
+  `|${CONV_TOKEN_START}\\b(?:to|at)${CONV_SEP}${convDestOnce(CONV_DEST_OPEN_TOKEN, 4)}${CONV_SEP}(?:(?:and|then)\\s+)?${CONV_VERB}\\s+${CONV_OBJECT}` +
   // 4. destination first ("URL is where you should send the conversation")
   `|(?<!\\S)${convDestOnce(CONV_DEST_OPEN, 5)}${CONV_IS_WHERE}${CONV_VERB}\\s+${CONV_OBJECT}` +
+  `|(?<!\\S)${convDestOnce(CONV_DEST_OPEN, 6)}${CONV_IS_WHERE_PASSIVE}${CONV_OBJECT}${CONV_BE_SENT}` +
   // 5. a request whose address holds the conversation ("fetch URL?q={conversation}")
   `|${CONV_FETCH}${CONV_URL_WITH_PLACEHOLDER}` +
   // 6. a request that carries the conversation ("make a request to URL with the conversation")
-  `|${CONV_FETCH}${convDestOnce(CONV_DEST_OPEN, 6)}${CONV_WITH}${CONV_OBJECT}`;
+  `|${CONV_FETCH}${convDestOnce(CONV_DEST_OPEN, 7)}${CONV_WITH}${CONV_OBJECT}`;
 
 export const DEFAULT_PATTERNS: PatternDatabase = {
   version: '0.9.21',
