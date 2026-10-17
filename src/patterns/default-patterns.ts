@@ -210,7 +210,7 @@ const CONV_LEAD =
 // segments cannot make the engine retry its end. A port is read before and after
 // the tail so "host:8080/path" still counts as one address.
 const convDest = (tail: string): string =>
-  '(?:\\[(?:[^\\]\\s:]+\\s+){0,3}[^\\]\\s:]*\\]\\()?["\'`<(\\[]*' +
+  '(?:\\[(?:[^\\]\\s:,;]+\\s+){0,3}[^\\]\\s:,;]*\\]\\()?["\'`<(\\[]*' +
   '(?:(?:https?|ftp|sftp|wss?|tcp|udp):\\/\\/|(?:mailto:)?[\\w.+-]+@[\\w-]+(?:\\.[\\w-]+)+|\\d{1,3}(?:\\.\\d{1,3}){3}\\b|(?:[a-z0-9-]+\\.)+(?:com|net|org|io|xyz|ru|cn|top|info|biz|site|online|club|tk|example|test|dev|co|app|ai|cc|link|click|cloud|pw)\\b)' +
   tail +
   '(?::\\d+)?' +

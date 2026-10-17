@@ -304,6 +304,20 @@ describe('ex-conversation-to-destination on long address runs (#178)', () => {
     ['to colon bracket domain', 'to:[a.co:'.repeat(100_000)],
     ['to colon email', 'to:a@b.co:'.repeat(100_000)],
     ['to colon url', 'to:http://a.co:'.repeat(60_000)],
+    // ',' and ';' join the trigger to a markdown link start.
+    ...[
+      'to;[a;',
+      'at;[a;',
+      'send;[a;',
+      'send,[a,',
+      'to,[a.co,',
+      'send;[(a;',
+      'sends;[a;',
+      'post;[a;',
+    ].map((unit): [string, string] => [
+      `link start after ${unit}`,
+      unit.repeat(Math.ceil(200_000 / unit.length)),
+    ]),
     ['port runs', 'to https://a.co:80:'.repeat(50_000)],
     ['object then colon', 'send the chat to:'.repeat(60_000)],
   ];
