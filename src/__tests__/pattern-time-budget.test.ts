@@ -352,6 +352,13 @@ describe('ex-conversation-to-destination on long address runs (#178)', () => {
       'send;[a]',
       'to:[a(',
       'to:[a{',
+      // A defanged dot ends in "]", the character a token start follows.
+      'to://a[.]',
+      'send:a.co[.]',
+      '[.]to;a.co',
+      'send,hxxp[:]//a[.]co[.]',
+      'to;a[dot]co[.]',
+      'at:a(at)b(dot)co[.]',
     ].map((unit): [string, string] => [
       `label start after ${unit}`,
       unit.repeat(Math.ceil(200_000 / unit.length)),

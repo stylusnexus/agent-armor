@@ -245,6 +245,9 @@ const convDest = (tail: string, labelChar: string): string =>
   tail +
   '[>"\'`)\\]]*';
 const CONV_TAIL_OPEN = '(?:\\[\\.\\]|[^\\s<>"\'`)\\]])*';
+// The tail of the token-start forms never consumes a "]": "[.]" there would let a
+// start read past the "]" that begins the next token.
+const CONV_TAIL_TOKEN = '[^\\s<>"\'`)\\]]*';
 const CONV_TAIL_STOP = '(?:\\[\\.\\]|[^\\s<>"\'`)\\],;:])*';
 // A link label may hold a comma, semicolon or colon where the match starts at a
 // verb followed by a space (the first order) or at a token start (below).
@@ -253,7 +256,7 @@ const CONV_DEST_STOP = convDest(CONV_TAIL_STOP, '[^\\]\\s:,;]');
 // The same for the forms that start at a token start: the label also stops at a
 // quote or bracket, the characters a token start may follow, so one start never
 // reads past the next start.
-const CONV_DEST_OPEN_TOKEN = convDest(CONV_TAIL_OPEN, '[^\\]\\s"\'`<>)]');
+const CONV_DEST_OPEN_TOKEN = convDest(CONV_TAIL_TOKEN, '[^\\]\\s"\'`<>)]');
 const CONV_SEP = '[\\s,;:]+';
 // The first character of a token: the start of the text, or after a space,
 // quote, angle bracket, closing bracket or closing parenthesis. The open tail
