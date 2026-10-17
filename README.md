@@ -137,17 +137,17 @@ Versions 0.2.1 to 0.2.17 can report a very large input as clean ([GHSA-vr4h-8mw3
 
 ### Eval Suite
 
-280 curated samples (164 adversarial, 116 benign) covering all 18 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
+284 curated samples (164 adversarial, 120 benign) covering all 18 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
 
 | Strictness   | Detection Rate (regex) | False Positive Rate |
 | ------------ | ---------------------- | ------------------- |
 | Permissive   | 90.9%                  | 0.0%                |
 | **Balanced** | **94.5%**              | **0.0%**            |
-| Strict       | 98.2%                  | 0.0%                |
+| Strict       | 99.4%                  | 0.0%                |
 
 The 0.0% false-positive figure covers every benign sample except 11 **known false positives** (`acceptedFlagAt` in `scripts/eval/samples.ts`): honest text that quotes an attack or tells an assistant to run a command, such as a security paper quoting an exfiltration instruction. They flag at every strictness, are reported separately by `npm run eval`, and are excluded from the rate. The gate still fails on any other benign sample that flags.
 
-The eval suite includes 14 adversarial samples drawn from real-world incidents (2025-2026): MCP tool poisoning, RAG vector DB saturation, covert exfiltration via image proxies, supply chain prompt injection, memory poisoning, HITL dialog forgery, and the July 2026 OpenAI sandbox escape (credential reuse, C2 over public paste services, package-proxy egress, cross-environment persistence). Regex flags 6 of these at balanced and 12 at strict (5 and 11 when the trap type must also match what the sample expects); the remaining 8 at balanced are where the [ML classifier](#ml-classifier-optional) helps, measured 2026-10-08 at its 0.5 threshold: the first model (v1) flags 6 of the 8, the model in 0.1.7 all 8, and the model in 0.1.8 (run 7) 5 of 8, missing two that the regex catches at strict. The regex still misses two even at strict (rw-011 and rw-014), which the classifier flags. **These headline numbers move down whenever we add a blind spot we can't yet catch — that is deliberate.** `scripts/eval/thresholds.json` records every floor change and why. On the original 49 adversarial samples, regex detection is 100% at balanced strictness.
+The eval suite includes 14 adversarial samples drawn from real-world incidents (2025-2026): MCP tool poisoning, RAG vector DB saturation, covert exfiltration via image proxies, supply chain prompt injection, memory poisoning, HITL dialog forgery, and the July 2026 OpenAI sandbox escape (credential reuse, C2 over public paste services, package-proxy egress, cross-environment persistence). Regex flags 6 of these at balanced and all 14 at strict (5 and 13 when the trap type must also match what the sample expects); the remaining 8 at balanced are where the [ML classifier](#ml-classifier-optional) helps, measured 2026-10-08 at its 0.5 threshold: the first model (v1) flags 6 of the 8, the model in 0.1.7 all 8, and the model in 0.1.8 (run 7) 5 of 8, missing two that the regex catches at strict. Two of the 14 (rw-011, C2 over public paste services, and rw-014, persistence with logging suppression) are caught by regex at strict only, because honest advisories, tunnel docs and orchestration docs use the same words; the classifier flags both. **These headline numbers move down whenever we add a blind spot we can't yet catch — that is deliberate.** `scripts/eval/thresholds.json` records every floor change and why. On the original 49 adversarial samples, regex detection is 100% at balanced strictness.
 
 Sources: [WASP benchmark](https://arxiv.org/abs/2312.02119) (Evtimov et al.), [HackAPrompt](https://arxiv.org/abs/2311.16119) (Schulhoff et al., 2023), [Greshake et al. (2023)](https://arxiv.org/abs/2302.12173), the [DeepMind paper](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438), and incident reports from [Invariant Labs](https://invariantlabs.ai/blog), [Unit 42](https://unit42.paloaltonetworks.com), [Snyk Labs](https://labs.snyk.io), [Legit Security](https://www.legitsecurity.com/blog/camoleak), and [Socket Research](https://socket.dev/blog). Benign samples include security blog posts, legitimate HTML, CI/CD docs, MCP tool descriptions, agent interaction logs, and procurement policy emails.
 
@@ -250,12 +250,14 @@ At `permissive`, 6 of the original 49 adversarial samples go undetected because 
 
 A few detectors report at `strict` and nowhere else. In each case honest text uses the same words as the attack, and a regex cannot tell a description, a ban or a how-to from an order. Independent adversarial reviews kept finding honest text flagged at `balanced`, so these ship at `strict` rather than risk false positives on content people actually write. Scan content you did not write (issue text, tool descriptions, third-party packages) at `strict`.
 
-| What it catches                                                                                                                          | Why it is `strict` only                                                    | Issue |
-| ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ----- |
-| Package installs that skip the trusted registry: custom index flags, config commands, installs from a raw URL                            | Private registries, git installs and internal mirror guides look the same  | #29   |
-| "Install from a URL, then commit or push the result" (the Clinejection shape)                                                            | Release runbooks, contributor guides and bans use the same words           | #252  |
-| "Read private repository data and publish it to a public gist or paste"                                                                  | Security policies and advisories say the same thing                        | #250  |
-| Poisoned MCP tool descriptions: read a key file and pass it along, redirect a recipient, hidden `bcc`, marked blocks that conceal a step | XML system prompts, MCP setup guides and CRM email docs use the same words | #218  |
+| What it catches                                                                                                                                   | Why it is `strict` only                                                                       | Issue |
+| ------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ----- |
+| Package installs that skip the trusted registry: custom index flags, config commands, installs from a raw URL                                     | Private registries, git installs and internal mirror guides look the same                     | #29   |
+| "Install from a URL, then commit or push the result" (the Clinejection shape)                                                                     | Release runbooks, contributor guides and bans use the same words                              | #252  |
+| "Read private repository data and publish it to a public gist or paste"                                                                           | Security policies and advisories say the same thing                                           | #250  |
+| Poisoned MCP tool descriptions: read a key file and pass it along, redirect a recipient, hidden `bcc`, marked blocks that conceal a step          | XML system prompts, MCP setup guides and CRM email docs use the same words                    | #218  |
+| Links to public paste, request-capture, OAST, file-drop and tunnel services, and "fetch the address from a paste" or "send collected data to one" | Bug reports, ngrok quickstarts, webhook tutorials and advisories use the same hosts and verbs | #98   |
+| A reset trigger beside a re-acquire verb and concealment from the operator or the log, or beside a listener or channel to re-establish            | Kubernetes, CI and front-end docs say "when it restarts, re-register the listener"            | #99   |
 
 ## Scan Results
 
@@ -573,8 +575,8 @@ Phrase matching is English only, so an override written in another language isn'
 ### Behavioural Control (Shipped)
 
 - **JailbreakPatternDetector** — Pattern-matches against known jailbreak templates (DAN, role-play bypasses, educational framing exploits, developer mode claims), plus, at `strict` only, an instruction to install a package from a raw URL or git source and then commit, push, merge or publish the result to a protected branch (the Clinejection shape)
-- **ExfiltrationDetector** — Flags instructions that attempt to locate, encode, and transmit context data to external endpoints, and, at `strict` only, instructions to read private repository data and publish it to a public gist or paste (the GitHub MCP attack), and, at `strict` only, instructions hidden in an MCP tool description: read a key file and pass it along, redirect a recipient or add a bcc address, or a marked `<IMPORTANT>` block that conceals a step or names a secret file. At balanced these are not reported, because honest MCP setup guides, XML system prompts and CRM email docs use the same words; scan tool descriptions you did not write at `strict` It also catches markdown images that leak data through the image URL: inline `![](url?data=...)` and reference-style `![alt][ref]` / `![ref][]` / `![ref]` with a `[ref]: url?data=...` definition before or after the image, at any distance, following CommonMark's rules for labels (nested and escaped brackets, line breaks, `\r` line endings, Unicode case folding).
-- **SubAgentSpawningDetector** — Detects instructions that try to instantiate new agents, escalate tool permissions, or inject pipeline steps
+- **ExfiltrationDetector** — Flags instructions that attempt to locate, encode, and transmit context data to external endpoints, and, at `strict` only, instructions to read private repository data and publish it to a public gist or paste (the GitHub MCP attack), and, at `strict` only, instructions hidden in an MCP tool description: read a key file and pass it along, redirect a recipient or add a bcc address, or a marked `<IMPORTANT>` block that conceals a step or names a secret file. At balanced these are not reported, because honest MCP setup guides, XML system prompts and CRM email docs use the same words; scan tool descriptions you did not write at `strict`. At `strict` only, it also flags links to public drop services (paste, request-capture, OAST, file-drop and tunnel hosts such as `pastebin.com`, `webhook.site` and `transfer.sh`) and the C2 shapes built on them: fetching the destination address from one, sending collected data to one, or reaching one after an environment reset (the July 2026 sandbox escape, #98). Placeholder forms such as `https://webhook.site/<your-id>` are excluded; honest bug reports and tunnel docs still flag at `strict`. It also catches markdown images that leak data through the image URL: inline `![](url?data=...)` and reference-style `![alt][ref]` / `![ref][]` / `![ref]` with a `[ref]: url?data=...` definition before or after the image, at any distance, following CommonMark's rules for labels (nested and escaped brackets, line breaks, `\r` line endings, Unicode case folding).
+- **SubAgentSpawningDetector** — Detects instructions that try to instantiate new agents, escalate tool permissions, or inject pipeline steps, plus, at `strict` only, an instruction to re-establish a listener, relay or channel after an environment reset (#99)
 
 ### Transport Integrity (Partial)
 
@@ -662,7 +664,7 @@ armor.loadPatterns(latestPatterns);
 armor.loadPatterns(myCustomPatterns);
 
 // Check current pattern version
-console.log(armor.patternVersion); // '0.9.18'
+console.log(armor.patternVersion); // '0.9.19'
 ```
 
 ## Versioning
@@ -726,7 +728,7 @@ Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy, plus t
 - **Transport Integrity** (4 detectors): credential exposure, dependency substitution, tool-call tampering and response anomaly screening
 - **Pre-execution action gate** — deterministic allowlist admissibility check (`checkAction()`)
 - ML classifier (DeBERTa-v3-small, ONNX) as optional companion package
-- Pattern database v0.9.18 with 128 pattern entries
+- Pattern database v0.9.19 with 139 pattern entries
 
 ### In Progress
 
