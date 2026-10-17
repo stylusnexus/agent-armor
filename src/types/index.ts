@@ -122,7 +122,10 @@ export interface Threat {
 
 /** The result of scanning one piece of content for agent traps. */
 export interface ScanResult {
-  /** Whether any threats were found */
+  /**
+   * True only when every detector ran and found nothing. It is `false` when a
+   * threat was found, and also when a detector threw (see `stats.degraded`).
+   */
   clean: boolean;
   /** All detected threats, sorted by severity desc */
   threats: Threat[];
@@ -132,7 +135,7 @@ export interface ScanResult {
   durationMs: number;
   /**
    * Single roll-up risk assessment derived from the dominant threat. `none`
-   * when `clean` is true. Lets integrators decide with one comparison
+   * when no threat was found. Lets integrators decide with one comparison
    * (`if (result.riskLevel === 'critical') block()`).
    */
   riskLevel: RiskLevel;
@@ -146,6 +149,15 @@ export interface ScanResult {
      * {@link DetectorResult.skipped}). Present only when at least one did.
      */
     detectorsSkipped?: Array<{ detectorId: string; reason: string }>;
+    /**
+     * True when at least one detector threw during this scan, so the content
+     * was not fully checked. Present only then. `clean` is `false` on a
+     * degraded scan even when no threat was found, and `riskLevel` still
+     * reflects only the threats that were found.
+     */
+    degraded?: boolean;
+    /** Ids of the detectors that threw. Present only when `degraded` is true. */
+    failedDetectors?: string[];
   };
 }
 
@@ -199,6 +211,10 @@ export interface SessionScanResult {
     threatsFound: number;
     crossTurnThreatsFound: number;
     highestSeverity: Severity | null;
+    /** True when any detector threw on any turn or window. `clean` is then `false`. */
+    degraded?: boolean;
+    /** Ids of the detectors that threw. Present only when `degraded` is true. */
+    failedDetectors?: string[];
   };
 }
 
@@ -458,6 +474,13 @@ export interface AuditRecord {
   exception?: { reason: string; actor: string };
   /** Scan duration in ms. */
   durationMs: number;
+  /**
+   * Present and true when a detector threw during the scan. The decision is
+   * then at least `block` (unless an exception was recorded), never `allow`.
+   */
+  degraded?: boolean;
+  /** Ids of the detectors that threw. Present only when `degraded` is true. */
+  failedDetectors?: string[];
 }
 
 /**

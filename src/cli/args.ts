@@ -12,6 +12,7 @@ export interface ScanCliOptions {
   format: OutputFormat;
   failOn: RiskLevel;
   ml: boolean;
+  requireMl?: boolean;
   include?: string[];
 }
 
@@ -28,13 +29,14 @@ function readFlagValue(argv: string[], flag: string): string | undefined {
   return value;
 }
 
-/** Parses `scan <path...> [--strictness] [--format] [--fail-on] [--ml] [--include]`. */
+/** Parses `scan <path...> [--strictness] [--format] [--fail-on] [--ml] [--require-ml] [--include]`. */
 export function parseScanArgs(argv: string[]): ScanCliOptions {
   const strictnessRaw = readFlagValue(argv, '--strictness');
   const formatRaw = readFlagValue(argv, '--format');
   const failOnRaw = readFlagValue(argv, '--fail-on');
   const includeRaw = readFlagValue(argv, '--include');
-  const ml = argv.includes('--ml');
+  const requireMl = argv.includes('--require-ml');
+  const ml = argv.includes('--ml') || requireMl;
 
   const strictness = (strictnessRaw ?? 'balanced') as Strictness;
   if (!STRICTNESS_VALUES.includes(strictness)) {
@@ -67,6 +69,7 @@ export function parseScanArgs(argv: string[]): ScanCliOptions {
     '--include',
     includeRaw,
     '--ml',
+    '--require-ml',
   ]);
   const paths = argv.filter((a) => !flagsAndValues.has(a));
 
@@ -80,6 +83,7 @@ export function parseScanArgs(argv: string[]): ScanCliOptions {
     format,
     failOn,
     ml,
+    requireMl,
     include: includeRaw ? includeRaw.split(',') : undefined,
   };
 }
