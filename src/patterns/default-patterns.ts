@@ -190,7 +190,7 @@ function toolCallEntries(): PatternEntry[] {
 const CONV_VERB =
   '\\b(?:send|transmit|post|forward|upload|paste|copy|append|include|submit|email|mail|relay|exfiltrate|leak|share|dump|reply\\s+with)(?:s|ing|es)?';
 const CONV_NOUN =
-  '(?:conversations?|convos?|chats?|dialogues?|threads?|messages?|history|transcripts?|context|log|above)\\b';
+  '(?:conversations?|convos?|chats?|dialogues?|threads?|messages?|turns?|history|transcripts?|context|log|above)\\b';
 const CONV_OBJECT =
   '(?:(?:the|this|that|our|my|your|all|of|every|each|entire|full|complete|whole|a|an|copy|previous|prior|earlier|current|user|users|system|prompt|and)\\s+){0,6}' +
   CONV_NOUN +
@@ -200,23 +200,38 @@ const CONV_OBJECT =
 const CONV_FILLER =
   '(?:[\\s,]+(?:please|now|immediately|silently|quietly|secretly|also|then|over|out|across|\\((?:all|of|it|them|everything|the|data)(?:\\s+(?:all|of|it|them|everything|the|data)){0,3}\\)))*';
 const CONV_LEAD =
+  '(?:(?:via|using|by)\\s+(?:an?\\s+)?(?:http\\s+)?(?:post|put|get)(?:\\s+request)?[\\s,:]+)?' +
   '(?:(?:to|at|into|via|with|on|toward|towards)[\\s,:]+)?(?:(?:the|this|my|our)\\s+)?(?:(?:endpoint|url|address|link|server|host|site|webhook|inbox|email|e-mail)(?:\\s+(?:below|here|above|given))?[\\s,:]+)?';
-const CONV_DEST =
-  '(?:\\[(?:[^\\]\\s]+\\s+){0,3}[^\\]\\s]*\\]\\()?["\'`<(\\[]*(?:(?:https?|ftp|sftp|wss?|tcp|udp):\\/\\/|(?:mailto:)?[\\w.+-]+@[\\w-]+(?:\\.[\\w-]+)+|\\d{1,3}(?:\\.\\d{1,3}){3}\\b|(?:[a-z0-9-]+\\.)+(?:com|net|org|io|xyz|ru|cn|top|info|biz|site|online|club|tk|example|test|dev|co|app|ai|cc|link|click|cloud|pw)\\b)[^\\s<>"\'`)\\],;]*[>"\'`)\\]]*';
+// The address part. Two forms. In the order with nothing after the address
+// (verb, object, address) the tail takes everything up to a space, bracket or
+// quote, so one cleaned match removes "a@x.example,b@y.example" whole. In the
+// two orders with text after it, the tail also stops at a comma, semicolon or
+// colon, and the address is matched once (below), so a run of colons or
+// segments cannot make the engine retry its end. A port is read before and after
+// the tail so "host:8080/path" still counts as one address.
+const convDest = (tail: string): string =>
+  '(?:\\[(?:[^\\]\\s:]+\\s+){0,3}[^\\]\\s:]*\\]\\()?["\'`<(\\[]*' +
+  '(?:(?:https?|ftp|sftp|wss?|tcp|udp):\\/\\/|(?:mailto:)?[\\w.+-]+@[\\w-]+(?:\\.[\\w-]+)+|\\d{1,3}(?:\\.\\d{1,3}){3}\\b|(?:[a-z0-9-]+\\.)+(?:com|net|org|io|xyz|ru|cn|top|info|biz|site|online|club|tk|example|test|dev|co|app|ai|cc|link|click|cloud|pw)\\b)' +
+  tail +
+  '(?::\\d+)?' +
+  tail +
+  '[>"\'`)\\]]*';
+const CONV_DEST_OPEN = convDest('[^\\s<>"\'`)\\]]*');
+const CONV_DEST_STOP = convDest('[^\\s<>"\'`)\\],;:]*');
 const CONV_SEP = '[\\s,;:]+';
-// The address part runs once and is never re-split: a lookahead captures it and
-// a backreference consumes it. Otherwise a long run of domain or email segments
-// lets the engine retry the end of the address at every segment (quadratic) when
-// something must follow it. The address stops at a space, a closing bracket or
-// quote, a comma or a semicolon, so the first match is the only useful one.
-const convDestOnce = (group: number): string => `(?=(${CONV_DEST}))\\${group}`;
+// In the two orders with text after the address, it runs once and is never
+// re-split: a lookahead captures it and a backreference consumes it (groups 1
+// and 2; the first order has no capture group). Otherwise a long run of domain
+// or email segments, or of colons, lets the engine retry the end of the address
+// at every segment (quadratic) when something must follow it.
+const convDestOnce = (group: number): string => `(?=(${CONV_DEST_STOP}))\\${group}`;
 const CONVERSATION_TO_DESTINATION =
   // verb, object, destination
-  `${CONV_VERB}\\s+${CONV_OBJECT}${CONV_FILLER}${CONV_SEP}${CONV_LEAD}${convDestOnce(1)}` +
+  `${CONV_VERB}\\s+${CONV_OBJECT}${CONV_FILLER}${CONV_SEP}${CONV_LEAD}${CONV_DEST_OPEN}` +
   // verb, destination, object ("send to URL the conversation")
-  `|${CONV_VERB}${CONV_SEP}${CONV_LEAD}${convDestOnce(2)}${CONV_SEP}${CONV_OBJECT}` +
+  `|${CONV_VERB}${CONV_SEP}${CONV_LEAD}${convDestOnce(1)}${CONV_SEP}${CONV_OBJECT}` +
   // destination, verb, object ("to URL, send the conversation")
-  `|\\b(?:to|at)${CONV_SEP}${convDestOnce(3)}${CONV_SEP}(?:(?:and|then)\\s+)?${CONV_VERB}\\s+${CONV_OBJECT}`;
+  `|\\b(?:to|at)${CONV_SEP}${convDestOnce(2)}${CONV_SEP}(?:(?:and|then)\\s+)?${CONV_VERB}\\s+${CONV_OBJECT}`;
 
 export const DEFAULT_PATTERNS: PatternDatabase = {
   version: '0.9.20',

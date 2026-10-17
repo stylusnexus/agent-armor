@@ -297,6 +297,15 @@ describe('ex-conversation-to-destination on long address runs (#178)', () => {
     ['trigger then whitespace', 'send the conversation to' + ' '.repeat(200_000)],
     ['address then whitespace', 'to https://x.co/c' + ' '.repeat(200_000)],
     ['repeated triggers', 'to https://x.co/c, send the '.repeat(8_000)],
+    // ':' joins the trigger to the address and also sits inside the address.
+    ['to colon domain', 'to:a.co:'.repeat(125_000)],
+    ['send colon domain', 'send:a.co:'.repeat(100_000)],
+    ['send colon bracket', 'send:[a:'.repeat(125_000)],
+    ['to colon bracket domain', 'to:[a.co:'.repeat(100_000)],
+    ['to colon email', 'to:a@b.co:'.repeat(100_000)],
+    ['to colon url', 'to:http://a.co:'.repeat(60_000)],
+    ['port runs', 'to https://a.co:80:'.repeat(50_000)],
+    ['object then colon', 'send the chat to:'.repeat(60_000)],
   ];
   it('takes no more than 400 ms on any input', { timeout: 120_000 }, () => {
     const entry = Object.values(DEFAULT_PATTERNS.detectors)
