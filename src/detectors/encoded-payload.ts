@@ -149,35 +149,73 @@ const UTF16_WINDOW = 128;
 /** A UTF-16 decode must hold a stretch of plain text this long, or it is random bytes. */
 const UTF16_MIN_STRETCH = 24;
 
+interface Utf16Range {
+  from: number;
+  to: number;
+  bigEndian: boolean;
+}
+
+/** Which way a window of bytes reads as ASCII written as UTF-16: a NUL in most of one parity and almost none in the other. */
+function windowOrder(bytes: Uint8Array, off: number, w: number): boolean | null {
+  let even = 0;
+  let odd = 0;
+  for (let i = off; i < off + w; i += 2) {
+    if (bytes[i] === 0) even++;
+    if (bytes[i + 1] === 0) odd++;
+  }
+  const pairs = w / 2;
+  if (odd >= pairs * 0.6 && even <= pairs * 0.05) return false;
+  if (even >= pairs * 0.6 && odd <= pairs * 0.05) return true;
+  return null;
+}
+
 /**
- * Whether the bytes are UTF-16: `false` little-endian, `true` big-endian,
- * `null` neither. A byte order mark counts only when `allowBom` (the bytes are
- * the start of an encoded run: a retry from the middle of a run can land on
- * FF FE by chance). Otherwise some window of the bytes must be ASCII written
- * as UTF-16, a NUL in most of the odd (or even) places and almost none in the
- * others, as PowerShell's -EncodedCommand writes it. Windows, not the start,
- * so non-ASCII text ahead of the payload does not hide it.
+ * The parts of `bytes` to read as UTF-16, or null for none.
+ *
+ *  - A byte order mark counts only when `allowBom` (the bytes are the start of
+ *    an encoded run: a retry from the middle of a run can land on FF FE by
+ *    chance), and then the whole buffer is UTF-16.
+ *  - Otherwise windows are tested for ASCII written as UTF-16, as PowerShell's
+ *    -EncodedCommand writes it. If most windows pass, the whole buffer is
+ *    UTF-16. If only some do (non-ASCII text ahead of the payload, or a font
+ *    whose name table holds UTF-16 strings among binary), only those windows
+ *    and the window on each side are read, so binary read as UTF-16 does not
+ *    make findings of its own.
  */
-function utf16Order(bytes: Uint8Array, allowBom: boolean): boolean | null {
+function utf16Ranges(bytes: Uint8Array, allowBom: boolean): Utf16Range[] | null {
   const n = bytes.length;
   if (allowBom && n >= 2) {
-    if (bytes[0] === 0xff && bytes[1] === 0xfe) return false;
-    if (bytes[0] === 0xfe && bytes[1] === 0xff) return true;
+    if (bytes[0] === 0xff && bytes[1] === 0xfe) {
+      return [{ from: 2, to: 2 + ((n - 2) & ~1), bigEndian: false }];
+    }
+    if (bytes[0] === 0xfe && bytes[1] === 0xff) {
+      return [{ from: 2, to: 2 + ((n - 2) & ~1), bigEndian: true }];
+    }
   }
   const w = Math.min(UTF16_WINDOW, n & ~1);
   if (w < 16) return null;
-  for (let off = 0; off + w <= n; off += w / 2) {
-    let even = 0;
-    let odd = 0;
-    for (let i = off; i < off + w; i += 2) {
-      if (bytes[i] === 0) even++;
-      if (bytes[i + 1] === 0) odd++;
-    }
-    const pairs = w / 2;
-    if (odd >= pairs * 0.6 && even <= pairs * 0.05) return false;
-    if (even >= pairs * 0.6 && odd <= pairs * 0.05) return true;
+  const step = w / 2;
+  const hits: Array<{ off: number; bigEndian: boolean }> = [];
+  let windows = 0;
+  for (let off = 0; off + w <= n; off += step) {
+    windows++;
+    const order = windowOrder(bytes, off, w);
+    if (order !== null) hits.push({ off, bigEndian: order });
   }
-  return null;
+  if (hits.length === 0) return null;
+  const big = hits.filter((h) => h.bigEndian).length;
+  if (hits.length * 2 >= windows && (big === 0 || big === hits.length)) {
+    return [{ from: 0, to: n & ~1, bigEndian: big > 0 }];
+  }
+  const ranges: Utf16Range[] = [];
+  for (const h of hits) {
+    const from = Math.max(0, h.off - w);
+    const to = Math.min(n & ~1, h.off + 2 * w);
+    const last = ranges[ranges.length - 1];
+    if (last && last.bigEndian === h.bigEndian && from <= last.to) last.to = Math.max(last.to, to);
+    else ranges.push({ from, to, bigEndian: h.bigEndian });
+  }
+  return ranges;
 }
 
 /** A stretch of plain ASCII text long enough that the decode is not random bytes read as UTF-16. */
@@ -192,33 +230,40 @@ function hasTextStretch(text: string): boolean {
   return false;
 }
 
-/** Format and bidi controls, which a decode of random bytes produces and a reader does not see. */
+/** Format and bidi controls, which a decode of binary bytes produces and a reader does not see. */
 const FORMAT_CHARS = /[\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff\ufff0-\uffff]/g;
 
+function readUtf16(bytes: Uint8Array, range: Utf16Range): string {
+  let source = bytes.subarray(range.from, range.to);
+  if (range.bigEndian) {
+    const swapped = new Uint8Array(source.length);
+    for (let i = 0; i < source.length; i += 2) {
+      swapped[i] = source[i + 1];
+      swapped[i + 1] = source[i];
+    }
+    source = swapped;
+  }
+  return UTF16LE.decode(source);
+}
+
 /**
- * UTF-8, or UTF-16 when the bytes are UTF-16 and the decode reads as text.
+ * UTF-8, or UTF-16 where the bytes are UTF-16 and the decode reads as text.
+ * Format and bidi controls stay in a whole-buffer decode, where they are what
+ * a Trojan Source payload is made of, and are dropped from a partial one,
+ * where they are mostly binary read as UTF-16. A decode with no stretch of
+ * plain text is random bytes and is not used.
  */
 function decodeBytes(bytes: Uint8Array, allowBom: boolean): string {
-  const bigEndian = utf16Order(bytes, allowBom);
-  if (bigEndian !== null) {
-    const b0 = bytes[0];
-    const b1 = bytes[1];
-    const from =
-      allowBom &&
-      ((!bigEndian && b0 === 0xff && b1 === 0xfe) || (bigEndian && b0 === 0xfe && b1 === 0xff))
-        ? 2
-        : 0;
-    const body = bytes.subarray(from, from + ((bytes.length - from) & ~1));
-    let source = body;
-    if (bigEndian) {
-      source = new Uint8Array(body.length);
-      for (let i = 0; i < body.length; i += 2) {
-        source[i] = body[i + 1];
-        source[i + 1] = body[i];
-      }
+  const ranges = utf16Ranges(bytes, allowBom);
+  if (ranges !== null) {
+    const whole = ranges.length === 1 && ranges[0].to - ranges[0].from >= bytes.length - 2;
+    const parts: string[] = [];
+    for (const range of ranges) {
+      const text = readUtf16(bytes, range);
+      if (!hasTextStretch(text.replace(FORMAT_CHARS, ''))) continue;
+      parts.push(whole ? text : text.replace(FORMAT_CHARS, ''));
     }
-    const text = UTF16LE.decode(source).replace(FORMAT_CHARS, '');
-    if (hasTextStretch(text)) return text;
+    if (parts.length > 0) return parts.join('\n');
   }
   return UTF8.decode(bytes);
 }

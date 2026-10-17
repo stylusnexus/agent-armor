@@ -197,6 +197,19 @@ describe('encoded-payload: honest text stays clean at every level', () => {
       }
       return '';
     })(),
+    'a font whose name table holds UTF-16BE strings among 00 FE pairs': (() => {
+      const names = Buffer.from(
+        'DejaVu Serif Bold Condensed, Copyright Bitstream Inc. All Rights Reserved.',
+        'utf16le',
+      ).swap16();
+      const filler = Buffer.alloc(8_000);
+      for (let i = 0; i < filler.length; i += 2) {
+        filler[i] = 0;
+        filler[i + 1] = 0xfe;
+      }
+      const font = Buffer.concat([bytes(900, 11), names, filler, bytes(900, 12), names, filler]);
+      return `@font-face{src:url(data:font/ttf;base64,${font.toString('base64')})}`;
+    })(),
     'a UUID': 'id: 550e8400-e29b-41d4-a716-446655440000',
     'a hex colour': 'color: #ff8800; background: #1a2b3c;',
     'a trace id': 'traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
@@ -659,6 +672,16 @@ describe('encoded-payload: forms that used to scan clean', () => {
       expect(found(text).length, name).toBeGreaterThan(0);
     });
   }
+});
+
+describe('encoded-payload: UTF-16 with format characters', () => {
+  it('keeps the bidi controls of a whole UTF-16 decode, so they are found', () => {
+    const text =
+      'Here is the weather report for today.\u202e\u2066 hidden words \u2069 and more text.';
+    const encoded = Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, 'utf16le')]);
+    const plain = AgentArmor.regexOnly().scanSync(text).threats.length > 0;
+    expect(found(`x ${encoded.toString('base64')}`).length > 0).toBe(plain);
+  });
 });
 
 describe('encoded-payload: wording and failures', () => {
