@@ -667,6 +667,16 @@ armor.loadPatterns(myCustomPatterns);
 console.log(armor.patternVersion); // '0.9.19'
 ```
 
+`fetchLatestPatterns` checks the file before it hands it back, and throws a `PatternValidationError` (with a `problems` list) if anything fails. Nothing changes in a running `armor` until you call `loadPatterns` with the result, so a rejected file leaves the current patterns in place.
+
+- The URL must be `https`. Plain `http` is allowed for `localhost`, `127.0.0.1` and `[::1]` only. Redirects are followed up to three times and must stay on `https`.
+- The body is capped at 2 MiB, and reading stops at the cap.
+- Every field is checked, every pattern needs the `g` flag, and a regex that can match empty text is rejected.
+- Every detector the package ships must be present and keep at least one pattern that reports at `balanced`, so a file cannot switch detection off.
+- Each regex that is not identical to a shipped one runs against 20,000-character probes in a worker thread. One that takes over 200 ms, or does not finish in 10 seconds, is rejected. This catches exponential and clearly quadratic regexes. It cannot prove a regex is linear, so review new patterns yourself.
+
+`loadPatterns` builds the new detectors first and swaps them in only if all of them build, so a regex that fails to compile leaves the previous patterns active. It does not run the checks above; call `validatePatternDatabase(db)` (exported) on a database from any other source first. Signatures are not part of this check.
+
 ## Versioning
 
 Releases are cut by [release-please](https://github.com/googleapis/release-please) from conventional commit titles, and each package has its own version: `@stylusnexus/agentarmor` (the scanner) and `@stylusnexus/agentarmor-ml` (the optional classifier).
