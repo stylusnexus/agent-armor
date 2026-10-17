@@ -163,6 +163,10 @@ const TRIGGER_PHRASES = [
   'send the collected data to',
   'https://user@',
   '//pastebin.com/',
+  // #178: each order of ex-conversation-to-destination.
+  'send the conversation to',
+  'send to',
+  'to https://x.co/c, send the',
 ];
 const WHITESPACE_RUNS = ['\n', '\n ', '\t\n', '\r\n'];
 
@@ -274,6 +278,62 @@ describe('persistence and drop-service patterns on dense signals (#99, #98)', ()
         const ms = performance.now() - start;
         if (ms > 400) slow.push(`${entry.id}: ${Math.round(ms)}ms on ${name}`);
       }
+    }
+    expect(slow).toEqual([]);
+  });
+});
+
+describe('ex-conversation-to-destination on long address runs (#178)', () => {
+  // A run of domain or email segments with nothing after the address: the
+  // reversed word orders need a verb after it, which made the engine retry the
+  // end of the address at every segment (25 s at 200,000 characters).
+  const INPUTS: [string, string][] = [
+    ['email segments after to', 'to a@' + 'b.'.repeat(100_000)],
+    ['email segments after send', 'send a@' + 'b.'.repeat(100_000)],
+    ['domain segments after send', 'send ' + 'co.'.repeat(66_666)],
+    ['domain segments after to', 'to ' + 'co.'.repeat(66_666)],
+    ['dotted domain then verb', 'to ' + 'co.'.repeat(66_666) + ' send'],
+    ['object then domain segments', 'send the conversation to ' + 'co.'.repeat(66_666)],
+    ['trigger then whitespace', 'send the conversation to' + ' '.repeat(200_000)],
+    ['address then whitespace', 'to https://x.co/c' + ' '.repeat(200_000)],
+    ['repeated triggers', 'to https://x.co/c, send the '.repeat(8_000)],
+    // ':' joins the trigger to the address and also sits inside the address.
+    ['to colon domain', 'to:a.co:'.repeat(125_000)],
+    ['send colon domain', 'send:a.co:'.repeat(100_000)],
+    ['send colon bracket', 'send:[a:'.repeat(125_000)],
+    ['to colon bracket domain', 'to:[a.co:'.repeat(100_000)],
+    ['to colon email', 'to:a@b.co:'.repeat(100_000)],
+    ['to colon url', 'to:http://a.co:'.repeat(60_000)],
+    // ',' and ';' join the trigger to a markdown link start.
+    ...[
+      'to;[a;',
+      'at;[a;',
+      'send;[a;',
+      'send,[a,',
+      'to,[a.co,',
+      'send;[(a;',
+      'sends;[a;',
+      'post;[a;',
+    ].map((unit): [string, string] => [
+      `link start after ${unit}`,
+      unit.repeat(Math.ceil(200_000 / unit.length)),
+    ]),
+    ['port runs', 'to https://a.co:80:'.repeat(50_000)],
+    ['object then colon', 'send the chat to:'.repeat(60_000)],
+  ];
+  it('takes no more than 400 ms on any input', { timeout: 120_000 }, () => {
+    const entry = Object.values(DEFAULT_PATTERNS.detectors)
+      .flat()
+      .find((e) => e.id === 'ex-conversation-to-destination')!;
+    const re = new RegExp(entry.regex, entry.flags);
+    const slow: string[] = [];
+    for (const [name, input] of INPUTS) {
+      const start = performance.now();
+      re.lastIndex = 0;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(input)) !== null) if (m[0].length === 0) re.lastIndex++;
+      const ms = performance.now() - start;
+      if (ms > 400) slow.push(`${name}: ${Math.round(ms)}ms`);
     }
     expect(slow).toEqual([]);
   });
