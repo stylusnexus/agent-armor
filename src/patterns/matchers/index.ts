@@ -1,7 +1,6 @@
 import type { PatternMatcher } from './types';
 import { HIDDEN_HTML_MATCHERS } from './hidden-html';
 import { AGENT_DIRECTED_COMMAND_MATCHERS } from './agent-directed-command';
-import { DOWNLOAD_EXEC_MATCHER } from './download-exec';
 import {
   BIDI_OVERRIDE_MATCHER,
   DAN_MATCHER,
@@ -45,7 +44,6 @@ export const MATCHERS: PatternMatcher[] = [
   OPENAI_KEY_MATCHER,
   ANTHROPIC_KEY_MATCHER,
   JWT_MATCHER,
-  DOWNLOAD_EXEC_MATCHER,
   ...HIDDEN_HTML_MATCHERS,
   ...AGENT_DIRECTED_COMMAND_MATCHERS,
 ];

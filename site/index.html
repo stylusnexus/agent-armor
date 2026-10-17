@@ -405,12 +405,12 @@
           <div class="threat-card">
             <span class="status status-shipped">Shipped</span>
             <h3>Tool-Call Tampering</h3>
-            <p>A download piped into a shell, a shell run on a downloaded script, or decoded text run by a shell, inside the command of a tool call. The same line as plain text reports at strict only</p>
+            <p>A download piped into a shell, a shell run on a downloaded script, or decoded text run by a shell, inside the command of a tool call. The same line as plain text is not flagged: install guides write it too</p>
           </div>
           <div class="threat-card">
             <span class="status status-shipped">Shipped</span>
             <h3>Response Anomaly</h3>
-            <p>Scores commands and tool call arguments by a download that is run, secrets sent out, layered encoding, credentials in arguments and string entropy. One signal reports at strict, two or more at balanced</p>
+            <p>Scores commands and tool call arguments by a download that is run (inside a tool call), secrets sent out, layered encoding, credentials in arguments and string entropy. One signal reports at strict, two or more at balanced</p>
           </div>
           <div class="threat-card">
             <span class="status status-shipped">Shipped</span>

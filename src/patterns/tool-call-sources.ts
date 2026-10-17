@@ -1,15 +1,17 @@
 /**
- * Regex sources for the tool-call-tampering patterns (#27). They live here so
- * `default-patterns.ts` and the hand-written matcher for the download-and-run
- * regex share one copy of each source string.
+ * Regex sources for the tool-call-tampering patterns (#27).
  *
  * Two layers:
- *  - Bare shapes (a download piped or chained into a shell, a subshell that
- *    runs a download, base64 piped into a shell). Installation docs use the
- *    same words, so these ship at `strict` only.
- *  - The same shapes inside the value of a command key of a tool call
- *    (`"command": "..."`), which no install guide has. These ship at
- *    `balanced`.
+ *  - Bare shapes that no install guide writes (base64 piped into a shell,
+ *    Python executing decoded text). They ship at `strict` only, because a
+ *    security post can quote them.
+ *  - Every shape inside the value of a command key of a tool call
+ *    (`"command": "..."`): a download piped or chained into a shell, a shell
+ *    run on a downloaded script, and the two above. No install guide has
+ *    that. These ship at `balanced`.
+ *
+ * A download piped into a shell as plain text is not flagged at all. An
+ * install guide and an attack read the same there.
  */
 
 const SHELL_WORD = String.raw`(?:ba|z|da)?sh`;
@@ -21,17 +23,6 @@ const PIPE_TARGET = String.raw`(?:sudo\s+)?(?:${SHELL_WORD}\b|python[23]?\s+-(?=
 const CHAIN_TARGET = String.raw`(?:chmod\s+(?:\+x|[0-7]{3,4})\b|(?:sudo\s+)?${SHELL_WORD}\b)`;
 
 const DOWNLOADER = String.raw`\b(?:curl|wget)\b`;
-
-/**
- * `curl ... | sh` and `wget ... ; chmod +x`. The middle runs up to the first
- * `|`, `;`, `&&` or line break, so the matcher in
- * `matchers/download-exec.ts` can find the same matches in linear time.
- */
-export const DOWNLOAD_EXEC = String.raw`${DOWNLOADER}(?:[^|;&\n]|&(?!&))*(?:\|\s*${PIPE_TARGET}|(?:;|&&)\s*${CHAIN_TARGET})`;
-
-/** The parts of DOWNLOAD_EXEC the matcher tests with sticky regexes. */
-export const DOWNLOAD_EXEC_PIPE_TAIL = String.raw`\|\s*${PIPE_TARGET}`;
-export const DOWNLOAD_EXEC_CHAIN_TAIL = String.raw`(?:;|&&)\s*${CHAIN_TARGET}`;
 
 /** `bash -c "$(curl ...)"`, `sh <(curl ...)`, `eval "$(curl ...)"`. */
 export const DOWNLOAD_SUBSHELL = String.raw`\b(?:${SHELL_WORD}\s+(?:-\w+\s+)*-c\s+(?:\\*["'])?\$\(|${SHELL_WORD}\s+<\(|(?:eval|source)\s+(?:\\*["'])?\$\()\s*(?:curl|wget)\b`;

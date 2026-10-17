@@ -1,7 +1,6 @@
 import type { PatternDatabase, PatternEntry } from './pattern-db';
 import {
   BASE64_TO_SHELL,
-  DOWNLOAD_EXEC,
   DOWNLOAD_SUBSHELL,
   PYTHON_B64_EXEC,
   downloadExecInCommand,
@@ -24,9 +23,10 @@ import {
  * tool-call-tampering (#27): shell the model's tool call would run, rewritten
  * by an intermediary (Liu et al. 2026, AC-1). Two layers share each shape.
  *
- * The bare shape reports at strict only. Install guides, READMEs and security
- * posts write `curl ... | sh` too, and a regex cannot tell them from a
- * tampered call.
+ * A download piped into a shell as plain text is not flagged: install guides,
+ * READMEs and security posts write `curl ... | sh` too, and a regex cannot tell
+ * them from a tampered call. Two bare shapes that guides do not write
+ * (base64 into a shell, Python executing decoded text) report at strict only.
  *
  * The same shape inside the value of a tool call's command key
  * (`"command": "..."`, or the stringified form `\\"command\\": \\"...\\"`)
@@ -55,20 +55,6 @@ function toolCallEntries(): PatternEntry[] {
   const bare = 0.4;
   const inCall = 0.9;
   const out: PatternEntry[] = [
-    toolCallEntry(
-      'tc-download-exec',
-      DOWNLOAD_EXEC,
-      'Download piped or chained into a shell',
-      bare,
-      'high',
-    ),
-    toolCallEntry(
-      'tc-download-subshell',
-      DOWNLOAD_SUBSHELL,
-      'Shell run on a downloaded script',
-      bare,
-      'high',
-    ),
     toolCallEntry(
       'tc-base64-shell',
       BASE64_TO_SHELL,

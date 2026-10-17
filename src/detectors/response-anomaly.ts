@@ -276,7 +276,8 @@ function signalsIn(text: string, base: number, inToolCall: boolean): Signal[] {
     out.push({ name, weight, start: base + start, end: base + end, ...extra });
 
   // A download that is then run.
-  const download = DOWNLOADER.exec(text);
+  // Only inside a tool call: install guides write the same line as plain text.
+  const download = inToolCall ? DOWNLOADER.exec(text) : null;
   if (download) {
     const rest = text.slice(download.index + download[0].length);
     const run = RUN_AFTER.exec(rest);
