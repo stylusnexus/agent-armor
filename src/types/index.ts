@@ -23,6 +23,7 @@ export type ContentInjectionType =
   | 'metadata-injection'
   | 'dynamic-cloaking'
   | 'steganographic-payload'
+  | 'encoded-payload'
   | 'syntactic-masking';
 
 /** Semantic Manipulation trap subtypes (reasoning-layer attacks). */
@@ -574,6 +575,7 @@ export interface AgentArmorConfig {
     dynamicCloaking?: boolean;
     syntacticMasking?: boolean;
     steganographicPayload?: boolean;
+    encodedPayload?: boolean;
   };
   /** Per-detector toggles within the Behavioural Control category. All default true. */
   behaviouralControl?: {

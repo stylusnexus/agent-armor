@@ -30,6 +30,7 @@ import { PatternDetector } from './detectors/pattern-detector';
 import { redactCredentialsIn, redactSecret } from './detectors/credentials';
 import { MarkdownReferenceExfiltrationDetector } from './detectors/behavioural-control/markdown-reference-exfiltration';
 import { ResponseAnomalyDetector } from './detectors/response-anomaly';
+import { EncodedPayloadDetector } from './detectors/encoded-payload';
 import { normalizeForScan, mapRangeToOriginal, type NormalizedText } from './normalize/unicode';
 
 const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
@@ -43,6 +44,7 @@ const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
     dynamicCloaking: true,
     syntacticMasking: true,
     steganographicPayload: true,
+    encodedPayload: true,
   },
   behaviouralControl: {
     jailbreakPatterns: true,
@@ -116,6 +118,12 @@ export function computeRiskLevel(severity: Severity | null, confidence: number):
   }
 }
 
+/** What a code detector may ask of the armor that builds it. */
+interface DetectorContext {
+  /** Run the shipped detectors (not custom or ML ones, and not the caller) on text a detector decoded. */
+  rescan(text: string, strictness: Strictness): Threat[];
+}
+
 /** Detector config: maps config flags to pattern DB keys + metadata */
 const DETECTOR_REGISTRY: Array<{
   configGroup:
@@ -128,7 +136,9 @@ const DETECTOR_REGISTRY: Array<{
   /** Pattern database key. Omit for a detector that is code only. */
   patternDbKey?: string;
   /** A detector that is code only: built directly instead of from the pattern database. */
-  codeDetector?: () => Detector;
+  codeDetector?: (ctx: DetectorContext) => Detector;
+  /** Keep this detector out of the set that rescans decoded text. */
+  noRescan?: boolean;
   id: string;
   name: string;
   category: TrapCategory;
@@ -197,6 +207,21 @@ const DETECTOR_REGISTRY: Array<{
     category: 'content-injection',
     trapType: 'steganographic-payload',
     sanitizeMode: 'remove',
+  },
+  {
+    // Decodes base64, hex and rot13 and reports when the decoded text is a
+    // finding, so it needs the other detectors (ctx.rescan) and is code only.
+    configGroup: 'contentInjection',
+    configKey: 'encodedPayload',
+    codeDetector: (ctx) => new EncodedPayloadDetector(ctx.rescan),
+    noRescan: true,
+    id: 'encoded-payload',
+    name: 'Encoded Payload Detector',
+    category: 'content-injection',
+    trapType: 'encoded-payload',
+    sanitizeMode: 'replace',
+    // The decoded evidence can hold a credential; keep it out of evidence.
+    redactCredentials: true,
   },
   // Behavioural Control
   {
@@ -368,6 +393,10 @@ function appendAll<T>(target: T[], items: readonly T[]): void {
 export class AgentArmor {
   private config: Required<AgentArmorConfig>;
   private detectors: Detector[] = [];
+  /** The shipped detectors that scan text another detector decoded. */
+  private rescanDetectors: Detector[] = [];
+  /** Detectors that threw on decoded text during the detector scan now running. */
+  private rescanFailures = new Set<string>();
   private patternDb: PatternDatabase;
   private mlDetector: Detector | null = null;
   /** Built-in detector IDs that scan the normalized skeleton, not raw input. */
@@ -688,6 +717,7 @@ export class AgentArmor {
     this.normalizedDetectorIds.clear();
     this.maskedDetectorIds.clear();
     this.redactedDetectorIds.clear();
+    this.rescanDetectors.length = 0;
     for (const reg of DETECTOR_REGISTRY) {
       const groupConfig = this.config[reg.configGroup] as Record<string, boolean>;
       if (!groupConfig[reg.configKey]) {
@@ -698,7 +728,11 @@ export class AgentArmor {
       if (reg.codeDetector) {
         if (reg.maskEvidence) this.maskedDetectorIds.add(reg.id);
         if (reg.redactCredentials) this.redactedDetectorIds.add(reg.id);
-        this.detectors.push(reg.codeDetector());
+        const code = reg.codeDetector({
+          rescan: (text, strictness) => this.rescanDecoded(text, strictness),
+        });
+        this.detectors.push(code);
+        if (!reg.noRescan) this.rescanDetectors.push(code);
         if (reg.category !== 'content-injection' && !reg.scanRaw) {
           this.normalizedDetectorIds.add(reg.id);
         }
@@ -714,23 +748,23 @@ export class AgentArmor {
       if (reg.maskEvidence) this.maskedDetectorIds.add(reg.id);
       if (reg.redactCredentials) this.redactedDetectorIds.add(reg.id);
 
-      this.detectors.push(
-        new PatternDetector({
-          id: reg.id,
-          name: reg.name,
-          category: reg.category,
-          trapType: reg.trapType,
-          patterns,
-          sanitizeMode: reg.sanitizeMode,
-          replaceText: reg.replaceText,
-          maskEvidence: reg.maskEvidence,
-          redactCredentials: reg.redactCredentials,
-          foldInside: reg.scanRaw,
-        }),
-      );
+      const patternDetector = new PatternDetector({
+        id: reg.id,
+        name: reg.name,
+        category: reg.category,
+        trapType: reg.trapType,
+        patterns,
+        sanitizeMode: reg.sanitizeMode,
+        replaceText: reg.replaceText,
+        maskEvidence: reg.maskEvidence,
+        redactCredentials: reg.redactCredentials,
+        foldInside: reg.scanRaw,
+      });
+      this.detectors.push(patternDetector);
 
       const extras = reg.extraDetectors?.() ?? [];
       this.detectors.push(...extras);
+      this.rescanDetectors.push(patternDetector, ...extras);
 
       // Structural detectors (content-injection) must see the raw bytes — they
       // exist to catch the invisible/obfuscation characters normalization
@@ -742,6 +776,38 @@ export class AgentArmor {
 
     // Custom detectors
     this.detectors.push(...this.config.customDetectors);
+  }
+
+  /**
+   * Scan text a detector decoded with the shipped detectors, the way a scan
+   * would: Unicode-folded for the detectors that read the folded copy.
+   * Custom detectors and the ML classifier are left out: they may be async or
+   * have side effects, and the decoded text is not content the caller supplied.
+   */
+  private rescanDecoded(text: string, strictness: Strictness): Threat[] {
+    const threats: Threat[] = [];
+    const norm = this.config.normalizeUnicode ? normalizeForScan(text) : null;
+    for (const detector of this.rescanDetectors) {
+      const useNorm = norm !== null && norm.changed && this.normalizedDetectorIds.has(detector.id);
+      try {
+        const result = detector.scan(useNorm ? norm!.normalized : text, { strictness });
+        appendAll(
+          threats,
+          useNorm ? this.remapThreats(result.threats, norm!, text) : result.threats,
+        );
+      } catch (err) {
+        // The scan that asked for this rescan cannot vouch for the content now.
+        this.rescanFailures.add(detector.id);
+        const error = err instanceof Error ? err : new Error(String(err));
+        const message = `[AgentArmor] Detector "${detector.id}" threw while scanning decoded text: ${error.message}`;
+        if (this.config.on?.error) {
+          this.config.on.error({ message, error, context: { detectorId: detector.id } });
+        } else {
+          console.warn(message);
+        }
+      }
+    }
+    return threats;
   }
 
   /** Re-map normalized-space threats back onto the original content. */
@@ -854,6 +920,8 @@ export class AgentArmor {
           console.warn(message);
         }
       }
+      for (const id of this.rescanFailures) if (!failed.includes(id)) failed.push(id);
+      this.rescanFailures.clear();
     }
 
     allThreats.sort((a, b) => {
@@ -925,6 +993,8 @@ export class AgentArmor {
           console.warn(message);
         }
       }
+      for (const id of this.rescanFailures) if (!failed.includes(id)) failed.push(id);
+      this.rescanFailures.clear();
     }
 
     allThreats.sort((a, b) => {

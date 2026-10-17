@@ -137,12 +137,12 @@ Versions 0.2.1 to 0.2.17 can report a very large input as clean ([GHSA-vr4h-8mw3
 
 ### Eval Suite
 
-287 curated samples (164 adversarial, 123 benign) covering all 18 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
+298 curated samples (169 adversarial, 129 benign) covering all 19 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
 
 | Strictness   | Detection Rate (regex) | False Positive Rate |
 | ------------ | ---------------------- | ------------------- |
-| Permissive   | 90.9%                  | 0.0%                |
-| **Balanced** | **94.5%**              | **0.0%**            |
+| Permissive   | 91.1%                  | 0.0%                |
+| **Balanced** | **94.7%**              | **0.0%**            |
 | Strict       | 99.4%                  | 0.0%                |
 
 The 0.0% false-positive figure covers every benign sample except 11 **known false positives** (`acceptedFlagAt` in `scripts/eval/samples.ts`): honest text that quotes an attack or tells an assistant to run a command, such as a security paper quoting an exfiltration instruction. They flag at every strictness, are reported separately by `npm run eval`, and are excluded from the rate. The gate still fails on any other benign sample that flags.
@@ -173,7 +173,7 @@ Run it: `npx tsx examples/real-world-validation.ts`
 
 | Category                  | Target       | Status  | What It Detects                                                                                                                                                                       |
 | ------------------------- | ------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Content Injection**     | Perception   | Shipped | Hidden HTML/CSS instructions, metadata injection, dynamic cloaking artifacts, syntactic masking, steganographic payloads (ASCII smuggling)                                            |
+| **Content Injection**     | Perception   | Shipped | Hidden HTML/CSS instructions, metadata injection, dynamic cloaking artifacts, syntactic masking, steganographic payloads (ASCII smuggling), encoded payloads (base64, hex, rot13)     |
 | **Behavioural Control**   | Action       | Shipped | Embedded jailbreak sequences, data exfiltration patterns, sub-agent spawning traps                                                                                                    |
 | **Cognitive State**       | Memory       | Shipped | RAG knowledge poisoning, latent memory poisoning, contextual learning manipulation                                                                                                    |
 | **Semantic Manipulation** | Reasoning    | Shipped | Biased framing/priming, oversight evasion, persona hyperstition                                                                                                                       |
@@ -191,14 +191,15 @@ const armor = await AgentArmor.create({
     metadataInjection: true, // aria-label, HTML comments with instructions
     dynamicCloaking: true, // Bot detection scripts
     syntacticMasking: true, // Markdown/LaTeX payload hiding
+    encodedPayload: true, // base64, hex and rot13 text that decodes to an attack
   },
   behaviouralControl: {
     jailbreakPatterns: true, // Known jailbreak sequence detection
     exfiltrationURLs: true, // Data exfiltration patterns
     privilegeEscalation: true, // Sub-agent spawning triggers
   },
-  // 'permissive' = only high-confidence threats (90.9% detection)
-  // 'balanced'   = recommended default (94.5% detection, 0% FP)
+  // 'permissive' = only high-confidence threats (91.1% detection)
+  // 'balanced'   = recommended default (94.7% detection, 0% FP)
   // 'strict'     = maximum coverage, catches subtle attacks
   strictness: 'balanced',
 
@@ -583,6 +584,16 @@ Phrase matching is English only, so an override written in another language isn'
 
   Keys on the _carrier_ (a run of invisible codepoints), never on entropy or encoding. Base64 data URIs, JWTs, and git SHAs are ordinary agent-ingested content and must not fire. Legitimate single selectors — CJK ideographic variation sequences, emoji VS16 — sit below the run threshold by design.
 
+- **EncodedPayloadDetector** — Catches an instruction written in base64, hex or rot13, which reads as noise to every other detector while an agent told to decode it will obey it. It finds encoded runs, decodes them, runs the other detectors on the decoded text at the strictness of the scan, and reports **only when the decoded text is itself a finding**, at that finding's confidence, so it reports at `balanced`. A base64 image, a JWT, a hash, a UUID, an SSH key, a hex colour and an encoded harmless sentence stay clean. It is code, not patterns: a hand-written scanner reads each character once.
+
+  Reads base64 (standard and url-safe, with or without padding, wrapped lines including JSON-escaped `\n`, JSON-escaped `\/`, and a payload that starts after a `-`, `_` or `/` such as a URL path or an id prefix), hex (a digit run with or without `0x`, also split over lines as `xxd -p` writes it, pairs split by a space, colon, comma, semicolon or dash, and bytes written `\xNN`, `\u00NN`, `0xNN` or `%NN`), and rot13. It decodes up to two layers (hex inside base64, base64 inside hex, base64 inside base64). Base64 of UTF-16 text is read as UTF-16: a byte order mark at the start of a run, or ASCII written as UTF-16 (a NUL in most of the odd or even places) anywhere in it, as PowerShell's `-EncodedCommand` writes it, and only when the decode holds a stretch of plain text. If only some windows of a buffer look like UTF-16 (a font's name table, or non-ASCII text ahead of the payload), only those windows and their neighbours are read, so the rest of a binary is not. The UTF-8 reading of the same bytes is always rescanned too, so a UTF-16 decoy beside a UTF-8 payload does not hide it. Control characters in the decoded text are dropped before it is rescanned, and a decode that is mostly control characters is judged on its long stretches of text.
+
+  rot13 cannot be told from ordinary text by its shape, so it is read only around a cue word (`rot13`, `rot-13`, `caesar`, `cipher`, `decipher`, `decrypt` or `decode`): the cue's paragraph and the one before and the one after, up to 4,000 characters each way. The threat's location is the encoded run (for rot13, the encoded sentence), its evidence is the decoded text with any credential cut down to its first four characters, and sanitization replaces only that span with a warning. A decoded credential is described as a credential (a Kubernetes Secret with a real key in it reports under the credential rules, not as an instruction).
+
+  **When the budget runs out, the scan fails closed.** A scan decodes at most 3,000,000 characters and 100,000 runs, shared by every layer, and judges identical decoded text once, so repeated decoys cost nothing. A run the budget cannot cover is not skipped quietly: it is reported (`Encoded content past the scan budget`, confidence 0.7, so at every strictness) and replaced in sanitized output. A run too big for what is left skips only itself. Input over `maxInputLength` is refused before this, as for every detector. If a detector throws while reading decoded text, the scan is marked degraded and the detector is listed in `stats.failedDetectors`.
+
+  **What it does not catch:** rot13 with no cue word nearby; other shifts (rot5, rot47, a Caesar shift other than 13), reversed text, atbash, XOR and any custom cipher; base32, base85 and other alphabets; full-width or look-alike base64 characters; rot13 inside base64 or hex; base64 broken up by spaces or words; base64 that starts inside a longer word with no `-`, `_` or `/` before it; base64 wrapped at under 16 characters per line, indented YAML block lines, `"..." + "..."` string concatenation, and one markdown table cell per line (each line is too short or is cut off by other text, so the pieces are never joined); rot13 more than one paragraph away from its cue; a decode where control characters outnumber text (two after every character, for example); UTF-32 text; UTF-16 text with little plain ASCII (look-alike letters, for example), and a short UTF-16 payload inside font or other binary bytes; UTF-16 without a byte order mark that hides tag characters or variation selectors, or bidi controls, only in part of the buffer (a partial decode drops format characters, because binary read as UTF-16 makes them); a third layer of encoding; and an attack the other detectors would not flag in plain text. It judges the decoded text exactly as it would judge it written out, so a write-up that quotes an encoded attack is flagged the way one that quotes the plain sentence is. It sees only the detectors that are turned on; turn off `jailbreakPatterns` and a decoded jailbreak is not reported either.
+
 ### Behavioural Control (Shipped)
 
 - **JailbreakPatternDetector** — Pattern-matches against known jailbreak templates (DAN, role-play bypasses, educational framing exploits, developer mode claims), plus, at `strict` only, an instruction to install a package from a raw URL or git source and then commit, push, merge or publish the result to a protected branch (the Clinejection shape)
@@ -746,7 +757,7 @@ Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy, plus t
 
 ### Shipped
 
-- **Content Injection** (5 detectors) and **Behavioural Control** (3 detectors) since v0.1.0
+- **Content Injection** (5 detectors) and **Behavioural Control** (3 detectors) since v0.1.0; encoded payload screening is a sixth Content Injection detector added later
 - **Cognitive State** (3 detectors) and **Semantic Manipulation** (3 detectors) since v0.2.0
 - **Transport Integrity** (4 detectors): credential exposure, dependency substitution, tool-call tampering and response anomaly screening
 - **Pre-execution action gate** — deterministic allowlist admissibility check (`checkAction()`)
@@ -804,7 +815,7 @@ Where it _does_ fit: if your team is building custom agents _using_ the Claude A
 
 It detects prompt injection, and it covers more than that. Direct and indirect injection are both in scope. These are flagged before they reach your model: override phrasing ("ignore all previous instructions"), persona swaps, instructions hidden in HTML or metadata, and plain-text instructions that tell an agent to run a command or send a secret and hide it from the user.
 
-Prompt injection is one attack type among the many we cover (18 detectors across 5 attack categories). It targets chatbots within a single conversation. Agent traps target autonomous agents with tool access, persistent memory, and sub-agent spawning. Different attack surface, different blast radius.
+Prompt injection is one attack type among the many we cover (19 detectors across 5 attack categories). It targets chatbots within a single conversation. Agent traps target autonomous agents with tool access, persistent memory, and sub-agent spawning. Different attack surface, different blast radius.
 
 The full taxonomy includes content injection, behavioral control, cognitive state manipulation (RAG/memory poisoning), and semantic manipulation (biased framing, persona shifts). These are distinct attack categories with different detection approaches.
 
