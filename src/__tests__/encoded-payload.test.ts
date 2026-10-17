@@ -179,6 +179,7 @@ describe('encoded-payload: honest text stays clean at every level', () => {
     'SHA-512': hex(bytes(64).toString('latin1')).slice(0, 128),
     'a spaced hash': 'a9 4a 8f e5 cc b1 9b a6 1c 4c 08 73 d3 91 e9 87 98 2f bb d3',
     'a git commit': 'commit 4f9a2c1e8b3d5607a1c2e4f6890b1d3f5a7c9e2b',
+    'UTF-16LE base64 of a benign sentence': `powershell -enc ${Buffer.from('Get-Date; list the files in the current folder please', 'utf16le').toString('base64')}`,
     'a UUID': 'id: 550e8400-e29b-41d4-a716-446655440000',
     'a hex colour': 'color: #ff8800; background: #1a2b3c;',
     'a trace id': 'traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
@@ -625,6 +626,11 @@ describe('encoded-payload: forms that used to scan clean', () => {
         .map((c, i) => (i % 5 < 2 ? '\x02' + c : c))
         .join(''),
     ),
+    'UTF-16LE with a byte order mark (PowerShell -EncodedCommand)': `powershell -NoProfile -enc ${Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(P, 'utf16le')]).toString('base64')}`,
+    'UTF-16LE without a mark': `powershell -enc ${Buffer.from(P, 'utf16le').toString('base64')}`,
+    'UTF-16LE with a non-ASCII character': `-enc ${Buffer.from(P.replace('Ignore', 'Ignoré'), 'utf16le').toString('base64')}`,
+    'UTF-16BE with a byte order mark': `data ${Buffer.concat([Buffer.from([0xfe, 0xff]), Buffer.from(P, 'utf16le').swap16()]).toString('base64')}`,
+    'UTF-16LE in hex': Buffer.from(P, 'utf16le').toString('hex'),
     'a payload in the middle of binary': b64(
       Buffer.concat([bytes(300), Buffer.from(P), bytes(300, 9)]).toString('latin1'),
     ),

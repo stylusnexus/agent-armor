@@ -143,6 +143,45 @@ const isWord = (c: number): boolean =>
   (c >= 48 && c <= 57) || (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c === 95;
 
 const UTF8 = new TextDecoder('utf-8');
+const UTF16LE = new TextDecoder('utf-16le');
+/** Bytes sampled to tell UTF-16 from UTF-8 when there is no byte order mark. */
+const UTF16_SAMPLE = 512;
+
+/**
+ * UTF-8, or UTF-16 when the bytes are: a byte order mark, or a NUL in most
+ * of the odd (or even) places, as PowerShell's -EncodedCommand writes it.
+ */
+function decodeBytes(bytes: Uint8Array): string {
+  const n = bytes.length;
+  let bigEndian: boolean | null = null;
+  let from = 0;
+  if (n >= 2 && bytes[0] === 0xff && bytes[1] === 0xfe) {
+    bigEndian = false;
+    from = 2;
+  } else if (n >= 2 && bytes[0] === 0xfe && bytes[1] === 0xff) {
+    bigEndian = true;
+    from = 2;
+  } else {
+    const pairs = Math.floor(Math.min(n, UTF16_SAMPLE) / 2);
+    let evenNul = 0;
+    let oddNul = 0;
+    for (let i = 0; i < pairs; i++) {
+      if (bytes[2 * i] === 0) evenNul++;
+      if (bytes[2 * i + 1] === 0) oddNul++;
+    }
+    if (pairs >= 4 && oddNul >= pairs * 0.4 && evenNul < pairs * 0.1) bigEndian = false;
+    else if (pairs >= 4 && evenNul >= pairs * 0.4 && oddNul < pairs * 0.1) bigEndian = true;
+  }
+  if (bigEndian === null) return UTF8.decode(bytes);
+  const body = bytes.subarray(from, from + ((n - from) & ~1));
+  if (!bigEndian) return UTF16LE.decode(body);
+  const swapped = new Uint8Array(body.length);
+  for (let i = 0; i < body.length; i += 2) {
+    swapped[i] = body[i + 1];
+    swapped[i + 1] = body[i];
+  }
+  return UTF16LE.decode(swapped);
+}
 const BAD_CHARS = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f�]/g;
 
 const isBad = (c: number): boolean =>
@@ -155,7 +194,7 @@ const isBad = (c: number): boolean =>
  */
 function asText(bytes: Uint8Array): string | null {
   if (bytes.length < MIN_DECODED) return null;
-  const text = UTF8.decode(bytes);
+  const text = decodeBytes(bytes);
   if (text.length < MIN_DECODED) return null;
   let bad = 0;
   for (let i = 0; i < text.length; i++) if (isBad(text.charCodeAt(i))) bad++;
