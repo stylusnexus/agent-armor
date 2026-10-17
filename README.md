@@ -664,7 +664,7 @@ armor.loadPatterns(latestPatterns);
 armor.loadPatterns(myCustomPatterns);
 
 // Check current pattern version
-console.log(armor.patternVersion); // '0.9.19'
+console.log(armor.patternVersion); // '0.9.20'
 ```
 
 ## Versioning
@@ -728,7 +728,7 @@ Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy, plus t
 - **Transport Integrity** (4 detectors): credential exposure, dependency substitution, tool-call tampering and response anomaly screening
 - **Pre-execution action gate** — deterministic allowlist admissibility check (`checkAction()`)
 - ML classifier (DeBERTa-v3-small, ONNX) as optional companion package
-- Pattern database v0.9.19 with 140 pattern entries
+- Pattern database v0.9.20 with 140 pattern entries
 
 ### In Progress
 

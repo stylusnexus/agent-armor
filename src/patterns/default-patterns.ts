@@ -123,6 +123,8 @@ const segTogether = (...signals: string[]) =>
  *   0.9.19 — Transport Integrity: tool-call-tampering patterns (AC-1, #27). They
  *            run on the shell commands of tool calls found by reading the JSON
  *            (scope `tool-call-command`), plus two plain-text shapes at strict
+ *   0.9.20 — exfiltration: send the conversation to an outside address (#178),
+ *            strict only
  */
 /**
  * tool-call-tampering (#27): shell the model's tool call would run, rewritten
@@ -181,8 +183,37 @@ function toolCallEntries(): PatternEntry[] {
   ];
 }
 
+// ─── Conversation sent to an outside address (#178) ─────────────────────────
+// Parts of ex-conversation-to-destination. Each part is a fixed word list or a
+// class that cannot match what follows it, so no part can be re-split and scan
+// time stays linear without a length cap.
+const CONV_VERB =
+  '\\b(?:send|transmit|post|forward|upload|paste|copy|append|include|submit|email|mail|relay|exfiltrate|leak|share|dump|reply\\s+with)(?:s|ing|es)?';
+const CONV_NOUN =
+  '(?:conversations?|convos?|chats?|dialogues?|threads?|messages?|history|transcripts?|context|log|above)\\b';
+const CONV_OBJECT =
+  '(?:(?:the|this|that|our|my|your|all|of|every|each|entire|full|complete|whole|a|an|copy|previous|prior|earlier|current|user|users)\\s+){0,6}' +
+  CONV_NOUN +
+  '(?:\\s+' +
+  CONV_NOUN +
+  '){0,2}(?:\\s+so\\s+far\\b)?';
+const CONV_FILLER =
+  '(?:[\\s,]+(?:please|now|immediately|silently|quietly|secretly|also|then|\\((?:all|of|it|them|everything|the|data)(?:\\s+(?:all|of|it|them|everything|the|data)){0,3}\\)))*';
+const CONV_LEAD =
+  '(?:(?:to|at|into|via|with|on|toward|towards)[\\s,:]+)?(?:(?:the|this|my|our)\\s+)?(?:(?:endpoint|url|address|link|server|host|site|webhook|inbox)(?:\\s+(?:below|here|above|given))?[\\s,:]+)?';
+const CONV_DEST =
+  '(?:\\[(?:[^\\]\\s]+\\s+){0,3}[^\\]\\s]*\\]\\()?["\'`<(\\[]*(?:(?:https?|ftp|sftp|wss?|tcp|udp):\\/\\/|(?:mailto:)?[\\w.+-]+@[\\w-]+(?:\\.[\\w-]+)+|\\d{1,3}(?:\\.\\d{1,3}){3}\\b|(?:[a-z0-9-]+\\.)+(?:com|net|org|io|xyz|ru|cn|top|info|biz|site|online|club|tk|example|test|dev|co|app|ai|cc|link|click|cloud|pw)\\b)[^\\s<>"\'`)\\]]*[>"\'`)\\]]*';
+const CONV_SEP = '[\\s,;:]+';
+const CONVERSATION_TO_DESTINATION =
+  // verb, object, destination
+  `${CONV_VERB}\\s+${CONV_OBJECT}${CONV_FILLER}${CONV_SEP}${CONV_LEAD}${CONV_DEST}` +
+  // verb, destination, object ("send to URL the conversation")
+  `|${CONV_VERB}${CONV_SEP}${CONV_LEAD}${CONV_DEST}${CONV_SEP}${CONV_OBJECT}` +
+  // destination, verb, object ("to URL, send the conversation")
+  `|\\b(?:to|at)${CONV_SEP}${CONV_DEST}${CONV_SEP}(?:(?:and|then)\\s+)?${CONV_VERB}\\s+${CONV_OBJECT}`;
+
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.19',
+  version: '0.9.20',
   updatedAt: '2026-10-16',
   detectors: {
     'hidden-html': [
@@ -905,8 +936,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // a hostile one. No window is capped: every part is a fixed word list
         // or a class that cannot match the next part, so scan time is linear.
         id: 'ex-conversation-to-destination',
-        regex:
-          '\\b(?:send|transmit|post|forward|upload|paste|copy|append|include|submit|email|mail|relay|reply\\s+with)(?:s|ing)?\\s+(?:(?:the|this|our|my|your|all|every|entire|full|complete|whole|a|copy\\s+of|previous|prior|earlier)\\s+){0,5}(?:conversations?|chats?(?:\\s+(?:history|log))?|messages?|history|transcript|context|above)[\\s,:]+(?:(?:to|at|into|via)[\\s,:]+)?[<(\\[]?(?:(?:https?|ftp|sftp|wss?):\\/\\/|[\\w.+-]+@[\\w-]+(?:\\.[\\w-]+)+|(?:[a-z0-9-]+\\.)+(?:com|net|org|io|xyz|ru|cn|top|info|biz|site|online|club|tk|example|test)\\b)[^\\s<>"\x27)\\]]*',
+        regex: CONVERSATION_TO_DESTINATION,
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
