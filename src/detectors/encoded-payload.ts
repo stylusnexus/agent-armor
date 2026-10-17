@@ -247,40 +247,44 @@ function readUtf16(bytes: Uint8Array, range: Utf16Range): string {
 }
 
 /**
- * UTF-8, or UTF-16 where the bytes are UTF-16 and the decode reads as text.
- * Format and bidi controls stay in a whole-buffer decode, where they are what
- * a Trojan Source payload is made of, and are dropped from a partial one,
- * where they are mostly binary read as UTF-16. A decode with no stretch of
- * plain text is random bytes and is not used.
+ * The text to rescan for some bytes: always the UTF-8 reading, and also each
+ * UTF-16 reading when the bytes look like UTF-16, joined by line breaks. Never
+ * either-or: a UTF-16 decoy in front of a UTF-8 payload (or a font's name
+ * table beside one) must not hide the payload. Format and bidi controls stay
+ * in a whole-buffer UTF-16 reading, where they are what a Trojan Source
+ * payload is made of, and are dropped from a partial one, where they are
+ * mostly binary read as UTF-16. A UTF-16 reading with no stretch of plain text
+ * is random bytes and is not used.
+ *
+ * In the UTF-8 reading, control characters are dropped, as a reader would not
+ * see them, so a payload cannot hide among them; a reading that is mostly
+ * control characters keeps only its long stretches of text.
  */
-function decodeBytes(bytes: Uint8Array, allowBom: boolean): string {
+function asText(bytes: Uint8Array, allowBom = false): string | null {
+  if (bytes.length < MIN_DECODED) return null;
+  const parts: string[] = [];
+  const utf8 = cleanUtf8(UTF8.decode(bytes));
+  if (utf8 !== null) parts.push(utf8);
   const ranges = utf16Ranges(bytes, allowBom);
   if (ranges !== null) {
     const whole = ranges.length === 1 && ranges[0].to - ranges[0].from >= bytes.length - 2;
-    const parts: string[] = [];
     for (const range of ranges) {
       const text = readUtf16(bytes, range);
       if (!hasTextStretch(text.replace(FORMAT_CHARS, ''))) continue;
       parts.push(whole ? text : text.replace(FORMAT_CHARS, ''));
     }
-    if (parts.length > 0) return parts.join('\n');
   }
-  return UTF8.decode(bytes);
+  if (parts.length === 0) return null;
+  const joined = parts.join('\n');
+  return joined.length >= MIN_DECODED ? joined : null;
 }
 
-const BAD_CHARS = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f�]/g;
+const BAD_CHARS = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\ufffd]/g;
 
 const isBad = (c: number): boolean =>
   (c < 32 && c !== 9 && c !== 10 && c !== 13) || c === 127 || c === 0xfffd;
 
-/**
- * Bytes to text to rescan, or null when they are binary. Control characters
- * are dropped, as a reader would not see them, so a payload cannot hide among them; a decode that
- * is mostly control characters keeps only its long stretches of text.
- */
-function asText(bytes: Uint8Array, allowBom = false): string | null {
-  if (bytes.length < MIN_DECODED) return null;
-  const text = decodeBytes(bytes, allowBom);
+function cleanUtf8(text: string): string | null {
   if (text.length < MIN_DECODED) return null;
   let bad = 0;
   for (let i = 0; i < text.length; i++) if (isBad(text.charCodeAt(i))) bad++;
