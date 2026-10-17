@@ -4,47 +4,22 @@ import { compilePattern } from '../patterns/pattern-db';
 import { findMatcher, type MatcherHit, type PatternMatcher } from '../patterns/matchers';
 import type { TextEdit, Threat, TrapCategory, TrapType } from '../types';
 import { replaceRanges } from '../sanitize';
+import { redactCredentialsIn, redactSecret } from './credentials';
+import { findCommandValues, type CommandValue } from './tool-call-json';
+
+export { redactSecret };
 
 const INSTRUCTION_SIGNALS =
   /(?:ignore|disregard|forget|override|system|assistant|you (?:are|must|should|will)|IMPORTANT|instruction|do not|instead|pretend|act as|role|new task|send to|transmit|summarise|summarize|say that|respond with|output|generate|write|tell the user|without\s+(?:restrictions?|scrutiny|review)|approve\s+(?:all|everything|any)|all\s+files|arbitrary|bypass|credentials?|privileged|unrestricted)/i;
 
 const CONFIDENCE_BOOST = 0.35;
 
-/** Characters of the match kept in redacted evidence — enough to identify the
- *  credential format (`AKIA`, `ghp_`, `sk-p`), never enough to use it. */
-const EVIDENCE_PREFIX_CHARS = 4;
-
-/**
- * Reduce a matched secret to a non-usable fingerprint: a short format-identifying
- * prefix plus the original length. Provider key prefixes are format identifiers,
- * not secret material — GitHub, AWS and Stripe all publish theirs — so keeping
- * four characters aids triage ("which key leaked?") without carrying the value.
- */
-export function redactSecret(match: string): string {
-  const trimmed = match.trim();
-  if (trimmed.length <= EVIDENCE_PREFIX_CHARS) return '[REDACTED]';
-  const prefix = trimmed.slice(0, EVIDENCE_PREFIX_CHARS);
-  return `${prefix}[REDACTED ${trimmed.length} chars]`;
-}
-
 /** Matches of `regex` the way a `g`-flag `exec` loop reports them. */
-function* execAll(
-  regex: RegExp,
-  content: string,
-  group: number,
-  locationGroup?: number,
-): Generator<MatcherHit & { location?: { index: number; length: number } }> {
+function* execAll(regex: RegExp, content: string, group: number): Generator<MatcherHit> {
   regex.lastIndex = 0; // reset stateful /g cursor before reuse
   let match: RegExpExecArray | null;
   while ((match = regex.exec(content)) !== null) {
-    // `indices` exists only when the regex has the `d` flag.
-    const span = locationGroup ? match.indices?.[locationGroup] : undefined;
-    yield {
-      index: match.index,
-      text: match[0],
-      extracted: match[group],
-      ...(span ? { location: { index: span[0], length: span[1] - span[0] } } : {}),
-    };
+    yield { index: match.index, text: match[0], extracted: match[group] };
   }
 }
 
@@ -66,6 +41,7 @@ export class PatternDetector extends BaseDetector {
   private readonly sanitizeMode: 'remove' | 'replace' | 'none';
   private readonly replaceText?: string;
   private readonly maskEvidence: boolean;
+  private readonly redactCredentials: boolean;
 
   constructor(opts: {
     id: string;
@@ -78,6 +54,8 @@ export class PatternDetector extends BaseDetector {
     /** Redact matched text in `Threat.evidence`. Set for detectors whose
      *  matches are secrets, so a scan can't leak what it just found. */
     maskEvidence?: boolean;
+    /** Cut credentials inside the matched text down to a prefix, keeping the rest. */
+    redactCredentials?: boolean;
   }) {
     super();
     this.id = opts.id;
@@ -92,19 +70,35 @@ export class PatternDetector extends BaseDetector {
     this.sanitizeMode = opts.sanitizeMode ?? 'remove';
     this.replaceText = opts.replaceText;
     this.maskEvidence = opts.maskEvidence ?? false;
+    this.redactCredentials = opts.redactCredentials ?? false;
   }
 
   protected override redactEvidence(match: string): string {
-    return this.maskEvidence ? redactSecret(match) : match;
+    if (this.maskEvidence) return redactSecret(match);
+    return this.redactCredentials ? redactCredentialsIn(match) : match;
   }
 
   findPatterns(content: string): PatternMatch[] {
     const matches: PatternMatch[] = [];
 
+    let commands: CommandValue[] | undefined;
     for (const { entry, regex, matcher } of this.compiled) {
-      for (const hit of matcher
-        ? matcher.match(content)
-        : execAll(regex, content, entry.extractGroup ?? 0, entry.locationGroup)) {
+      const hits: Array<MatcherHit & { span?: { start: number; end: number } }> = [];
+      if (entry.scope === 'tool-call-command') {
+        commands ??= findCommandValues(content);
+        for (const command of commands) {
+          for (const hit of execAll(regex, command.text, entry.extractGroup ?? 0)) {
+            hits.push({ ...hit, span: command });
+          }
+        }
+      } else {
+        for (const hit of matcher
+          ? matcher.match(content)
+          : execAll(regex, content, entry.extractGroup ?? 0)) {
+          hits.push(hit);
+        }
+      }
+      for (const hit of hits) {
         const extracted = hit.extracted ?? hit.text;
         const trimmed = extracted.trim();
 
@@ -130,13 +124,12 @@ export class PatternDetector extends BaseDetector {
           continue;
         }
 
-        const location = 'location' in hit ? hit.location : undefined;
         matches.push({
           pattern: entry.label,
           match: hit.text,
-          index: hit.index,
-          length: hit.text.length,
-          ...(location ? { location } : {}),
+          // A finding in a tool call's command sits on the whole command value.
+          index: hit.span ? hit.span.start : hit.index,
+          length: hit.span ? hit.span.end - hit.span.start : hit.text.length,
           confidence,
           severity,
           description: hasInstruction

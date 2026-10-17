@@ -1,13 +1,11 @@
 import type { PatternDatabase, PatternEntry } from './pattern-db';
 import {
   BASE64_TO_SHELL,
-  COMMAND_LAYOUTS,
   DECODE_SUBSHELL,
+  DOWNLOAD_EXEC,
   DOWNLOAD_SUBSHELL,
   POWERSHELL_RUN,
   PYTHON_B64_EXEC,
-  downloadExecInCommand,
-  inCommand,
 } from './tool-call-sources';
 
 /**
@@ -23,108 +21,67 @@ import {
  *   0.9.14 — Transport Integrity: tool-call-tampering patterns (AC-1, #27)
  *   0.9.15 — tool-call-tampering: shell names and paths, interpreters, process
  *            substitution, PowerShell, decoders, command arrays
+ *   0.9.16 — tool-call-tampering: patterns run on the commands of tool calls
+ *            found by reading the JSON (scope `tool-call-command`)
  */
 /**
  * tool-call-tampering (#27): shell the model's tool call would run, rewritten
  * by an intermediary (Liu et al. 2026, AC-1). Two layers share each shape.
  *
+ * The in-call patterns (scope `tool-call-command`) run on the shell commands
+ * inside tool calls and report at balanced. An install guide has no tool call.
+ *
  * A download piped into a shell as plain text is not flagged: install guides,
  * READMEs and security posts write `curl ... | sh` too, and a regex cannot tell
- * them from a tampered call. Two bare shapes that guides do not write
- * (base64 into a shell, Python executing decoded text) report at strict only.
- *
- * The same shape inside the value of a tool call's command key
- * (`"command": "..."`, or the stringified form `\\"command\\": \\"...\\"`)
- * reports at balanced. Install guides do not write that.
+ * them from a tampered call. Two shapes that guides do not write (base64 into a
+ * shell, Python executing decoded text) also report as plain text, at strict
+ * only.
  */
-function toolCallEntry(
-  id: string,
-  regex: string,
-  label: string,
-  confidence: number,
-  severity: PatternEntry['severity'],
-  locationGroup?: number,
-): PatternEntry {
+function toolCallEntry(id: string, regex: string, label: string, inCall: boolean): PatternEntry {
   return {
     id,
     regex,
-    // `d` gives the in-call patterns the span of the command value, which is
-    // all a sanitized result replaces, so the JSON around it stays valid.
-    flags: locationGroup ? 'gid' : 'gi',
+    flags: 'gi',
     category: 'transport-integrity',
     type: 'tool-call-tampering',
-    severity,
-    confidence,
-    label,
-    ...(locationGroup ? { locationGroup } : {}),
+    severity: inCall ? 'critical' : 'high',
+    confidence: inCall ? 0.9 : 0.4,
+    label: inCall ? `${label} in a tool call command` : label,
+    ...(inCall ? { scope: 'tool-call-command' as const } : {}),
   };
 }
 
-const IN_CALL_SHAPES: Array<[string, string, string]> = [
-  ['subshell', DOWNLOAD_SUBSHELL, 'Shell run on a downloaded script'],
+const TOOL_CALL_SHAPES: Array<[string, string, string]> = [
+  ['download-exec', DOWNLOAD_EXEC, 'Download piped or chained into a shell'],
+  ['download-subshell', DOWNLOAD_SUBSHELL, 'Shell run on a downloaded script'],
   ['decode-subshell', DECODE_SUBSHELL, 'Shell run on base64-decoded text'],
   ['base64-shell', BASE64_TO_SHELL, 'Decoded text piped into a shell'],
   ['python-b64-exec', PYTHON_B64_EXEC, 'Python executes base64-decoded text'],
   ['powershell', POWERSHELL_RUN, 'PowerShell downloads and runs, or runs an encoded command'],
 ];
 
-const LAYOUT_TAGS = {
-  plain: ['call', 'a tool call command'],
-  'plain-array': ['call-arr', 'a tool call command array'],
-  escaped: ['call-str', 'a stringified tool call command'],
-  'escaped-array': ['call-str-arr', 'a stringified tool call command array'],
-} as const;
-
 function toolCallEntries(): PatternEntry[] {
-  const bare = 0.4;
-  const inCall = 0.9;
-  const out: PatternEntry[] = [
+  return [
     toolCallEntry(
       'tc-base64-shell',
       BASE64_TO_SHELL,
       'Base64-decoded text piped into a shell',
-      bare,
-      'high',
+      false,
     ),
     toolCallEntry(
       'tc-python-b64-exec',
       PYTHON_B64_EXEC,
       'Python executes base64-decoded text',
-      bare,
-      'high',
+      false,
+    ),
+    ...TOOL_CALL_SHAPES.map(([id, regex, label]) =>
+      toolCallEntry(`tc-call-${id}`, regex, label, true),
     ),
   ];
-  for (const layout of Object.keys(LAYOUT_TAGS) as Array<keyof typeof LAYOUT_TAGS>) {
-    const [tag, where] = LAYOUT_TAGS[layout];
-    const group = COMMAND_LAYOUTS[layout].group;
-    out.push(
-      toolCallEntry(
-        `tc-${tag}-download-exec`,
-        downloadExecInCommand(layout),
-        `Download piped or chained into a shell in ${where}`,
-        inCall,
-        'critical',
-        group,
-      ),
-    );
-    for (const [id, shape, label] of IN_CALL_SHAPES) {
-      out.push(
-        toolCallEntry(
-          `tc-${tag}-${id}`,
-          inCommand(layout, shape),
-          `${label} in ${where}`,
-          inCall,
-          'critical',
-          group,
-        ),
-      );
-    }
-  }
-  return out;
 }
 
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.15',
+  version: '0.9.16',
   updatedAt: '2026-10-16',
   detectors: {
     'hidden-html': [

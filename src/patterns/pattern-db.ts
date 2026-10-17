@@ -24,9 +24,13 @@ export interface PatternEntry {
   label: string;
   /** Which capture group to extract text from (0 = full match) */
   extractGroup?: number;
-  /** Capture group whose span is the finding's `location` (and so what a sanitized
-   *  result replaces). Needs the `d` flag. The default is the whole match. */
-  locationGroup?: number;
+  /**
+   * Where the regex runs. Omitted: on the whole text. `tool-call-command`: on
+   * the shell commands inside the tool calls found in the text (see
+   * `detectors/tool-call-json.ts`), each decoded from its JSON string, and a
+   * finding's location is the command's value, so sanitizing keeps the JSON valid.
+   */
+  scope?: 'tool-call-command';
   /** Minimum extracted text length to trigger (avoids false positives) */
   minLength?: number;
   /** Whether to boost confidence when instruction signals are found */

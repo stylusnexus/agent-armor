@@ -485,6 +485,13 @@ describe('response-anomaly detector: sanitized output stays valid JSON', () => {
       expect(alone.sanitized).not.toContain('mp/a');
       const json = (s: string) => JSON.parse(s.replace(/^before /, '').replace(/ after$/, ''));
       expect(() => json(alone.sanitized)).not.toThrow();
+      // Arguments sent as a string must still hold JSON after the edit.
+      const args = json(alone.sanitized).function?.arguments;
+      if (typeof args === 'string') expect(() => JSON.parse(args)).not.toThrow();
+      const allArgs = json(
+        AgentArmor.regexOnly({ strictness: 'balanced' }).scanSync(text).sanitized,
+      ).function?.arguments;
+      if (typeof allArgs === 'string') expect(() => JSON.parse(allArgs)).not.toThrow();
       const all = AgentArmor.regexOnly({ strictness: 'balanced' }).scanSync(text);
       expect(() => json(all.sanitized)).not.toThrow();
       expect(all.sanitized).not.toContain('c2.example-cdn.net');

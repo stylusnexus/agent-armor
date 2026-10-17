@@ -9,12 +9,22 @@ import type {
   TrapCategory,
 } from '../types';
 import { applyEdits, mergeEdits } from '../sanitize';
-import { redactSecret } from './pattern-detector';
+import {
+  CREDENTIALS,
+  CREDENTIAL_MIN_ENTROPY,
+  PLACEHOLDER,
+  redactCredentialsIn,
+  redactSecret,
+  shannonEntropy,
+} from './credentials';
+import { decodeJsonString, findToolCallArguments, type ArgumentSpan } from './tool-call-json';
 import {
   CHAIN_TARGET,
   DOWNLOADER as DOWNLOADER_SOURCE,
   RUN_AFTER_DOWNLOAD,
 } from '../patterns/tool-call-sources';
+
+export { shannonEntropy };
 
 /**
  * Response anomaly screening (#30, Liu et al. 2026, section 7.2).
@@ -51,23 +61,6 @@ const MAX_CONFIDENCE = 0.95;
 const REPLACEMENT =
   '[BLOCKED: anomalous command flagged by AgentArmor; verify the tool call before executing]';
 
-/** Shannon entropy of `text`, in bits per character. Characters outside ASCII are counted as one bucket. */
-export function shannonEntropy(text: string): number {
-  if (text.length === 0) return 0;
-  const counts = new Int32Array(129);
-  for (let i = 0; i < text.length; i++) {
-    const c = text.charCodeAt(i);
-    counts[c < 128 ? c : 128]++;
-  }
-  let h = 0;
-  for (let i = 0; i < counts.length; i++) {
-    if (counts[i] === 0) continue;
-    const p = counts[i] / text.length;
-    h -= p * Math.log2(p);
-  }
-  return h;
-}
-
 interface Span {
   start: number;
   end: number;
@@ -86,118 +79,12 @@ interface Signal extends Span {
 // Tool-call arguments
 // ---------------------------------------------------------------------------
 
-const NAME_KEYS = new Set(['name', 'tool', 'tool_name', 'function']);
-const ARG_KEYS = new Set(['input', 'arguments', 'args', 'parameters', 'params', 'tool_input']);
-
-interface Frame {
-  start: number;
-  hasName: boolean;
-  isArgs: boolean;
-  args: Span[];
-}
-
-const isWhitespaceCode = (c: number) => c === 32 || (c >= 9 && c <= 13);
-
-/** Index of the line break that ends the line holding `from`, or the end of the text. */
-function lineEnd(content: string, from: number): number {
-  const n = content.length;
-  let j = from;
-  while (j < n) {
-    const c = content.charCodeAt(j);
-    if (c === 10 || c === 13) return j;
-    j++;
-  }
-  return n;
-}
-
-/** Index of the quote that closes the string opened at `open`, or -1 at a line break or the end. */
-function stringEnd(content: string, open: number): number {
-  const n = content.length;
-  for (let j = open + 1; j < n;) {
-    const c = content.charCodeAt(j);
-    if (c === 92) j += 2;
-    else if (c === 34) return j;
-    else if (c === 10 || c === 13) return -1;
-    else j++;
-  }
-  return -1;
-}
-
-/**
- * The argument values of every JSON object that has both a name key (`name`,
- * `tool`, `function`) and an arguments key (`input`, `arguments`, `args`,
- * `parameters`, `params`), in any order, at any depth. An arguments value is
- * an object (its whole span) or a string (its content, the stringified form an
- * OpenAI-style response carries). One pass: each character is read once, and
- * a quote with no closing quote on its line is skipped as a stray quote.
- */
-function toolCallArguments(content: string): Span[] {
-  const found: Span[] = [];
-  const stack: Frame[] = [];
-  const n = content.length;
-  let nextBraceIsArgs = false;
-
-  const close = (end: number): void => {
-    const frame = stack.pop();
-    if (!frame) return;
-    if (frame.isArgs && stack.length > 0) {
-      stack[stack.length - 1].args.push({ start: frame.start, end });
-    }
-    if (frame.hasName) for (const span of frame.args) found.push(span);
-  };
-
-  let i = 0;
-  while (i < n) {
-    const c = content.charCodeAt(i);
-    if (c === 34) {
-      const end = stringEnd(content, i);
-      if (end < 0) {
-        // No closing quote on this line, so none of the later quotes on it has one either.
-        i = lineEnd(content, i);
-        continue;
-      }
-      let k = end + 1;
-      while (k < n && isWhitespaceCode(content.charCodeAt(k))) k++;
-      if (content.charCodeAt(k) === 58 && stack.length > 0) {
-        const top = stack[stack.length - 1];
-        const key = content.slice(i + 1, end).toLowerCase();
-        if (NAME_KEYS.has(key)) {
-          top.hasName = true;
-        } else if (ARG_KEYS.has(key)) {
-          let v = k + 1;
-          while (v < n && isWhitespaceCode(content.charCodeAt(v))) v++;
-          const first = content.charCodeAt(v);
-          if (first === 123) {
-            nextBraceIsArgs = true;
-          } else if (first === 34) {
-            const valueEnd = stringEnd(content, v);
-            if (valueEnd > 0) top.args.push({ start: v + 1, end: valueEnd });
-          }
-        }
-        i = k + 1;
-        continue;
-      }
-      i = end + 1;
-      continue;
-    }
-    if (c === 123) {
-      stack.push({ start: i, hasName: false, isArgs: nextBraceIsArgs, args: [] });
-      nextBraceIsArgs = false;
-    } else if (c === 125) {
-      close(i + 1);
-    }
-    i++;
-  }
-  while (stack.length > 0) close(n);
-  return found;
-}
-
-function mergeSpans(spans: Span[]): Span[] {
-  const sorted = [...spans].sort((a, b) => a.start - b.start || a.end - b.end);
-  const merged: Span[] = [];
+function mergeSpans(spans: ArgumentSpan[]): ArgumentSpan[] {
+  const sorted = [...spans].sort((a, b) => a.start - b.start || b.end - a.end);
+  const merged: ArgumentSpan[] = [];
   for (const s of sorted) {
     const last = merged[merged.length - 1];
-    if (last && s.start <= last.end) last.end = Math.max(last.end, s.end);
+    if (last && s.start < last.end) last.end = Math.max(last.end, s.end);
     else merged.push({ ...s });
   }
   return merged;
@@ -205,15 +92,25 @@ function mergeSpans(spans: Span[]): Span[] {
 
 interface Unit extends Span {
   inToolCall: boolean;
+  /** The text to score. Arguments sent as a JSON string are decoded once, so they read like an object. */
+  text: string;
 }
 
 /**
  * What gets scored: each tool call's argument span, and every other logical
  * line (a backslash at the end of a line continues it).
  */
-function unitsOf(content: string, args: Span[]): Unit[] {
+function unitsOf(content: string, args: ArgumentSpan[]): Unit[] {
   const covered = mergeSpans(args);
-  const units: Unit[] = covered.map((s) => ({ ...s, inToolCall: true }));
+  const units: Unit[] = covered.map((s) => {
+    const raw = content.slice(s.start, s.end);
+    return {
+      start: s.start,
+      end: s.end,
+      inToolCall: true,
+      text: s.stringified ? decodeJsonString(raw).text : raw,
+    };
+  });
   const n = content.length;
   let spanIndex = 0;
   let start = 0;
@@ -226,7 +123,9 @@ function unitsOf(content: string, args: Span[]): Unit[] {
     }
     while (spanIndex < covered.length && covered[spanIndex].end <= start) spanIndex++;
     const overlaps = spanIndex < covered.length && covered[spanIndex].start < end;
-    if (!overlaps && end > start) units.push({ start, end, inToolCall: false });
+    if (!overlaps && end > start) {
+      units.push({ start, end, inToolCall: false, text: content.slice(start, end) });
+    }
     start = end + 1;
   }
   return units;
@@ -269,22 +168,6 @@ const SHELL_WORDS = /\b(?:curl|wget|bash|sh|base64|eval|chmod|nc|python3?|exec)\
 
 const TOKEN = /[A-Za-z0-9+/_-]{40,}={0,2}/g;
 const JWT_NEIGHBOUR = /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{4,}/;
-
-/** Credential shapes that should not sit in the arguments of a tool call. */
-const PLACEHOLDER =
-  /EXAMPLE|example|xxxx|XXXX|your|YOUR|placeholder|redacted|REDACTED|<[^>]*>|\*{4}|\.{3}/;
-const CREDENTIALS: RegExp[] = [
-  /\bAKIA[0-9A-Z]{16}\b/g,
-  /\bsk-(?:ant-|proj-)?[A-Za-z0-9_-]{20,}/g,
-  /\bgh[pousr]_[A-Za-z0-9]{36}\b/g,
-  /\bgithub_pat_[A-Za-z0-9_]{40,}/g,
-  /\bglpat-[A-Za-z0-9_-]{20,}/g,
-  /\bxox[baprs]-[A-Za-z0-9-]{10,}/g,
-  /\bAIza[0-9A-Za-z_-]{35}\b/g,
-  /-----BEGIN [A-Z ]*PRIVATE KEY-----/g,
-  /\bBearer\s+[A-Za-z0-9._~+/=-]{24,}/g,
-  /["']?(?:api[_-]?key|access[_-]?token|auth[_-]?token|secret|password|passwd|authorization|client[_-]?secret|private[_-]?key)["']?\s*[:=]\s*\\?["']([^"'\\\s]{16,})/gi,
-];
 
 const CHAIN_WEIGHT = 0.35;
 const ENV_VAR_WEIGHT = 0.3;
@@ -417,7 +300,7 @@ function signalsIn(text: string, base: number, inToolCall: boolean): Signal[] {
       let m: RegExpExecArray | null;
       while ((m = re.exec(text)) !== null) {
         const value = m[1] ?? m[0];
-        if (PLACEHOLDER.test(value) || shannonEntropy(value) < 3.2) continue;
+        if (PLACEHOLDER.test(value) || shannonEntropy(value) < CREDENTIAL_MIN_ENTROPY) continue;
         add(
           'a credential in tool call arguments',
           CREDENTIAL_WEIGHT,
@@ -484,10 +367,9 @@ export class ResponseAnomalyDetector implements Detector {
   scan(content: string, options?: DetectorOptions): DetectorResult {
     const threshold = THRESHOLD[options?.strictness ?? 'balanced'];
     const threats: Threat[] = [];
-    const units = unitsOf(content, toolCallArguments(content));
+    const units = unitsOf(content, findToolCallArguments(content));
     for (const unit of units) {
-      const text = content.slice(unit.start, unit.end);
-      const signals = signalsIn(text, unit.start, unit.inToolCall);
+      const signals = signalsIn(unit.text, 0, unit.inToolCall);
       if (!signals.some((s) => !s.supporting)) continue;
       const confidence = combine(signals, unit.inToolCall);
       if (confidence < threshold) continue;
@@ -499,11 +381,11 @@ export class ResponseAnomalyDetector implements Detector {
         severity: severityFor(confidence),
         confidence: Math.round(confidence * 100) / 100,
         description: `Response anomaly: ${signals.map((s) => s.name).join(', ')}`,
-        evidence: this.evidence(content, start, end, signals),
+        evidence: this.evidence(unit.text, start, end, signals),
         // A tool call is replaced whole, so the JSON around it stays valid.
         location: unit.inToolCall
           ? { offset: unit.start, length: unit.end - unit.start }
-          : { offset: start, length: end - start },
+          : { offset: unit.start + start, length: end - start },
         detectorId: this.id,
         source: 'pattern',
       });
@@ -516,19 +398,23 @@ export class ResponseAnomalyDetector implements Detector {
       .filter((t) => t.location)
       .map((t) => {
         const { offset, length } = t.location!;
-        // The arguments of a tool call are an object or the inside of a string.
-        // An object becomes a small valid object. The edit is critical so that,
-        // where it overlaps a narrower edit inside it, the object stays valid.
-        // Inside a string the opening quote comes first; an object does not follow one.
-        const isObject =
-          content[offset] === '{' &&
-          content[offset + length - 1] === '}' &&
-          content[offset - 1] !== '"';
+        // Arguments are an object, or the inside of a JSON string (an object sent
+        // as a string). Each gets a replacement that is valid where it sits.
+        const startsObject = content[offset] === '{' && content[offset + length - 1] === '}';
+        const inString = content[offset - 1] === '"';
+        const replacement =
+          startsObject && inString
+            ? `{\\"blocked\\":\\"${REPLACEMENT}\\"}`
+            : startsObject
+              ? `{"blocked":"${REPLACEMENT}"}`
+              : REPLACEMENT;
+        // An object edit is critical so that, where it overlaps a narrower edit
+        // inside it, the object stays valid.
         return {
           offset,
           length,
-          replacement: isObject ? `{"blocked":"${REPLACEMENT}"}` : REPLACEMENT,
-          severity: isObject ? ('critical' as const) : t.severity,
+          replacement,
+          severity: startsObject ? ('critical' as const) : t.severity,
         };
       });
   }
@@ -546,7 +432,7 @@ export class ResponseAnomalyDetector implements Detector {
       out += content.slice(at, s.start) + redactSecret(content.slice(s.start, s.end));
       at = s.end;
     }
-    out += content.slice(at, end);
+    out = redactCredentialsIn(out + content.slice(at, end));
     return out.length > 200 ? out.slice(0, 197) + '...' : out;
   }
 }
