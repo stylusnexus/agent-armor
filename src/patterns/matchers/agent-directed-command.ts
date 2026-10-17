@@ -5,7 +5,7 @@ import type { MatcherHit, PatternMatcher } from './types';
  * test checks it still equals `default-patterns.ts`.
  */
 const REGEX =
-  '(?:(?:note|message|instructions?)\\s+(?:to|for)\\s+(?:the\\s+)?(?:ai|agent|assistant|model|llm)\\b|(?:^|[.:!?>\\n\\-*+\\u2022]\\s*|[\\s=](?=[\\"\'\\u201C\\u2018`\\u00AB\\u2039\\u201E\\u201A*_]))[*_\\"\'\\u201C\\u2018`\\u00AB\\u2039\\u201E\\u201A]{0,3}(?:(?:dear|hey|hi|hello|thanks)(?:\\s+there)?[\\s,]+)?(?:ai[\\s\\-\\u2010-\\u2015]+)?(?:assistants?|agents?|claude(?:\\s+code)?|chatgpt|gemini(?:\\s+cli)?|(?:github\\s+)?copilot)[*_\\"\'\\u201D\\u2019\\u00BB\\u203A`]{0,3}\\s*[,:]|as\\s+(?:the|an?)\\s+(?:ai|agent|assistant|llm)\\b[^.\\n]{0,40},|when\\s+you\\s+(?:read|see|process|parse)\\s+(?:this|the\\s+(?:above|following)))[\\s\\S]{0,200}?\\b(?:run|execute|exec|invoke|launch|pipe)\\b[\\s\\S]{0,60}?(?:\\b(?:curl|wget|bash|sudo|powershell|eval|nc|netcat)\\b|\\bsh\\b|\\brm\\s+-|chmod\\s+\\+x|(?:installer|script|payload|binary)\\s+(?:at|from)\\s+https?:\\/\\/)';
+  "(?:(?:note|message|instructions?)\\s+(?:to|for)\\s+(?:the\\s+)?(?:ai|agent|assistant|model|llm)\\b|(?:^|[.:!?>\\n\\-*+\\u2022]\\s*|[\\s=](?=[\\\"'\\u201C\\u2018`\\u00AB\\u2039\\u201E\\u201A*_]))[*_\\\"'\\u201C\\u2018`\\u00AB\\u2039\\u201E\\u201A]{0,3}(?:(?:dear|hey|hi|hello|thanks)(?:\\s+there)?[\\s,]+)?(?:ai[\\s\\-\\u2010-\\u2015]+)?(?:assistants?|agents?|claude(?:\\s+code)?|chatgpt|gemini(?:\\s+cli)?|(?:github\\s+)?copilot)[*_\\\"'\\u201D\\u2019\\u00BB\\u203A`]{0,3}\\s*[,:]|as\\s+(?:the|an?)\\s+(?:ai|agent|assistant|llm)\\b[^.\\n]{0,40},|when\\s+you\\s+(?:read|see|process|parse)\\s+(?:this|the\\s+(?:above|following)))[\\s\\S]{0,200}?\\b(?:run|execute|exec|invoke|launch|pipe)\\b[\\s\\S]{0,60}?(?<!(?:\\b(?:never|not|no|avoid|without)|n['\\u2019]t)\\s+(?:\\b(?:use|using|run|running|invoke|invoking)\\s+)?)(?:\\b(?:curl|wget|bash|sudo|powershell|eval|nc|netcat)\\b|\\bsh\\b|\\brm\\s+-|chmod\\s+\\+x|(?:installer|script|payload|binary)\\s+(?:at|from)\\s+https?:\\/\\/)";
 
 /*
  * The regex is PREFIX W1 VERB W2 TARGET, where W1 = [\s\S]{0,200}? and
@@ -61,6 +61,8 @@ const PAYLOAD_NOUNS = ['installer', 'script', 'payload', 'binary'];
 const A_OPENERS = ['note', 'message', 'instructions', 'instruction'];
 const A_ADDRESSEES = ['ai', 'agent', 'assistant', 'model', 'llm'];
 const C_ADDRESSEES = ['ai', 'agent', 'assistant', 'llm'];
+const NEGATIONS = ['never', 'not', 'no', 'avoid', 'without'];
+const NEGATED_VERBS = ['use', 'using', 'run', 'running', 'invoke', 'invoking'];
 const D_VERBS = ['read', 'see', 'process', 'parse'];
 
 /** JavaScript's \s. */
@@ -197,6 +199,34 @@ function match(content: string): MatcherHit[] {
     return -1;
   };
 
+  // The lookbehind before TARGET: (never|not|no|avoid|without|n't) \s+ then an
+  // optional (use|using|run|running|invoke|invoking) \s+ ends at r. Each word
+  // ends in a letter, so the \s+ before it is taken whole.
+  const negWordEnds = (e: number): boolean => {
+    for (const w of NEGATIONS) {
+      if (e >= w.length && s.startsWith(w, e - w.length) && !word(e - w.length - 1)) return true;
+    }
+    if (e >= 3 && s.charCodeAt(e - 3) === 0x6e && s.charCodeAt(e - 1) === 0x74) {
+      const q = s.charCodeAt(e - 2);
+      if (q === 0x27 || q === 0x2019) return true;
+    }
+    return false;
+  };
+  const negated = (r: number): boolean => {
+    if (r === 0 || !space(r - 1)) return false;
+    let k = r;
+    while (k > 0 && space(k - 1)) k--;
+    if (negWordEnds(k)) return true;
+    for (const v of NEGATED_VERBS) {
+      const start = k - v.length;
+      if (start < 1 || !s.startsWith(v, start) || !space(start - 1)) continue;
+      let k2 = start;
+      while (k2 > 0 && space(k2 - 1)) k2--;
+      if (negWordEnds(k2)) return true;
+    }
+    return false;
+  };
+
   // tailEnd[q]: match end when VERB starts at q and the tail succeeds, else -1.
   // nextTail[p]: first q >= p with tailEnd[q] >= 0; NONE when there is none.
   const NONE = 0x3fffffff;
@@ -207,7 +237,7 @@ function match(content: string): MatcherHit[] {
   nextT[n + 1] = NONE;
   nextTail[n + 1] = NONE;
   for (let i = n; i >= 0; i--) {
-    tEnd[i] = i < n ? targetEnd(i) : -1;
+    tEnd[i] = i < n && !negated(i) ? targetEnd(i) : -1;
     nextT[i] = tEnd[i] >= 0 ? i : nextT[i + 1];
   }
   for (let q = n; q >= 0; q--) {
@@ -519,6 +549,17 @@ export const AGENT_DIRECTED_COMMAND_MATCHERS: PatternMatcher[] = [
       'payload at  HTTPS://',
       'binary from httpx',
       'installer at',
+      'never ',
+      'not ',
+      "don't ",
+      'don’t ',
+      'no ',
+      'avoid ',
+      'without ',
+      'use ',
+      'using ',
+      'running ',
+      'invoking ',
       ' x.sh',
       'the',
       'this',
