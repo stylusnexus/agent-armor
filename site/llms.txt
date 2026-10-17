@@ -18,7 +18,7 @@ Full API reference: https://agentarmor.dev/api (ML package: https://agentarmor.d
 
 ## What it detects
 
-- Content Injection: hidden HTML instructions, metadata injection, dynamic cloaking, syntactic masking
+- Content Injection: hidden HTML instructions, metadata injection, dynamic cloaking, syntactic masking, encoded payloads (base64, hex and rot13 text that decodes to an attack)
 - Behavioural Control: jailbreak patterns, data exfiltration attempts, unauthorized sub-agent spawning
 - Cognitive State: RAG poisoning, memory poisoning, contextual learning manipulation
 - Semantic Manipulation: biased framing, oversight evasion, persona hyperstition
@@ -73,12 +73,12 @@ const verdict = armor.checkAction({ tool: 'http.post', args: { url: 'https://evi
 if (!verdict.admissible) throw new ActionBlockedError(verdict.reason);
 ```
 
-## Eval results (v0.9.19 patterns, 284 samples)
+## Eval results (v0.9.19 patterns, 295 samples)
 
 Strictness controls the confidence threshold for reporting threats:
 
-- Permissive (threshold 0.7): 90.9% detection, 0.0% false positives — only high-confidence threats, fewer alerts
-- Balanced (threshold 0.5): 94.5% detection, 0.0% false positives — recommended default
+- Permissive (threshold 0.7): 91.1% detection, 0.0% false positives — only high-confidence threats, fewer alerts
+- Balanced (threshold 0.5): 94.7% detection, 0.0% false positives — recommended default
 - Strict (threshold 0.3): 99.4% detection, 0.0% false positives — maximum coverage, catches subtle attacks
 
 Includes 14 adversarial samples from 2025-2026 real-world incidents (MCP tool poisoning, RAG saturation, covert exfil, supply chain injection, and the July 2026 OpenAI sandbox escape) that regex patterns do not yet fully catch. These measure the gap the ML classifier closes. On the original 49 adversarial samples, regex detection is 100% at balanced.

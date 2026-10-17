@@ -137,12 +137,12 @@ Versions 0.2.1 to 0.2.17 can report a very large input as clean ([GHSA-vr4h-8mw3
 
 ### Eval Suite
 
-284 curated samples (164 adversarial, 120 benign) covering all 18 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
+295 curated samples (169 adversarial, 126 benign) covering all 19 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
 
 | Strictness   | Detection Rate (regex) | False Positive Rate |
 | ------------ | ---------------------- | ------------------- |
-| Permissive   | 90.9%                  | 0.0%                |
-| **Balanced** | **94.5%**              | **0.0%**            |
+| Permissive   | 91.1%                  | 0.0%                |
+| **Balanced** | **94.7%**              | **0.0%**            |
 | Strict       | 99.4%                  | 0.0%                |
 
 The 0.0% false-positive figure covers every benign sample except 11 **known false positives** (`acceptedFlagAt` in `scripts/eval/samples.ts`): honest text that quotes an attack or tells an assistant to run a command, such as a security paper quoting an exfiltration instruction. They flag at every strictness, are reported separately by `npm run eval`, and are excluded from the rate. The gate still fails on any other benign sample that flags.
@@ -173,7 +173,7 @@ Run it: `npx tsx examples/real-world-validation.ts`
 
 | Category                  | Target       | Status  | What It Detects                                                                                                                                                                       |
 | ------------------------- | ------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Content Injection**     | Perception   | Shipped | Hidden HTML/CSS instructions, metadata injection, dynamic cloaking artifacts, syntactic masking, steganographic payloads (ASCII smuggling)                                            |
+| **Content Injection**     | Perception   | Shipped | Hidden HTML/CSS instructions, metadata injection, dynamic cloaking artifacts, syntactic masking, steganographic payloads (ASCII smuggling), encoded payloads (base64, hex, rot13)     |
 | **Behavioural Control**   | Action       | Shipped | Embedded jailbreak sequences, data exfiltration patterns, sub-agent spawning traps                                                                                                    |
 | **Cognitive State**       | Memory       | Shipped | RAG knowledge poisoning, latent memory poisoning, contextual learning manipulation                                                                                                    |
 | **Semantic Manipulation** | Reasoning    | Shipped | Biased framing/priming, oversight evasion, persona hyperstition                                                                                                                       |
@@ -191,14 +191,15 @@ const armor = await AgentArmor.create({
     metadataInjection: true, // aria-label, HTML comments with instructions
     dynamicCloaking: true, // Bot detection scripts
     syntacticMasking: true, // Markdown/LaTeX payload hiding
+    encodedPayload: true, // base64, hex and rot13 text that decodes to an attack
   },
   behaviouralControl: {
     jailbreakPatterns: true, // Known jailbreak sequence detection
     exfiltrationURLs: true, // Data exfiltration patterns
     privilegeEscalation: true, // Sub-agent spawning triggers
   },
-  // 'permissive' = only high-confidence threats (90.9% detection)
-  // 'balanced'   = recommended default (94.5% detection, 0% FP)
+  // 'permissive' = only high-confidence threats (91.1% detection)
+  // 'balanced'   = recommended default (94.7% detection, 0% FP)
   // 'strict'     = maximum coverage, catches subtle attacks
   strictness: 'balanced',
 
@@ -572,6 +573,12 @@ Phrase matching is English only, so an override written in another language isn'
 
   Keys on the _carrier_ (a run of invisible codepoints), never on entropy or encoding. Base64 data URIs, JWTs, and git SHAs are ordinary agent-ingested content and must not fire. Legitimate single selectors — CJK ideographic variation sequences, emoji VS16 — sit below the run threshold by design.
 
+- **EncodedPayloadDetector** — Catches an instruction written in base64, hex or rot13, which reads as noise to every other detector while an agent told to decode it will obey it. It finds encoded runs, decodes them, runs the other detectors on the decoded text at the strictness of the scan, and reports **only when the decoded text is itself a finding**, at that finding's confidence, so it reports at `balanced`. A base64 image, a JWT, a hash, a UUID, an SSH key, a hex colour and an encoded harmless sentence stay clean. It is code, not patterns: a hand-written scanner reads each character once.
+
+  Reads base64 (standard and url-safe, with or without padding, and wrapped lines), hex (a digit run with or without `0x`, pairs split by a space, colon or comma, and `\xNN` escapes), and rot13. It decodes up to two layers (hex inside base64, base64 inside hex, base64 inside base64), at most 1,000,000 decoded characters and 5,000 runs per scan, shared by every layer. rot13 cannot be told from ordinary text by its shape, so it is read only in the paragraph (up to 4,000 characters each side of a cue, ending at a blank line) around a cue word: `rot13`, `rot-13`, `caesar`, `cipher`, `decipher`, `decrypt` or `decode`. The threat's location is the encoded run (for rot13, the encoded sentence), its evidence is the decoded text with any credential cut down to its first four characters, and sanitization replaces only that span with a warning.
+
+  What it cannot catch: rot13 with no cue word in its paragraph, other shifts (rot5, rot47, a Caesar shift other than 13), reversed text, atbash, XOR and any custom cipher, rot13 inside base64 or hex, base64 broken up by spaces or words, a third layer of encoding, base64 or hex past the decoded-character cap, and an attack the other detectors would not flag in plain text. It judges the decoded text exactly as it would judge it written out, so a write-up that quotes an encoded attack is flagged the way one that quotes the plain sentence is. It sees only the detectors that are turned on; turn off `jailbreakPatterns` and a decoded jailbreak is not reported either.
+
 ### Behavioural Control (Shipped)
 
 - **JailbreakPatternDetector** — Pattern-matches against known jailbreak templates (DAN, role-play bypasses, educational framing exploits, developer mode claims), plus, at `strict` only, an instruction to install a package from a raw URL or git source and then commit, push, merge or publish the result to a protected branch (the Clinejection shape)
@@ -723,7 +730,7 @@ Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy, plus t
 
 ### Shipped
 
-- **Content Injection** (5 detectors) and **Behavioural Control** (3 detectors) since v0.1.0
+- **Content Injection** (6 detectors, the sixth being encoded payloads) and **Behavioural Control** (3 detectors) since v0.1.0
 - **Cognitive State** (3 detectors) and **Semantic Manipulation** (3 detectors) since v0.2.0
 - **Transport Integrity** (4 detectors): credential exposure, dependency substitution, tool-call tampering and response anomaly screening
 - **Pre-execution action gate** — deterministic allowlist admissibility check (`checkAction()`)
@@ -781,7 +788,7 @@ Where it _does_ fit: if your team is building custom agents _using_ the Claude A
 
 It detects prompt injection, and it covers more than that. Direct and indirect injection are both in scope. These are flagged before they reach your model: override phrasing ("ignore all previous instructions"), persona swaps, instructions hidden in HTML or metadata, and plain-text instructions that tell an agent to run a command or send a secret and hide it from the user.
 
-Prompt injection is one attack type among the many we cover (18 detectors across 5 attack categories). It targets chatbots within a single conversation. Agent traps target autonomous agents with tool access, persistent memory, and sub-agent spawning. Different attack surface, different blast radius.
+Prompt injection is one attack type among the many we cover (19 detectors across 5 attack categories). It targets chatbots within a single conversation. Agent traps target autonomous agents with tool access, persistent memory, and sub-agent spawning. Different attack surface, different blast radius.
 
 The full taxonomy includes content injection, behavioral control, cognitive state manipulation (RAG/memory poisoning), and semantic manipulation (biased framing, persona shifts). These are distinct attack categories with different detection approaches.
 
