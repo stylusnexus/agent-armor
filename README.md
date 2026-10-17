@@ -678,6 +678,18 @@ armor.loadPatterns(myCustomPatterns);
 console.log(armor.patternVersion); // '0.9.20'
 ```
 
+`fetchLatestPatterns` checks the file before it hands it back, and throws a `PatternValidationError` (with a `problems` list) if anything fails. Nothing changes in a running `armor` until you call `loadPatterns` with the result, so a rejected file leaves the current patterns in place.
+
+- The URL must be `https`. Plain `http` is allowed for `localhost`, `127.0.0.1` and `[::1]` only. Redirects are followed up to three times and must stay on `https`.
+- The body is capped at 2 MiB, and reading stops at the cap.
+- Every field is checked, every pattern needs the `g` flag, and a regex that can match empty text is rejected.
+- Every detector the package ships must be present, with at least one pattern that runs on the whole text (no `scope`) and reports at `balanced`. `minLength` cannot be above the 1,000,000-character input limit.
+- Each regex that is not identical to a shipped one runs against 20,000-character probes of single repeated fragments (spaces, letters, brackets and similar, bare and followed by a stop character) in a worker thread. One that takes over 200 ms, or does not finish in 10 seconds, is rejected. This only catches slowness on input made of those fragments. A regex that is slow only on input shaped like its own wording, such as `ignore(?:\s*\w+)*$`, passes. Review new patterns yourself.
+
+These checks catch mistakes. They do not protect you from a hostile pattern host: a pattern that never matches passes, so a file can still weaken detection. Signatures are not part of this change, so only fetch from a host you trust.
+
+`loadPatterns` builds the new detectors first and swaps them in only if all of them build, so a regex that fails to compile leaves the previous patterns active. It does not run the checks above. A pattern without the `g` flag gets it added, and a pattern that matches empty text is skipped during scans, so neither can stall a scan. Call `validatePatternDatabase(db)` (exported) on a database from any other source first. Signatures are not part of this check.
+
 ## Versioning
 
 Releases are cut by [release-please](https://github.com/googleapis/release-please) from conventional commit titles, and each package has its own version: `@stylusnexus/agentarmor` (the scanner) and `@stylusnexus/agentarmor-ml` (the optional classifier).

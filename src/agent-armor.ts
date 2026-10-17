@@ -25,6 +25,7 @@ import { evaluateAction } from './action-gate';
 import { alignedEdits, applyEdits, mergeEdits } from './sanitize';
 import type { PatternDatabase } from './patterns/pattern-db';
 import { DEFAULT_PATTERNS } from './patterns/default-patterns';
+import { fetchPatternDatabase } from './patterns/fetch';
 import { PatternDetector } from './detectors/pattern-detector';
 import { redactCredentialsIn, redactSecret } from './detectors/credentials';
 import { MarkdownReferenceExfiltrationDetector } from './detectors/behavioural-control/markdown-reference-exfiltration';
@@ -473,11 +474,28 @@ export class AgentArmor {
    * Rebuilds all detectors with the new patterns.
    */
   loadPatterns(patterns: PatternDatabase): void {
-    this.patternDb = patterns;
-    this.detectors = [];
-    this.loadDetectors();
-    if (this.mlDetector) {
-      this.detectors.push(this.mlDetector);
+    const previous = {
+      patternDb: this.patternDb,
+      detectors: this.detectors,
+      normalized: new Set(this.normalizedDetectorIds),
+      masked: new Set(this.maskedDetectorIds),
+      redacted: new Set(this.redactedDetectorIds),
+    };
+    try {
+      this.patternDb = patterns;
+      this.detectors = [];
+      this.loadDetectors();
+      if (this.mlDetector) {
+        this.detectors.push(this.mlDetector);
+      }
+    } catch (err) {
+      // A pattern that fails to compile must not leave a half-built detector list.
+      this.patternDb = previous.patternDb;
+      this.detectors = previous.detectors;
+      this.normalizedDetectorIds = previous.normalized;
+      this.maskedDetectorIds = previous.masked;
+      this.redactedDetectorIds = previous.redacted;
+      throw err;
     }
   }
 
@@ -489,15 +507,15 @@ export class AgentArmor {
   }
 
   /**
-   * Fetch the latest patterns from a remote URL.
-   * URL is required — there is no default endpoint.
+   * Fetch the latest patterns from a remote URL and validate them.
+   * URL is required: there is no default endpoint. It must be https (http is
+   * allowed for localhost only), redirects must stay on https, and the body is
+   * capped at 2 MiB. Throws `PatternValidationError` if the database is unsafe
+   * to load; see `validatePatternDatabase` for the checks. Load the result with
+   * `loadPatterns`; nothing changes until you do.
    */
   static async fetchLatestPatterns(url: string): Promise<PatternDatabase> {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch patterns: ${response.status} ${response.statusText}`);
-    }
-    return (await response.json()) as PatternDatabase;
+    return fetchPatternDatabase(url);
   }
 
   /**
