@@ -242,3 +242,39 @@ describe('shipped patterns stay fast on adversarial input (#175)', () => {
     60_000,
   );
 });
+
+describe('persistence and drop-service patterns on dense signals (#99, #98)', () => {
+  const NEW_IDS = /^(ex-drop|oe-persist|sa-persist)/;
+  // Signals that repeat without the signal that would complete the match, and a
+  // trigger-and-verb run followed by a long space run after a line break.
+  const INPUTS: [string, string][] = [
+    [
+      'dense partial signals',
+      'restore restore when the vm restarts send send without '.repeat(Math.ceil(200_000 / 57)),
+    ],
+    [
+      'line break then spaces',
+      'on each boot '.repeat(15) +
+        'get '.repeat(39) +
+        'restore '.repeat(10) +
+        '\n' +
+        ' '.repeat(800_000),
+    ],
+  ];
+  it('no new pattern takes more than 400 ms on either input', { timeout: 120_000 }, () => {
+    const slow: string[] = [];
+    for (const entry of Object.values(DEFAULT_PATTERNS.detectors).flat()) {
+      if (!NEW_IDS.test(entry.id)) continue;
+      const re = new RegExp(entry.regex, entry.flags);
+      for (const [name, input] of INPUTS) {
+        const start = performance.now();
+        re.lastIndex = 0;
+        let m: RegExpExecArray | null;
+        while ((m = re.exec(input)) !== null) if (m[0].length === 0) re.lastIndex++;
+        const ms = performance.now() - start;
+        if (ms > 400) slow.push(`${entry.id}: ${Math.round(ms)}ms on ${name}`);
+      }
+    }
+    expect(slow).toEqual([]);
+  });
+});

