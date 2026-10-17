@@ -23,6 +23,8 @@
  * skipped as a stray quote, along with the rest of the line.
  */
 
+import { mapRangeToOriginal, normalizeForScan } from '../normalize/unicode';
+
 export interface Span {
   start: number;
   end: number;
@@ -39,8 +41,8 @@ export interface CommandValue extends Span {
 }
 
 const NAME_KEYS = new Set(['name', 'tool', 'tool_name', 'toolname']);
-/** Tool names look like identifiers; "Execute Command" and "install k3s" are labels. */
-const TOOL_NAME = /^[A-Za-z_][\w.:-]{0,63}$/;
+/** Tool names look like identifiers (MCP names may hold a slash); "Execute Command" and "install k3s" are labels. */
+const TOOL_NAME = /^[A-Za-z_][\w.:/-]{0,127}$/;
 const CALL_TYPES =
   /^(?:local_shell_call|function_call|tool_use|tool_call|computer_call|custom_tool_call|mcp_call)$/i;
 const ARG_KEYS = new Set(['input', 'arguments', 'args', 'tool_input', 'action']);
@@ -184,8 +186,9 @@ export function findToolCallArguments(content: string): ArgumentSpan[] {
         if (NAME_KEYS.has(key) || key === 'type') {
           if (first === 34) {
             const valueEnd = stringEnd(content, v);
-            if (valueEnd > 0 && valueEnd - v <= 80) {
-              const value = content.slice(v + 1, valueEnd);
+            if (valueEnd > 0 && valueEnd - v <= 200) {
+              const rawValue = content.slice(v + 1, valueEnd);
+              const value = rawValue.includes('\\') ? decodeJsonString(rawValue).text : rawValue;
               if (key === 'type' ? CALL_TYPES.test(value) : TOOL_NAME.test(value)) {
                 top.hasName = true;
               }
@@ -318,4 +321,23 @@ export function findCommandValues(content: string): CommandValue[] {
     }
   }
   return out;
+}
+
+/**
+ * The text a pattern should match for `text`: Unicode folded (look-alike
+ * letters, invisible characters). The JSON reader above must NOT see folded
+ * text: folding turns a full-width quote into a real one, which a client's JSON
+ * parser does not, so structure is read from the original and only the command
+ * strings are folded. `back` maps a span of the folded text to the original.
+ */
+export function foldForScan(text: string): {
+  text: string;
+  back: (offset: number, length: number) => { offset: number; length: number };
+} {
+  const norm = normalizeForScan(text);
+  if (!norm.changed) return { text, back: (offset, length) => ({ offset, length }) };
+  return {
+    text: norm.normalized,
+    back: (offset, length) => mapRangeToOriginal(norm, offset, length),
+  };
 }

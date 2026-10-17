@@ -21,8 +21,8 @@
 /** A shell word. `ash`, `dash`, `ksh`, `csh`, `tcsh`, `zsh`, `bash`, `sh`, `fish`, quoted or as `$SHELL`. */
 const SHELL_NAME = String.raw`(?:["'](?:(?:ba|z|da|k|c|tc|a)?sh|fish)(?=["'])|(?:(?:ba|z|da|k|c|tc|a)?sh|fish)(?![\w.-])|\$\{?SHELL\}?)`;
 /** A wrapper that passes the program on: a path, `env`, `exec`, `command`, `busybox`, `nohup`. */
-const ROOT = String.raw`(?:/(?:usr/)?(?:local/)?bin/)?(?:(?:env|exec|command|builtin|busybox|nohup)\s+(?:-\S+\s+)*)*`;
-const SUDO = String.raw`(?:sudo\s+(?:-[uCgGhprRTt]\s+\S+\s+|-\S+\s+)*)?`;
+const ROOT = String.raw`(?:/(?:usr/)?(?:local/)?bin/)?(?:(?:env|exec|command|builtin|busybox|nohup|setsid|timeout|nice|ionice|stdbuf)\s+(?:(?:-\S+|\d+|[A-Za-z_]\w*=\S*)\s+)*)*`;
+const SUDO = String.raw`(?:(?:sudo|doas)\s+(?:-[uCgGhprRTt]\s+\S+\s+|-\S+\s+)*)?`;
 const IEX = String.raw`(?:iex|invoke-expression)\b`;
 const INTERPRETER = String.raw`(?:python[23]?|node|perl|ruby)`;
 
@@ -38,10 +38,10 @@ export const PIPE_TARGET = String.raw`${SUDO}${ROOT}(?:${SHELL_NAME}|${IEX}|${IN
  * a file, or run a script with an interpreter (`python -m` and `-c` are not
  * scripts).
  */
-export const CHAIN_TARGET = String.raw`(?:chmod\s+(?:\+x|[0-7]{3,4})\b|${SUDO}${ROOT}(?:${SHELL_NAME}|${IEX})|(?:\.{1,2}/|/(?:var/)?tmp/|/dev/shm/|~/)\S|(?:source|\.)\s+\S|${INTERPRETER}\s+(?!-[mce]\b)[./\w~-])`;
+export const CHAIN_TARGET = String.raw`(?:chmod\s+(?:[ugoa]*[+=][rwxst]*x|(?=[0-7]*[1357])[0-7]{3,4})\b|${SUDO}${ROOT}(?:${SHELL_NAME}|${IEX})|(?:\.{1,2}/|~/|\$\{?HOME\}?/|/(?:var/)?tmp/|/dev/shm/|/opt/|/usr/local/bin/|/home/|/root/)\S|(?:source|\.)\s+\S|${INTERPRETER}\s+(?!-[mce]\b)[./\w~-])`;
 
 /** A word that fetches from the network. */
-export const DOWNLOADER = String.raw`\b(?:curl|wget|irm|iwr|invoke-webrequest|invoke-restmethod)\b`;
+export const DOWNLOADER = String.raw`\b(?:curl|wget2?|irm|iwr|invoke-webrequest|invoke-restmethod)\b`;
 
 /**
  * The tail of a download that is run: a pipe into a target, or a chain into a
@@ -58,7 +58,7 @@ export const RUN_AFTER_DOWNLOAD = String.raw`(?:\|\s*${PIPE_TARGET}|(?:;|&&)\s*$
  */
 export const DOWNLOAD_EXEC = String.raw`${DOWNLOADER}(?:(?!${DOWNLOADER})[\s\S])*?${RUN_AFTER_DOWNLOAD}`;
 
-const FETCH = String.raw`(?:curl|wget|irm|iwr)\b`;
+const FETCH = String.raw`(?:curl|wget2?|irm|iwr)\b`;
 /**
  * A shell or interpreter word. Not preceded by the wrappers `ROOT` allows
  * after a pipe: starting at the word itself finds the same matches, and a
@@ -74,16 +74,26 @@ const SHELL_OR_INTERPRETER = String.raw`(?<![\w.-])(?:${SHELL_NAME}|${INTERPRETE
  */
 export const DOWNLOAD_SUBSHELL = String.raw`(?:${SHELL_OR_INTERPRETER}\s+(?:-\w+\s+)*-[ce]\s+["']?(?:\$\(|\`)|(?:${SHELL_OR_INTERPRETER}|\bsource|(?<![\w.])\.)\s+(?:<\s*)?<\(|${SHELL_OR_INTERPRETER}\s+<<<\s*["']?(?:\$\(|\`)|\b(?:eval|source)\s+["']?(?:\$\(|\`)|(?<![\w.])\.\s+["']?(?:\$\(|\`))\s*${FETCH}`;
 
-const DECODER = String.raw`(?:base64\s+(?:-d|-D|-di|--decode)|xxd\s+-r(?:\s+-p)?|openssl\s+(?:enc\s+)?-?base64\s+-d)`;
+const DECODER = String.raw`(?:base(?:64|32)\s+(?:-d|-D|-di|--decode)|xxd\s+-r(?:\s+-p)?|openssl\s+(?:enc\s+)?-?base64\s+-d)`;
+
+const DECOMPRESSOR = String.raw`(?:gunzip|zcat|bzcat|xzcat|unxz|bunzip2|zstdcat|(?:gzip|bzip2|xz|zstd)\s+-dc?)(?:\s+-\S+)*`;
 
 /** `bash -c "$(echo B64 | base64 -d)"`: a shell run on decoded text. */
 export const DECODE_SUBSHELL = String.raw`(?:${SHELL_OR_INTERPRETER}|\b(?:eval|source))\s+(?:-\w+\s+)*["']?\$\(\s*(?:echo|printf)\s+(?:-\w+\s+)*["']?[A-Za-z0-9+/=]{16,}["']?\s*\|\s*${DECODER}\b`;
 
 /** `... | base64 -d | sh`, `base64 -d <<< B64 | bash`, `xxd -r -p | sh`: decoded text run by a shell. */
-export const BASE64_TO_SHELL = String.raw`\b${DECODER}\b(?:\s+-[\w=.-]+)*(?:\s*<<<\s*\S+)?\s*\|\s*${PIPE_TARGET}`;
+export const BASE64_TO_SHELL = String.raw`\b${DECODER}\b(?:\s+-[\w=.-]+)*(?:\s*<<<\s*\S+)?(?:\s*\|\s*${DECOMPRESSOR})*\s*\|\s*${PIPE_TARGET}`;
 
-/** `exec(base64.b64decode(...))`, `exec(zlib.decompress(base64.b64decode(...)))`, any module alias. */
-export const PYTHON_B64_EXEC = String.raw`\b(?:exec|eval)\s*\(\s*(?:(?:\w+\.)?decompress\s*\(\s*)?(?:__import__\s*\(\s*["'][\w.]+["']\s*\)\s*\.|\w+\.)?(?:b64decode|a2b_base64)\s*\(`;
+/**
+ * Code run on decoded text: Python `exec(base64.b64decode(...))`,
+ * `os.system(base64.b64decode(...))` and `exec(zlib.decompress(...))` (any
+ * module alias), Node `eval(Buffer.from('...', 'base64'))` and `eval(atob(...))`,
+ * Perl `eval decode_base64(...)`.
+ */
+export const DECODED_CODE_EXEC = String.raw`(?:\b(?:exec|eval|os\.system|os\.popen|subprocess\.\w+)\s*\(\s*(?:(?:\w+\.)?decompress\s*\(\s*)?(?:__import__\s*\(\s*["'][\w.]+["']\s*\)\s*\.|\w+\.)?(?:b64decode|a2b_base64)\s*\(|\b(?:eval|Function|exec|execSync|spawnSync|runInThisContext)\s*\(\s*(?:Buffer\.from|atob)\s*\(|\b(?:eval|system|exec)\s*\(?\s*(?:MIME::Base64::)?decode_base64\s*\()`;
+
+/** A command that is only a substitution that runs a download: the element of `["bash", "-c", "$(curl ...)"]`. */
+export const BARE_SUBSHELL = String.raw`^\s*["']?(?:\$\(|\`)\s*${FETCH}`;
 
 /** `iex (New-Object Net.WebClient).DownloadString(...)`, `iex (irm URL)` and `powershell -enc BASE64`. */
-export const POWERSHELL_RUN = String.raw`(?:\b(?:iex|invoke-expression)\s*\(?\s*\(?\s*(?:new-object\s+(?:system\.)?net\.webclient|(?:iwr|irm|invoke-webrequest|invoke-restmethod)\b)|\bpowershell(?:\.exe)?\s+(?:-\w+\s+)*-e(?:nc(?:odedcommand)?)?\s+[A-Za-z0-9+/=]{20,})`;
+export const POWERSHELL_RUN = String.raw`(?:\b(?:iex|invoke-expression)\s*\(?\s*\(?\s*(?:new-object\s+(?:system\.)?net\.webclient|(?:iwr|irm|invoke-webrequest|invoke-restmethod)\b)|\bpowershell(?:\.exe)?\s+(?:-\w+\s+(?:[A-Za-z]+\s+)?)*-e(?:nc(?:odedcommand)?)?\s+[A-Za-z0-9+/=]{20,})`;

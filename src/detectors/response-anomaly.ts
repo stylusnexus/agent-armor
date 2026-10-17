@@ -9,15 +9,13 @@ import type {
   TrapCategory,
 } from '../types';
 import { applyEdits, mergeEdits } from '../sanitize';
+import { findCredential, redactCredentialsIn, redactSecret, shannonEntropy } from './credentials';
 import {
-  CREDENTIALS,
-  CREDENTIAL_MIN_ENTROPY,
-  PLACEHOLDER,
-  redactCredentialsIn,
-  redactSecret,
-  shannonEntropy,
-} from './credentials';
-import { decodeJsonString, findToolCallArguments, type ArgumentSpan } from './tool-call-json';
+  decodeJsonString,
+  findToolCallArguments,
+  foldForScan,
+  type ArgumentSpan,
+} from './tool-call-json';
 import {
   CHAIN_TARGET,
   DOWNLOADER as DOWNLOADER_SOURCE,
@@ -295,24 +293,15 @@ function signalsIn(text: string, base: number, inToolCall: boolean): Signal[] {
 
   // Credentials inside the arguments of a tool call.
   if (inToolCall) {
-    for (const re of CREDENTIALS) {
-      re.lastIndex = 0;
-      let m: RegExpExecArray | null;
-      while ((m = re.exec(text)) !== null) {
-        const value = m[1] ?? m[0];
-        if (PLACEHOLDER.test(value) || shannonEntropy(value) < CREDENTIAL_MIN_ENTROPY) continue;
-        add(
-          'a credential in tool call arguments',
-          CREDENTIAL_WEIGHT,
-          m.index,
-          m.index + m[0].length,
-          {
-            secret: true,
-          },
-        );
-        break;
-      }
-      if (out.some((s) => s.secret)) break;
+    const found = findCredential(text);
+    if (found) {
+      add(
+        'a credential in tool call arguments',
+        CREDENTIAL_WEIGHT,
+        found.index,
+        found.index + found.length,
+        { secret: true },
+      );
     }
   }
 
@@ -369,7 +358,9 @@ export class ResponseAnomalyDetector implements Detector {
     const threats: Threat[] = [];
     const units = unitsOf(content, findToolCallArguments(content));
     for (const unit of units) {
-      const signals = signalsIn(unit.text, 0, unit.inToolCall);
+      // The reader saw the original text; the signals read a folded copy.
+      const folded = foldForScan(unit.text);
+      const signals = signalsIn(folded.text, 0, unit.inToolCall);
       if (!signals.some((s) => !s.supporting)) continue;
       const confidence = combine(signals, unit.inToolCall);
       if (confidence < threshold) continue;
@@ -381,11 +372,14 @@ export class ResponseAnomalyDetector implements Detector {
         severity: severityFor(confidence),
         confidence: Math.round(confidence * 100) / 100,
         description: `Response anomaly: ${signals.map((s) => s.name).join(', ')}`,
-        evidence: this.evidence(unit.text, start, end, signals),
+        evidence: this.evidence(folded.text, start, end, signals),
         // A tool call is replaced whole, so the JSON around it stays valid.
         location: unit.inToolCall
           ? { offset: unit.start, length: unit.end - unit.start }
-          : { offset: unit.start + start, length: end - start },
+          : (() => {
+              const at = folded.back(start, end - start);
+              return { offset: unit.start + at.offset, length: at.length };
+            })(),
         detectorId: this.id,
         source: 'pattern',
       });

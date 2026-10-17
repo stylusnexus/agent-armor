@@ -137,6 +137,8 @@ const DETECTOR_REGISTRY: Array<{
   maskEvidence?: boolean;
   /** Cut credentials inside the evidence down to a prefix and keep the rest. */
   redactCredentials?: boolean;
+  /** Scan the text as given, not its Unicode-folded copy; the detector folds what it needs. */
+  scanRaw?: boolean;
   /** Code detectors that run alongside this entry's pattern detector, under the same config flag. */
   extraDetectors?: () => Detector[];
 }> = [
@@ -309,6 +311,7 @@ const DETECTOR_REGISTRY: Array<{
     replaceText:
       '[BLOCKED: suspicious shell command flagged by AgentArmor; verify the tool call before executing]',
     redactCredentials: true,
+    scanRaw: true,
   },
   {
     configGroup: 'transportIntegrity',
@@ -345,6 +348,7 @@ const DETECTOR_REGISTRY: Array<{
     sanitizeMode: 'replace',
     // A flagged span can hold a credential; keep it out of evidence.
     redactCredentials: true,
+    scanRaw: true,
   },
 ];
 
@@ -658,7 +662,9 @@ export class AgentArmor {
         if (reg.maskEvidence) this.maskedDetectorIds.add(reg.id);
         if (reg.redactCredentials) this.redactedDetectorIds.add(reg.id);
         this.detectors.push(reg.codeDetector());
-        if (reg.category !== 'content-injection') this.normalizedDetectorIds.add(reg.id);
+        if (reg.category !== 'content-injection' && !reg.scanRaw) {
+          this.normalizedDetectorIds.add(reg.id);
+        }
         continue;
       }
 
@@ -682,6 +688,7 @@ export class AgentArmor {
           replaceText: reg.replaceText,
           maskEvidence: reg.maskEvidence,
           redactCredentials: reg.redactCredentials,
+          foldInside: reg.scanRaw,
         }),
       );
 
@@ -691,7 +698,7 @@ export class AgentArmor {
       // Structural detectors (content-injection) must see the raw bytes — they
       // exist to catch the invisible/obfuscation characters normalization
       // strips. Everything else scans the normalized skeleton.
-      if (reg.category !== 'content-injection') {
+      if (reg.category !== 'content-injection' && !reg.scanRaw) {
         this.normalizedDetectorIds.add(reg.id);
       }
     }

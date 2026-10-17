@@ -5,7 +5,8 @@ import {
   DOWNLOAD_EXEC,
   DOWNLOAD_SUBSHELL,
   POWERSHELL_RUN,
-  PYTHON_B64_EXEC,
+  DECODED_CODE_EXEC,
+  BARE_SUBSHELL,
 } from './tool-call-sources';
 
 /**
@@ -23,6 +24,8 @@ import {
  *            substitution, PowerShell, decoders, command arrays
  *   0.9.16 — tool-call-tampering: patterns run on the commands of tool calls
  *            found by reading the JSON (scope `tool-call-command`)
+ *   0.9.17 — tool-call-tampering: more wrappers and decoders, node/perl decoded
+ *            code, command-substitution arrays
  */
 /**
  * tool-call-tampering (#27): shell the model's tool call would run, rewritten
@@ -56,7 +59,8 @@ const TOOL_CALL_SHAPES: Array<[string, string, string]> = [
   ['download-subshell', DOWNLOAD_SUBSHELL, 'Shell run on a downloaded script'],
   ['decode-subshell', DECODE_SUBSHELL, 'Shell run on base64-decoded text'],
   ['base64-shell', BASE64_TO_SHELL, 'Decoded text piped into a shell'],
-  ['python-b64-exec', PYTHON_B64_EXEC, 'Python executes base64-decoded text'],
+  ['decoded-code-exec', DECODED_CODE_EXEC, 'Code executes base64-decoded text'],
+  ['command-substitution', BARE_SUBSHELL, 'Command that is only a substitution running a download'],
   ['powershell', POWERSHELL_RUN, 'PowerShell downloads and runs, or runs an encoded command'],
 ];
 
@@ -69,9 +73,9 @@ function toolCallEntries(): PatternEntry[] {
       false,
     ),
     toolCallEntry(
-      'tc-python-b64-exec',
-      PYTHON_B64_EXEC,
-      'Python executes base64-decoded text',
+      'tc-decoded-code-exec',
+      DECODED_CODE_EXEC,
+      'Code executes base64-decoded text',
       false,
     ),
     ...TOOL_CALL_SHAPES.map(([id, regex, label]) =>
@@ -81,7 +85,7 @@ function toolCallEntries(): PatternEntry[] {
 }
 
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.16',
+  version: '0.9.17',
   updatedAt: '2026-10-16',
   detectors: {
     'hidden-html': [

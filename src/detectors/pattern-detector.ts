@@ -5,7 +5,7 @@ import { findMatcher, type MatcherHit, type PatternMatcher } from '../patterns/m
 import type { TextEdit, Threat, TrapCategory, TrapType } from '../types';
 import { replaceRanges } from '../sanitize';
 import { redactCredentialsIn, redactSecret } from './credentials';
-import { findCommandValues, type CommandValue } from './tool-call-json';
+import { findCommandValues, foldForScan, type CommandValue } from './tool-call-json';
 
 export { redactSecret };
 
@@ -42,6 +42,7 @@ export class PatternDetector extends BaseDetector {
   private readonly replaceText?: string;
   private readonly maskEvidence: boolean;
   private readonly redactCredentials: boolean;
+  private readonly foldInside: boolean;
 
   constructor(opts: {
     id: string;
@@ -56,6 +57,13 @@ export class PatternDetector extends BaseDetector {
     maskEvidence?: boolean;
     /** Cut credentials inside the matched text down to a prefix, keeping the rest. */
     redactCredentials?: boolean;
+    /**
+     * Scan the text as given and fold Unicode here instead: the tool-call
+     * reader must see the original characters. Patterns on the whole text run
+     * on a folded copy and map back; patterns on tool-call commands run on
+     * folded commands.
+     */
+    foldInside?: boolean;
   }) {
     super();
     this.id = opts.id;
@@ -71,6 +79,7 @@ export class PatternDetector extends BaseDetector {
     this.replaceText = opts.replaceText;
     this.maskEvidence = opts.maskEvidence ?? false;
     this.redactCredentials = opts.redactCredentials ?? false;
+    this.foldInside = opts.foldInside ?? false;
   }
 
   protected override redactEvidence(match: string): string {
@@ -82,20 +91,33 @@ export class PatternDetector extends BaseDetector {
     const matches: PatternMatch[] = [];
 
     let commands: CommandValue[] | undefined;
+    let folded: ReturnType<typeof foldForScan> | undefined;
     for (const { entry, regex, matcher } of this.compiled) {
       const hits: Array<MatcherHit & { span?: { start: number; end: number } }> = [];
       if (entry.scope === 'tool-call-command') {
         commands ??= findCommandValues(content);
         for (const command of commands) {
-          for (const hit of execAll(regex, command.text, entry.extractGroup ?? 0)) {
+          const text = this.foldInside ? foldForScan(command.text).text : command.text;
+          for (const hit of execAll(regex, text, entry.extractGroup ?? 0)) {
             hits.push({ ...hit, span: command });
           }
         }
       } else {
+        const view = this.foldInside ? (folded ??= foldForScan(content)) : undefined;
+        const text = view ? view.text : content;
         for (const hit of matcher
-          ? matcher.match(content)
-          : execAll(regex, content, entry.extractGroup ?? 0)) {
-          hits.push(hit);
+          ? matcher.match(text)
+          : execAll(regex, text, entry.extractGroup ?? 0)) {
+          if (!view) {
+            hits.push(hit);
+            continue;
+          }
+          const at = view.back(hit.index, hit.text.length);
+          hits.push({
+            ...hit,
+            index: at.offset,
+            text: content.slice(at.offset, at.offset + at.length),
+          });
         }
       }
       for (const hit of hits) {
