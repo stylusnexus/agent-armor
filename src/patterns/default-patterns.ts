@@ -26,6 +26,8 @@ import {
  *            found by reading the JSON (scope `tool-call-command`)
  *   0.9.17 — tool-call-tampering: more wrappers and decoders, node/perl decoded
  *            code, command-substitution arrays
+ *   0.9.18 — tool-call-tampering: wrapper arguments stop at a line break; combined
+ *            shell flags such as -lc; the |& pipe
  */
 /**
  * tool-call-tampering (#27): shell the model's tool call would run, rewritten
@@ -85,7 +87,7 @@ function toolCallEntries(): PatternEntry[] {
 }
 
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.17',
+  version: '0.9.18',
   updatedAt: '2026-10-16',
   detectors: {
     'hidden-html': [
