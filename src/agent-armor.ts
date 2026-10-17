@@ -827,7 +827,7 @@ export class AgentArmor {
           useNorm ? this.remapThreats(result.threats, norm!, content) : result.threats,
         );
       } catch (err) {
-        failed.push(detector.id);
+        if (!failed.includes(detector.id)) failed.push(detector.id);
         const error = err instanceof Error ? err : new Error(String(err));
         const message = `[AgentArmor] Detector "${detector.id}" threw during scan: ${error.message}`;
         if (this.config.on?.error) {
@@ -898,7 +898,7 @@ export class AgentArmor {
           );
         }
       } catch (err) {
-        failed.push(detector.id);
+        if (!failed.includes(detector.id)) failed.push(detector.id);
         const error = err instanceof Error ? err : new Error(String(err));
         const message = `[AgentArmor] Detector "${detector.id}" threw during scan: ${error.message}`;
         if (this.config.on?.error) {
@@ -1130,7 +1130,7 @@ export class AgentArmor {
       } else {
         console.warn(message);
       }
-      failedDetectors.push(this.mlDetector!.id);
+      if (!failedDetectors.includes(this.mlDetector!.id)) failedDetectors.push(this.mlDetector!.id);
       return [];
     }
 
@@ -1179,7 +1179,9 @@ export class AgentArmor {
       const bStart = aEnd + SEP.length; // later turn occupies [bStart, end)
 
       const windowResult = this.runScanPipeline(joined);
-      appendAll(failedDetectors, windowResult.stats.failedDetectors ?? []);
+      for (const id of windowResult.stats.failedDetectors ?? []) {
+        if (!failedDetectors.includes(id)) failedDetectors.push(id);
+      }
       for (const threat of windowResult.threats) {
         if (!threat.location) continue; // no offset → cannot prove a span
         const rel = threat.relatedLocation;

@@ -158,4 +158,12 @@ describe('degraded scans', () => {
     const ml = { ...throwingDetector('ml-fake'), scan: () => ({ threats: [] }) } as Detector;
     expect((await AgentArmor.create({ ml: { detector: ml } })).mlActive).toBe(true);
   });
+
+  it('lists a failing id once when two detectors share it', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const armor = AgentArmor.regexOnly({
+      customDetectors: [throwingDetector('dup'), throwingDetector('dup')],
+    });
+    expect(armor.scanSync('x').stats.failedDetectors).toEqual(['dup']);
+  });
 });

@@ -89,6 +89,7 @@ export function formatSarif(results: FileScanResult[]): string {
     shortDescription: { text: `Agent Armor detector: ${titleCase(id)}` },
   }));
 
+  const degraded = results.filter(({ result }) => result.stats.degraded);
   const sarif = {
     $schema:
       'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json',
@@ -103,6 +104,25 @@ export function formatSarif(results: FileScanResult[]): string {
           },
         },
         results: sarifResults,
+        // Code scanning shows a run with no results as passing; say why it was not.
+        ...(degraded.length > 0
+          ? {
+              invocations: [
+                {
+                  executionSuccessful: false,
+                  toolExecutionNotifications: degraded.map(({ file, result }) => ({
+                    level: 'error',
+                    message: {
+                      text: `Degraded scan: detector(s) ${(result.stats.failedDetectors ?? []).join(', ')} failed, so ${file} was not fully checked.`,
+                    },
+                    locations: [
+                      { physicalLocation: { artifactLocation: { uri: toFileUri(file) } } },
+                    ],
+                  })),
+                },
+              ],
+            }
+          : {}),
       },
     ],
   };

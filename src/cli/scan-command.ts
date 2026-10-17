@@ -61,11 +61,12 @@ export async function runScan(options: ScanCliOptions): Promise<ScanCommandResul
         : formatText(results);
 
   // A degraded scan (a detector threw) has no threat to rank, so it fails on its own.
-  const anyFailure = results.some(
-    ({ result }) =>
-      meetsOrExceeds(result.riskLevel, options.failOn) ||
-      (result.stats.degraded === true && options.failOn !== 'none'),
-  );
+  const anyFailure =
+    options.failOn !== 'none' &&
+    results.some(
+      ({ result }) =>
+        meetsOrExceeds(result.riskLevel, options.failOn) || result.stats.degraded === true,
+    );
 
   return { output, exitCode: anyFailure ? 1 : 0 };
 }

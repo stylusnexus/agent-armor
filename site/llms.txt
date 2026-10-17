@@ -32,7 +32,7 @@ Pattern-based detection using a two-pass approach:
 
 Three strictness levels: permissive, balanced, strict. Any other value throws.
 
-If a detector throws during a scan, `result.stats.degraded` is true, `result.stats.failedDetectors` lists the detector ids, and `result.clean` is false even with no threats found. `clean: true` always means a full scan.
+If a detector throws during a scan, `result.stats.degraded` is true, `result.stats.failedDetectors` lists the detector ids, and `result.clean` is false even with no threats found. A thrown detector can no longer hide behind `clean: true`, but `clean: true` is still not proof every check ran: skipped inputs (`stats.detectorsSkipped`), `scanSync()` with ML loaded (ML runs only on async methods), and ML unavailable under `warn-and-skip` all leave it true.
 
 Detection is deterministic by default: the same input always yields the same verdict. Patterns run first (sub-millisecond, zero dependencies); the optional ML classifier is an added layer, not the decision boundary. Inference is probabilistic — the execution gate is not.
 
