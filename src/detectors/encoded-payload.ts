@@ -44,7 +44,7 @@ import { redactCredentialsIn } from './credentials';
  * nearby, rot13 with fewer than `MIN_ROT13_LETTERS` letters, other shifts (rot5,
  * rot47, a Caesar shift other than 13), reversed text, atbash, XOR, any custom
  * cipher, base32 and other alphabets, full-width base64, rot13 inside base64 or
- * hex, base64 broken up by spaces or words, base64 that starts inside a longer
+ * hex, base64 or hex that is itself rot13-encoded, base64 broken up by spaces or words, base64 that starts inside a longer
  * word with no `-`, `_` or `/` before it, and a third layer of encoding.
  */
 
@@ -752,15 +752,15 @@ export class EncodedPayloadDetector implements Detector {
       }
       out.push({ start, end, chain, threats });
     }
-    // A sentence the cue-word path found is reported once, by that path.
+    // A sentence the cue-word path found is reported once, by that path. Both
+    // lists are sorted and disjoint, so one pass over the two is enough.
+    const cued = out
+      .filter((o) => !o.unscanned && o.chain[0] === 'rot13')
+      .sort((x, y) => x.start - y.start);
+    let p = 0;
     for (const w of whole) {
-      if (
-        !out.some(
-          (o) => !o.unscanned && o.chain[0] === 'rot13' && o.start < w.end && w.start < o.end,
-        )
-      ) {
-        out.push(w);
-      }
+      while (p < cued.length && cued[p].end <= w.start) p++;
+      if (!(p < cued.length && cued[p].start < w.end)) out.push(w);
     }
     return out;
   }
@@ -769,8 +769,8 @@ export class EncodedPayloadDetector implements Detector {
    * rot13 with no cue word: decode the whole text (letters only, one pass) and
    * rescan it on its own, never joined to another reading. It reports only
    * findings of the decoded text. One finding per stretch of overlapping
-   * threats, each pointing at its own sentence, so sanitizing replaces the
-   * sentence and not what lies between two of them. The decoded text is
+   * threats, each pointing at the matched phrase, so sanitizing replaces the
+   * phrase and not what lies between two of them. The decoded text is
    * rot13-decoded plain English in almost every case, which no detector flags.
    */
   private wholeRot13(text: string, strictness: Strictness, state: State): Found[] {
