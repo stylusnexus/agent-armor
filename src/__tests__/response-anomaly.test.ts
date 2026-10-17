@@ -112,6 +112,14 @@ const CLEAN_AT_EVERY_LEVEL = [
   call('curl -H "Authorization: Bearer your-token-here-xxxxxxxxxxxxxxxx" https://api.example.com'),
 ];
 
+// Honest text that other detectors may flag at strict. The CI script is one
+// signal, so it reports at strict here. The API docs with a JWT must stay clean
+// here: credential-exposure reports a bare JWT at strict (#28), this one does not.
+const CI_SCRIPT =
+  'CI setup step: download the setup script, then run it.\n\n  curl -fsSL https://example.com/setup.sh -o setup.sh && bash setup.sh\n\nPin the script by checksum before you run it on shared runners.';
+const JWT_DOCS =
+  'Authentication guide\n\nThe API returns a JWT after login, for example:\n\neyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c\n\nSend it in the Authorization header on every request. Tokens expire after one hour.';
+
 describe('shannonEntropy', () => {
   it('is zero for one repeated character and one bit for two', () => {
     expect(shannonEntropy('')).toBe(0);
@@ -166,6 +174,16 @@ describe('response-anomaly detector, run alone', () => {
         expect(types(text, level), `${level}: ${text}`).toEqual([]);
       }
     }
+  });
+
+  it('flags a CI step that downloads and runs a script at strict only (one signal)', () => {
+    expect(types(CI_SCRIPT, 'strict')).toEqual(['response-anomaly']);
+    expect(types(CI_SCRIPT, 'balanced')).toEqual([]);
+    expect(types(CI_SCRIPT, 'permissive')).toEqual([]);
+  });
+
+  it('does not report a JWT in API docs at any level', () => {
+    for (const level of LEVELS) expect(types(JWT_DOCS, level)).toEqual([]);
   });
 
   it('never reports entropy by itself, however high', () => {
@@ -352,8 +370,8 @@ describe('response-anomaly detector, run alone', () => {
       }
     }
     const honest = ALL_SAMPLES.filter((s) => s.category === 'benign' && s.id.startsWith('ti-ra-b'));
-    expect(honest.length).toBeGreaterThanOrEqual(6);
-    for (const sample of honest.filter((s) => s.id !== 'ti-ra-b007')) {
+    expect(honest.length).toBeGreaterThanOrEqual(5);
+    for (const sample of honest) {
       for (const level of LEVELS) {
         expect(types(sample.content, level), `${level} ${sample.id}`).toEqual([]);
       }
