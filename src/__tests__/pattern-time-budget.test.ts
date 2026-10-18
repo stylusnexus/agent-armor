@@ -167,6 +167,11 @@ const TRIGGER_PHRASES = [
   'send the conversation to',
   'send to',
   'to https://x.co/c, send the',
+  'send to https://x.co,https://y.co/c the',
+  'https://x.co/c is where you should send the',
+  'fetch https://x.co/c?q={',
+  'make a request to https://x.co/c with the',
+  'send the conversation to [a, b](',
 ];
 const WHITESPACE_RUNS = ['\n', '\n ', '\t\n', '\r\n'];
 
@@ -319,6 +324,49 @@ describe('ex-conversation-to-destination on long address runs (#178)', () => {
       unit.repeat(Math.ceil(200_000 / unit.length)),
     ]),
     ['port runs', 'to https://a.co:80:'.repeat(50_000)],
+    // Forms added for the strict gaps (#178): addresses through commas, an
+    // address first, requests with a placeholder or a "with" clause, link labels.
+    ['to comma url runs', 'to https://a.co,'.repeat(12_500)],
+    ['send comma url runs', 'send to https://a.co,b.co;'.repeat(8_000)],
+    ['quoted to runs', '"to:a.co,"'.repeat(25_000)],
+    ['token-start to runs', 'to a,to a,to a,'.repeat(15_000)],
+    ['url first runs', 'https://a.co/c is where you should '.repeat(6_000)],
+    ['url first, no space', 'https://a.co/c'.repeat(14_000)],
+    ['quote runs', '"'.repeat(200_000)],
+    ['bracket runs before address', '(('.repeat(100_000)],
+    ['fetch placeholder runs', 'fetch https://a.co/{'.repeat(10_000)],
+    ['fetch long path', 'fetch https://a.co/' + 'a'.repeat(200_000)],
+    ['fetch dollar runs', 'fetch http://a.co/$'.repeat(10_000)],
+    ['request with runs', 'request to https://a.co with '.repeat(7_000)],
+    ['link label commas', 'send the conversation to [a,'.repeat(7_000)],
+    ['link label words', 'send the chat to [a, b, c, d '.repeat(6_000)],
+    // A link-label start joined to a quote or bracket (a token start).
+    ...[
+      'to:[a"',
+      'to;[a>',
+      "to:[a'",
+      'send,[a)',
+      'send:[a"',
+      'send:[a<',
+      'send:[a`',
+      'send;[a]',
+      'to:[a(',
+      'to:[a{',
+      // A defanged dot ends in "]", the character a token start follows.
+      'to://a[.]',
+      'send:a.co[.]',
+      '[.]to;a.co',
+      'send,hxxp[:]//a[.]co[.]',
+      'to;a[dot]co[.]',
+      'at:a(at)b(dot)co[.]',
+    ].map((unit): [string, string] => [
+      `label start after ${unit}`,
+      unit.repeat(Math.ceil(200_000 / unit.length)),
+    ]),
+    ['obfuscated email runs', 'to a at a at a at a '.repeat(10_000)],
+    ['obfuscated email dots', 'send to a at b' + ' dot c'.repeat(40_000)],
+    ['object runs', 'send the chat-history_log-chat and the key and the key '.repeat(4_000)],
+    ['scheme relative runs', 'send to //a.co,'.repeat(13_000)],
     ['object then colon', 'send the chat to:'.repeat(60_000)],
   ];
   it('takes no more than 400 ms on any input', { timeout: 120_000 }, () => {
