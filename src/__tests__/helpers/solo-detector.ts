@@ -7,6 +7,7 @@ const SOLO_FLAGS = {
   'metadata-injection': ['contentInjection', 'metadataInjection'],
   'dynamic-cloaking': ['contentInjection', 'dynamicCloaking'],
   'syntactic-masking': ['contentInjection', 'syntacticMasking'],
+  'encoded-payload': ['contentInjection', 'encodedPayload'],
   'jailbreak-patterns': ['behaviouralControl', 'jailbreakPatterns'],
   exfiltration: ['behaviouralControl', 'exfiltrationURLs'],
   'sub-agent-spawning': ['behaviouralControl', 'privilegeEscalation'],
@@ -17,6 +18,8 @@ const SOLO_FLAGS = {
   'oversight-evasion': ['semanticManipulation', 'oversightEvasion'],
   'persona-hyperstition': ['semanticManipulation', 'personaHyperstition'],
   'dependency-substitution': ['transportIntegrity', 'dependencySubstitution'],
+  'tool-call-tampering': ['transportIntegrity', 'toolCallTampering'],
+  'response-anomaly': ['transportIntegrity', 'responseAnomaly'],
 } as const;
 
 export type SoloDetectorId = keyof typeof SOLO_FLAGS;
@@ -28,6 +31,7 @@ const GROUPS = {
     'dynamicCloaking',
     'syntacticMasking',
     'steganographicPayload',
+    'encodedPayload',
   ],
   behaviouralControl: ['jailbreakPatterns', 'exfiltrationURLs', 'privilegeEscalation'],
   cognitiveState: ['ragPoisoning', 'memoryPoisoning', 'contextualLearning'],

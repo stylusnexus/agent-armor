@@ -19,12 +19,18 @@ import type {
   TrapType,
 } from './types';
 import { createHash, randomUUID } from 'node:crypto';
+
+const STRICTNESS_VALUES: readonly Strictness[] = ['permissive', 'balanced', 'strict'];
 import { evaluateAction } from './action-gate';
 import { alignedEdits, applyEdits, mergeEdits } from './sanitize';
 import type { PatternDatabase } from './patterns/pattern-db';
 import { DEFAULT_PATTERNS } from './patterns/default-patterns';
-import { PatternDetector, redactSecret } from './detectors/pattern-detector';
+import { fetchPatternDatabase } from './patterns/fetch';
+import { PatternDetector } from './detectors/pattern-detector';
+import { redactCredentialsIn, redactSecret } from './detectors/credentials';
 import { MarkdownReferenceExfiltrationDetector } from './detectors/behavioural-control/markdown-reference-exfiltration';
+import { ResponseAnomalyDetector } from './detectors/response-anomaly';
+import { EncodedPayloadDetector } from './detectors/encoded-payload';
 import { normalizeForScan, mapRangeToOriginal, type NormalizedText } from './normalize/unicode';
 
 const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
@@ -38,6 +44,7 @@ const DEFAULT_CONFIG: Required<AgentArmorConfig> = {
     dynamicCloaking: true,
     syntacticMasking: true,
     steganographicPayload: true,
+    encodedPayload: true,
   },
   behaviouralControl: {
     jailbreakPatterns: true,
@@ -111,6 +118,12 @@ export function computeRiskLevel(severity: Severity | null, confidence: number):
   }
 }
 
+/** What a code detector may ask of the armor that builds it. */
+interface DetectorContext {
+  /** Run the shipped detectors (not custom or ML ones, and not the caller) on text a detector decoded. */
+  rescan(text: string, strictness: Strictness): Threat[];
+}
+
 /** Detector config: maps config flags to pattern DB keys + metadata */
 const DETECTOR_REGISTRY: Array<{
   configGroup:
@@ -120,7 +133,12 @@ const DETECTOR_REGISTRY: Array<{
     | 'semanticManipulation'
     | 'transportIntegrity';
   configKey: string;
-  patternDbKey: string;
+  /** Pattern database key. Omit for a detector that is code only. */
+  patternDbKey?: string;
+  /** A detector that is code only: built directly instead of from the pattern database. */
+  codeDetector?: (ctx: DetectorContext) => Detector;
+  /** Keep this detector out of the set that rescans decoded text. */
+  noRescan?: boolean;
   id: string;
   name: string;
   category: TrapCategory;
@@ -130,6 +148,10 @@ const DETECTOR_REGISTRY: Array<{
   /** Redact matched text before it becomes `Threat.evidence` — for detectors
    *  whose matches are themselves secrets. */
   maskEvidence?: boolean;
+  /** Cut credentials inside the evidence down to a prefix and keep the rest. */
+  redactCredentials?: boolean;
+  /** Scan the text as given, not its Unicode-folded copy; the detector folds what it needs. */
+  scanRaw?: boolean;
   /** Code detectors that run alongside this entry's pattern detector, under the same config flag. */
   extraDetectors?: () => Detector[];
 }> = [
@@ -185,6 +207,21 @@ const DETECTOR_REGISTRY: Array<{
     category: 'content-injection',
     trapType: 'steganographic-payload',
     sanitizeMode: 'remove',
+  },
+  {
+    // Decodes base64, hex and rot13 and reports when the decoded text is a
+    // finding, so it needs the other detectors (ctx.rescan) and is code only.
+    configGroup: 'contentInjection',
+    configKey: 'encodedPayload',
+    codeDetector: (ctx) => new EncodedPayloadDetector(ctx.rescan),
+    noRescan: true,
+    id: 'encoded-payload',
+    name: 'Encoded Payload Detector',
+    category: 'content-injection',
+    trapType: 'encoded-payload',
+    sanitizeMode: 'replace',
+    // The decoded evidence can hold a credential; keep it out of evidence.
+    redactCredentials: true,
   },
   // Behavioural Control
   {
@@ -292,6 +329,20 @@ const DETECTOR_REGISTRY: Array<{
   // Transport Integrity
   {
     configGroup: 'transportIntegrity',
+    configKey: 'toolCallTampering',
+    patternDbKey: 'tool-call-tampering',
+    id: 'tool-call-tampering',
+    name: 'Tool-Call Tampering Detector',
+    category: 'transport-integrity',
+    trapType: 'tool-call-tampering',
+    sanitizeMode: 'replace',
+    replaceText:
+      '[BLOCKED: suspicious shell command flagged by AgentArmor; verify the tool call before executing]',
+    redactCredentials: true,
+    scanRaw: true,
+  },
+  {
+    configGroup: 'transportIntegrity',
     configKey: 'credentialExposure',
     patternDbKey: 'credential-exposure',
     id: 'credential-exposure',
@@ -314,6 +365,19 @@ const DETECTOR_REGISTRY: Array<{
     replaceText:
       '[BLOCKED: suspicious package source flagged by AgentArmor — verify the package and registry before executing]',
   },
+  {
+    configGroup: 'transportIntegrity',
+    configKey: 'responseAnomaly',
+    codeDetector: () => new ResponseAnomalyDetector(),
+    id: 'response-anomaly',
+    name: 'Response Anomaly Detector',
+    category: 'transport-integrity',
+    trapType: 'response-anomaly',
+    sanitizeMode: 'replace',
+    // A flagged span can hold a credential; keep it out of evidence.
+    redactCredentials: true,
+    scanRaw: true,
+  },
 ];
 
 /**
@@ -329,18 +393,29 @@ function appendAll<T>(target: T[], items: readonly T[]): void {
 export class AgentArmor {
   private config: Required<AgentArmorConfig>;
   private detectors: Detector[] = [];
+  /** The shipped detectors that scan text another detector decoded. */
+  private rescanDetectors: Detector[] = [];
+  /** Detectors that threw on decoded text during the detector scan now running. */
+  private rescanFailures = new Set<string>();
   private patternDb: PatternDatabase;
   private mlDetector: Detector | null = null;
   /** Built-in detector IDs that scan the normalized skeleton, not raw input. */
   private normalizedDetectorIds = new Set<string>();
   /** Detectors whose evidence is a secret and must stay masked after remapping. */
   private maskedDetectorIds = new Set<string>();
+  /** Detectors whose evidence may quote a credential among other text. */
+  private redactedDetectorIds = new Set<string>();
   /** Guards the one-time "accumulation not yet implemented" warning. */
   private accumulationWarned = false;
   /** Detector ids whose "skipped this input" warning has already fired. */
   private skipWarned = new Set<string>();
 
   constructor(config?: AgentArmorConfig) {
+    if (config?.strictness !== undefined && !STRICTNESS_VALUES.includes(config.strictness)) {
+      throw new Error(
+        `Invalid strictness ${JSON.stringify(config.strictness)}: expected one of ${STRICTNESS_VALUES.join(', ')}`,
+      );
+    }
     this.config = {
       ...DEFAULT_CONFIG,
       ...config,
@@ -428,11 +503,28 @@ export class AgentArmor {
    * Rebuilds all detectors with the new patterns.
    */
   loadPatterns(patterns: PatternDatabase): void {
-    this.patternDb = patterns;
-    this.detectors = [];
-    this.loadDetectors();
-    if (this.mlDetector) {
-      this.detectors.push(this.mlDetector);
+    const previous = {
+      patternDb: this.patternDb,
+      detectors: this.detectors,
+      normalized: new Set(this.normalizedDetectorIds),
+      masked: new Set(this.maskedDetectorIds),
+      redacted: new Set(this.redactedDetectorIds),
+    };
+    try {
+      this.patternDb = patterns;
+      this.detectors = [];
+      this.loadDetectors();
+      if (this.mlDetector) {
+        this.detectors.push(this.mlDetector);
+      }
+    } catch (err) {
+      // A pattern that fails to compile must not leave a half-built detector list.
+      this.patternDb = previous.patternDb;
+      this.detectors = previous.detectors;
+      this.normalizedDetectorIds = previous.normalized;
+      this.maskedDetectorIds = previous.masked;
+      this.redactedDetectorIds = previous.redacted;
+      throw err;
     }
   }
 
@@ -444,15 +536,15 @@ export class AgentArmor {
   }
 
   /**
-   * Fetch the latest patterns from a remote URL.
-   * URL is required — there is no default endpoint.
+   * Fetch the latest patterns from a remote URL and validate them.
+   * URL is required: there is no default endpoint. It must be https (http is
+   * allowed for localhost only), redirects must stay on https, and the body is
+   * capped at 2 MiB. Throws `PatternValidationError` if the database is unsafe
+   * to load; see `validatePatternDatabase` for the checks. Load the result with
+   * `loadPatterns`; nothing changes until you do.
    */
   static async fetchLatestPatterns(url: string): Promise<PatternDatabase> {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch patterns: ${response.status} ${response.statusText}`);
-    }
-    return (await response.json()) as PatternDatabase;
+    return fetchPatternDatabase(url);
   }
 
   /**
@@ -535,8 +627,14 @@ export class AgentArmor {
       this.emitAudit(this.buildAuditRecord(result, 'scanSession', undefined, { batchId, index }));
       return result;
     });
-    const { crossTurnThreats, windowChars } = this.scanCrossTurn(turns);
-    return this.assembleSession(perTurn, crossTurnThreats, windowChars, performance.now() - start);
+    const { crossTurnThreats, windowChars, failedDetectors } = this.scanCrossTurn(turns);
+    return this.assembleSession(
+      perTurn,
+      crossTurnThreats,
+      windowChars,
+      performance.now() - start,
+      failedDetectors,
+    );
   }
 
   /**
@@ -556,20 +654,26 @@ export class AgentArmor {
     // Cross-turn split-payload detection is pattern-based (needs match offsets
     // to prove a span crosses a turn boundary); the sync window scan is reused.
     // ML threats carry no offsets and so do not produce cross-turn threats.
-    const { crossTurnThreats, windowChars } = this.scanCrossTurn(turns);
+    const { crossTurnThreats, windowChars, failedDetectors } = this.scanCrossTurn(turns);
     // Cross-turn semantic accumulation: show the ML classifier a window of
     // recent turns so accumulated signal invisible per-turn can surface (#35).
-    const accumulationThreats = await this.scanAccumulation(turns, perTurn);
+    const accumulationThreats = await this.scanAccumulation(turns, perTurn, failedDetectors);
     return this.assembleSession(
       perTurn,
       [...crossTurnThreats, ...accumulationThreats],
       windowChars,
       performance.now() - start,
+      failedDetectors,
     );
   }
 
   get strictness(): Strictness {
     return this.config.strictness;
+  }
+
+  /** True when an ML classifier is loaded and will run on `scan()` and the other async methods. */
+  get mlActive(): boolean {
+    return this.mlDetector !== null;
   }
 
   // ---------------------------------------------------------------------------
@@ -612,6 +716,8 @@ export class AgentArmor {
   private loadDetectors(): void {
     this.normalizedDetectorIds.clear();
     this.maskedDetectorIds.clear();
+    this.redactedDetectorIds.clear();
+    this.rescanDetectors.length = 0;
     for (const reg of DETECTOR_REGISTRY) {
       const groupConfig = this.config[reg.configGroup] as Record<string, boolean>;
       if (!groupConfig[reg.configKey]) {
@@ -619,40 +725,89 @@ export class AgentArmor {
         continue;
       }
 
-      const patterns = this.patternDb.detectors[reg.patternDbKey];
+      if (reg.codeDetector) {
+        if (reg.maskEvidence) this.maskedDetectorIds.add(reg.id);
+        if (reg.redactCredentials) this.redactedDetectorIds.add(reg.id);
+        const code = reg.codeDetector({
+          rescan: (text, strictness) => this.rescanDecoded(text, strictness),
+        });
+        this.detectors.push(code);
+        if (!reg.noRescan) this.rescanDetectors.push(code);
+        if (reg.category !== 'content-injection' && !reg.scanRaw) {
+          this.normalizedDetectorIds.add(reg.id);
+        }
+        continue;
+      }
+
+      const patterns = reg.patternDbKey ? this.patternDb.detectors[reg.patternDbKey] : undefined;
       if (!patterns || patterns.length === 0) {
         this.config.on?.detectorSkipped?.({ detectorId: reg.id, reason: 'no-patterns' });
         continue;
       }
 
       if (reg.maskEvidence) this.maskedDetectorIds.add(reg.id);
+      if (reg.redactCredentials) this.redactedDetectorIds.add(reg.id);
 
-      this.detectors.push(
-        new PatternDetector({
-          id: reg.id,
-          name: reg.name,
-          category: reg.category,
-          trapType: reg.trapType,
-          patterns,
-          sanitizeMode: reg.sanitizeMode,
-          replaceText: reg.replaceText,
-          maskEvidence: reg.maskEvidence,
-        }),
-      );
+      const patternDetector = new PatternDetector({
+        id: reg.id,
+        name: reg.name,
+        category: reg.category,
+        trapType: reg.trapType,
+        patterns,
+        sanitizeMode: reg.sanitizeMode,
+        replaceText: reg.replaceText,
+        maskEvidence: reg.maskEvidence,
+        redactCredentials: reg.redactCredentials,
+        foldInside: reg.scanRaw,
+      });
+      this.detectors.push(patternDetector);
 
       const extras = reg.extraDetectors?.() ?? [];
       this.detectors.push(...extras);
+      this.rescanDetectors.push(patternDetector, ...extras);
 
       // Structural detectors (content-injection) must see the raw bytes — they
       // exist to catch the invisible/obfuscation characters normalization
       // strips. Everything else scans the normalized skeleton.
-      if (reg.category !== 'content-injection') {
+      if (reg.category !== 'content-injection' && !reg.scanRaw) {
         this.normalizedDetectorIds.add(reg.id);
       }
     }
 
     // Custom detectors
     this.detectors.push(...this.config.customDetectors);
+  }
+
+  /**
+   * Scan text a detector decoded with the shipped detectors, the way a scan
+   * would: Unicode-folded for the detectors that read the folded copy.
+   * Custom detectors and the ML classifier are left out: they may be async or
+   * have side effects, and the decoded text is not content the caller supplied.
+   */
+  private rescanDecoded(text: string, strictness: Strictness): Threat[] {
+    const threats: Threat[] = [];
+    const norm = this.config.normalizeUnicode ? normalizeForScan(text) : null;
+    for (const detector of this.rescanDetectors) {
+      const useNorm = norm !== null && norm.changed && this.normalizedDetectorIds.has(detector.id);
+      try {
+        const result = detector.scan(useNorm ? norm!.normalized : text, { strictness });
+        appendAll(
+          threats,
+          useNorm ? this.remapThreats(result.threats, norm!, text) : result.threats,
+        );
+      } catch (err) {
+        // The scan that asked for this rescan cannot vouch for the content now.
+        this.rescanFailures.add(detector.id);
+        const error = err instanceof Error ? err : new Error(String(err));
+        const message = `[AgentArmor] Detector "${detector.id}" threw while scanning decoded text: ${error.message}`;
+        if (this.config.on?.error) {
+          this.config.on.error({ message, error, context: { detectorId: detector.id } });
+        } else {
+          console.warn(message);
+        }
+      }
+    }
+    return threats;
   }
 
   /** Re-map normalized-space threats back onto the original content. */
@@ -667,11 +822,12 @@ export class AgentArmor {
       // The remapped evidence is the original text, so a detector that masks
       // its evidence (leaked credentials) must be masked again here, or one
       // invisible character in the input would print the secret.
+      const shown = this.redactedDetectorIds.has(t.detectorId) ? redactCredentialsIn(slice) : slice;
       const evidence = this.maskedDetectorIds.has(t.detectorId)
         ? redactSecret(slice)
-        : slice.length > 200
-          ? slice.slice(0, 197) + '...'
-          : slice;
+        : shown.length > 200
+          ? shown.slice(0, 197) + '...'
+          : shown;
       return { ...t, location, ...(relatedLocation ? { relatedLocation } : {}), evidence };
     });
   }
@@ -740,6 +896,7 @@ export class AgentArmor {
     if (content.length > this.config.maxInputLength) return this.oversizedResult(content);
     const start = performance.now();
     const allThreats: Threat[] = [];
+    const failed: string[] = [];
     const norm = this.config.normalizeUnicode ? normalizeForScan(content) : null;
 
     for (const detector of this.detectors) {
@@ -754,6 +911,7 @@ export class AgentArmor {
           useNorm ? this.remapThreats(result.threats, norm!, content) : result.threats,
         );
       } catch (err) {
+        if (!failed.includes(detector.id)) failed.push(detector.id);
         const error = err instanceof Error ? err : new Error(String(err));
         const message = `[AgentArmor] Detector "${detector.id}" threw during scan: ${error.message}`;
         if (this.config.on?.error) {
@@ -762,6 +920,8 @@ export class AgentArmor {
           console.warn(message);
         }
       }
+      for (const id of this.rescanFailures) if (!failed.includes(id)) failed.push(id);
+      this.rescanFailures.clear();
     }
 
     allThreats.sort((a, b) => {
@@ -775,15 +935,17 @@ export class AgentArmor {
     const durationMs = performance.now() - start;
 
     return {
-      clean: allThreats.length === 0,
+      // A scan where a detector failed cannot vouch for the content: fail closed.
+      clean: allThreats.length === 0 && failed.length === 0,
       threats: allThreats,
       sanitized,
       durationMs,
       riskLevel: computeRiskLevel(allThreats[0]?.severity ?? null, allThreats[0]?.confidence ?? 0),
       stats: {
-        detectorsRun: this.detectors.length,
+        detectorsRun: this.detectors.length - failed.length,
         threatsFound: allThreats.length,
         highestSeverity: allThreats[0]?.severity ?? null,
+        ...(failed.length > 0 ? { degraded: true, failedDetectors: failed } : {}),
       },
     };
   }
@@ -792,6 +954,7 @@ export class AgentArmor {
     if (content.length > this.config.maxInputLength) return this.oversizedResult(content);
     const start = performance.now();
     const allThreats: Threat[] = [];
+    const failed: string[] = [];
     const skipped: Array<{ detectorId: string; reason: string }> = [];
     const norm = this.config.normalizeUnicode ? normalizeForScan(content) : null;
 
@@ -821,6 +984,7 @@ export class AgentArmor {
           );
         }
       } catch (err) {
+        if (!failed.includes(detector.id)) failed.push(detector.id);
         const error = err instanceof Error ? err : new Error(String(err));
         const message = `[AgentArmor] Detector "${detector.id}" threw during scan: ${error.message}`;
         if (this.config.on?.error) {
@@ -829,6 +993,8 @@ export class AgentArmor {
           console.warn(message);
         }
       }
+      for (const id of this.rescanFailures) if (!failed.includes(id)) failed.push(id);
+      this.rescanFailures.clear();
     }
 
     allThreats.sort((a, b) => {
@@ -842,15 +1008,17 @@ export class AgentArmor {
     const durationMs = performance.now() - start;
 
     return {
-      clean: allThreats.length === 0,
+      // A scan where a detector failed cannot vouch for the content: fail closed.
+      clean: allThreats.length === 0 && failed.length === 0,
       threats: allThreats,
       sanitized,
       durationMs,
       riskLevel: computeRiskLevel(allThreats[0]?.severity ?? null, allThreats[0]?.confidence ?? 0),
       stats: {
-        detectorsRun: this.detectors.length,
+        detectorsRun: this.detectors.length - failed.length,
         threatsFound: allThreats.length,
         highestSeverity: allThreats[0]?.severity ?? null,
+        ...(failed.length > 0 ? { degraded: true, failedDetectors: failed } : {}),
         ...(skipped.length > 0 ? { detectorsSkipped: skipped } : {}),
       },
     };
@@ -901,7 +1069,10 @@ export class AgentArmor {
       batchId: extra?.batchId,
       source,
       index: extra?.index,
-      decision: this.deriveDecision(result.riskLevel, options?.exception),
+      decision: this.deriveDecision(
+        result.stats.degraded ? 'high' : result.riskLevel,
+        options?.exception,
+      ),
       strictness: this.config.strictness,
       patternDbVersion: this.patternDb.version,
       mlModelVersion,
@@ -919,6 +1090,9 @@ export class AgentArmor {
       })),
       exception: options?.exception,
       durationMs: result.durationMs,
+      ...(result.stats.degraded
+        ? { degraded: true, failedDetectors: result.stats.failedDetectors }
+        : {}),
     };
   }
 
@@ -995,6 +1169,7 @@ export class AgentArmor {
   private async scanAccumulation(
     turns: ConversationTurn[],
     perTurn: ScanResult[],
+    failedDetectors: string[],
   ): Promise<CrossTurnThreat[]> {
     const canRunML =
       !!this.mlDetector &&
@@ -1043,6 +1218,7 @@ export class AgentArmor {
       } else {
         console.warn(message);
       }
+      if (!failedDetectors.includes(this.mlDetector!.id)) failedDetectors.push(this.mlDetector!.id);
       return [];
     }
 
@@ -1063,8 +1239,9 @@ export class AgentArmor {
   private scanCrossTurn(turns: ConversationTurn[]): {
     crossTurnThreats: CrossTurnThreat[];
     windowChars: number;
+    failedDetectors: string[];
   } {
-    if (turns.length < 2) return { crossTurnThreats: [], windowChars: 0 };
+    if (turns.length < 2) return { crossTurnThreats: [], windowChars: 0, failedDetectors: [] };
 
     const SEP = '\n';
     const maxTurns = this.config.session.windowTurns ?? 8;
@@ -1074,6 +1251,7 @@ export class AgentArmor {
 
     const crossTurnThreats: CrossTurnThreat[] = [];
     const seen = new Set<string>();
+    const failedDetectors: string[] = [];
     let windowChars = 0;
 
     for (let i = firstBoundary; i < turns.length - 1; i++) {
@@ -1088,7 +1266,11 @@ export class AgentArmor {
       const aEnd = aSlice.length; // earlier turn occupies [0, aEnd)
       const bStart = aEnd + SEP.length; // later turn occupies [bStart, end)
 
-      for (const threat of this.runScanPipeline(joined).threats) {
+      const windowResult = this.runScanPipeline(joined);
+      for (const id of windowResult.stats.failedDetectors ?? []) {
+        if (!failedDetectors.includes(id)) failedDetectors.push(id);
+      }
+      for (const threat of windowResult.threats) {
         if (!threat.location) continue; // no offset → cannot prove a span
         const rel = threat.relatedLocation;
         const spanStart = rel
@@ -1115,7 +1297,7 @@ export class AgentArmor {
       }
     }
 
-    return { crossTurnThreats, windowChars };
+    return { crossTurnThreats, windowChars, failedDetectors };
   }
 
   /**
@@ -1128,7 +1310,11 @@ export class AgentArmor {
     crossTurnThreats: CrossTurnThreat[],
     windowChars: number,
     durationMs: number,
+    windowFailed: string[],
   ): SessionScanResult {
+    const failedDetectors = [
+      ...new Set([...perTurn.flatMap((r) => r.stats.failedDetectors ?? []), ...windowFailed]),
+    ];
     const perTurnThreatCount = perTurn.reduce((n, r) => n + r.threats.length, 0);
     const severities = [
       ...perTurn.flatMap((r) => r.threats.map((t) => t.severity)),
@@ -1140,7 +1326,8 @@ export class AgentArmor {
         : null;
 
     return {
-      clean: perTurnThreatCount === 0 && crossTurnThreats.length === 0,
+      clean:
+        perTurnThreatCount === 0 && crossTurnThreats.length === 0 && failedDetectors.length === 0,
       turns: perTurn,
       crossTurnThreats,
       durationMs,
@@ -1150,6 +1337,7 @@ export class AgentArmor {
         threatsFound: perTurnThreatCount + crossTurnThreats.length,
         crossTurnThreatsFound: crossTurnThreats.length,
         highestSeverity,
+        ...(failedDetectors.length > 0 ? { degraded: true, failedDetectors } : {}),
       },
     };
   }

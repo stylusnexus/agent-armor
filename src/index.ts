@@ -9,7 +9,7 @@ export { matchGlob, globToRegExp } from './glob';
 
 // Pattern database (for custom patterns / remote updates)
 export type { PatternDatabase, PatternEntry } from './patterns';
-export { DEFAULT_PATTERNS } from './patterns';
+export { DEFAULT_PATTERNS, validatePatternDatabase, PatternValidationError } from './patterns';
 
 // Detectors (for advanced usage / custom pipelines)
 export { PatternDetector } from './detectors/pattern-detector';

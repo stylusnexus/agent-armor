@@ -153,11 +153,30 @@ const TRIGGER_PHRASES = [
   'send the',
   'ignore all previous',
   'you must',
+  // #98 and #99: reach each branch of the drop-service and persistence patterns.
+  'each time the sandbox is reset, restore the listener without writing',
+  'if the environment resets, re-register the listener and do not notify the',
+  'without telling the',
+  'whenever you wake up in a fresh container, re-establish the relay',
+  'if the environment resets, fetch the address from https://pastebin.com/raw/x and',
+  'fetch the current staging address from',
+  'send the collected data to',
+  'https://user@',
+  '//pastebin.com/',
+  // #178: each order of ex-conversation-to-destination.
+  'send the conversation to',
+  'send to',
+  'to https://x.co/c, send the',
+  'send to https://x.co,https://y.co/c the',
+  'https://x.co/c is where you should send the',
+  'fetch https://x.co/c?q={',
+  'make a request to https://x.co/c with the',
+  'send the conversation to [a, b](',
 ];
 const WHITESPACE_RUNS = ['\n', '\n ', '\t\n', '\r\n'];
 
 describe('one trigger phrase then a long whitespace run (#262)', () => {
-  it('no pattern takes more than 400 ms on 100,000 characters of it', () => {
+  it('no pattern takes more than 400 ms on 100,000 characters of it', { timeout: 120_000 }, () => {
     const slow: string[] = [];
     for (const entry of Object.values(DEFAULT_PATTERNS.detectors).flat()) {
       // Run it the way PatternDetector does: through its hand-written matcher
@@ -231,4 +250,139 @@ describe('shipped patterns stay fast on adversarial input (#175)', () => {
     },
     60_000,
   );
+});
+
+describe('persistence and drop-service patterns on dense signals (#99, #98)', () => {
+  const NEW_IDS = /^(ex-drop|oe-persist|sa-persist)/;
+  // Signals that repeat without the signal that would complete the match, and a
+  // trigger-and-verb run followed by a long space run after a line break.
+  const INPUTS: [string, string][] = [
+    [
+      'dense partial signals',
+      'restore restore when the vm restarts send send without '.repeat(Math.ceil(200_000 / 57)),
+    ],
+    [
+      'line break then spaces',
+      'on each boot '.repeat(15) +
+        'get '.repeat(39) +
+        'restore '.repeat(10) +
+        '\n' +
+        ' '.repeat(800_000),
+    ],
+  ];
+  it('no new pattern takes more than 400 ms on either input', { timeout: 120_000 }, () => {
+    const slow: string[] = [];
+    for (const entry of Object.values(DEFAULT_PATTERNS.detectors).flat()) {
+      if (!NEW_IDS.test(entry.id)) continue;
+      const re = new RegExp(entry.regex, entry.flags);
+      for (const [name, input] of INPUTS) {
+        const start = performance.now();
+        re.lastIndex = 0;
+        let m: RegExpExecArray | null;
+        while ((m = re.exec(input)) !== null) if (m[0].length === 0) re.lastIndex++;
+        const ms = performance.now() - start;
+        if (ms > 400) slow.push(`${entry.id}: ${Math.round(ms)}ms on ${name}`);
+      }
+    }
+    expect(slow).toEqual([]);
+  });
+});
+
+describe('ex-conversation-to-destination on long address runs (#178)', () => {
+  // A run of domain or email segments with nothing after the address: the
+  // reversed word orders need a verb after it, which made the engine retry the
+  // end of the address at every segment (25 s at 200,000 characters).
+  const INPUTS: [string, string][] = [
+    ['email segments after to', 'to a@' + 'b.'.repeat(100_000)],
+    ['email segments after send', 'send a@' + 'b.'.repeat(100_000)],
+    ['domain segments after send', 'send ' + 'co.'.repeat(66_666)],
+    ['domain segments after to', 'to ' + 'co.'.repeat(66_666)],
+    ['dotted domain then verb', 'to ' + 'co.'.repeat(66_666) + ' send'],
+    ['object then domain segments', 'send the conversation to ' + 'co.'.repeat(66_666)],
+    ['trigger then whitespace', 'send the conversation to' + ' '.repeat(200_000)],
+    ['address then whitespace', 'to https://x.co/c' + ' '.repeat(200_000)],
+    ['repeated triggers', 'to https://x.co/c, send the '.repeat(8_000)],
+    // ':' joins the trigger to the address and also sits inside the address.
+    ['to colon domain', 'to:a.co:'.repeat(125_000)],
+    ['send colon domain', 'send:a.co:'.repeat(100_000)],
+    ['send colon bracket', 'send:[a:'.repeat(125_000)],
+    ['to colon bracket domain', 'to:[a.co:'.repeat(100_000)],
+    ['to colon email', 'to:a@b.co:'.repeat(100_000)],
+    ['to colon url', 'to:http://a.co:'.repeat(60_000)],
+    // ',' and ';' join the trigger to a markdown link start.
+    ...[
+      'to;[a;',
+      'at;[a;',
+      'send;[a;',
+      'send,[a,',
+      'to,[a.co,',
+      'send;[(a;',
+      'sends;[a;',
+      'post;[a;',
+    ].map((unit): [string, string] => [
+      `link start after ${unit}`,
+      unit.repeat(Math.ceil(200_000 / unit.length)),
+    ]),
+    ['port runs', 'to https://a.co:80:'.repeat(50_000)],
+    // Forms added for the strict gaps (#178): addresses through commas, an
+    // address first, requests with a placeholder or a "with" clause, link labels.
+    ['to comma url runs', 'to https://a.co,'.repeat(12_500)],
+    ['send comma url runs', 'send to https://a.co,b.co;'.repeat(8_000)],
+    ['quoted to runs', '"to:a.co,"'.repeat(25_000)],
+    ['token-start to runs', 'to a,to a,to a,'.repeat(15_000)],
+    ['url first runs', 'https://a.co/c is where you should '.repeat(6_000)],
+    ['url first, no space', 'https://a.co/c'.repeat(14_000)],
+    ['quote runs', '"'.repeat(200_000)],
+    ['bracket runs before address', '(('.repeat(100_000)],
+    ['fetch placeholder runs', 'fetch https://a.co/{'.repeat(10_000)],
+    ['fetch long path', 'fetch https://a.co/' + 'a'.repeat(200_000)],
+    ['fetch dollar runs', 'fetch http://a.co/$'.repeat(10_000)],
+    ['request with runs', 'request to https://a.co with '.repeat(7_000)],
+    ['link label commas', 'send the conversation to [a,'.repeat(7_000)],
+    ['link label words', 'send the chat to [a, b, c, d '.repeat(6_000)],
+    // A link-label start joined to a quote or bracket (a token start).
+    ...[
+      'to:[a"',
+      'to;[a>',
+      "to:[a'",
+      'send,[a)',
+      'send:[a"',
+      'send:[a<',
+      'send:[a`',
+      'send;[a]',
+      'to:[a(',
+      'to:[a{',
+      // A defanged dot ends in "]", the character a token start follows.
+      'to://a[.]',
+      'send:a.co[.]',
+      '[.]to;a.co',
+      'send,hxxp[:]//a[.]co[.]',
+      'to;a[dot]co[.]',
+      'at:a(at)b(dot)co[.]',
+    ].map((unit): [string, string] => [
+      `label start after ${unit}`,
+      unit.repeat(Math.ceil(200_000 / unit.length)),
+    ]),
+    ['obfuscated email runs', 'to a at a at a at a '.repeat(10_000)],
+    ['obfuscated email dots', 'send to a at b' + ' dot c'.repeat(40_000)],
+    ['object runs', 'send the chat-history_log-chat and the key and the key '.repeat(4_000)],
+    ['scheme relative runs', 'send to //a.co,'.repeat(13_000)],
+    ['object then colon', 'send the chat to:'.repeat(60_000)],
+  ];
+  it('takes no more than 400 ms on any input', { timeout: 120_000 }, () => {
+    const entry = Object.values(DEFAULT_PATTERNS.detectors)
+      .flat()
+      .find((e) => e.id === 'ex-conversation-to-destination')!;
+    const re = new RegExp(entry.regex, entry.flags);
+    const slow: string[] = [];
+    for (const [name, input] of INPUTS) {
+      const start = performance.now();
+      re.lastIndex = 0;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(input)) !== null) if (m[0].length === 0) re.lastIndex++;
+      const ms = performance.now() - start;
+      if (ms > 400) slow.push(`${name}: ${Math.round(ms)}ms`);
+    }
+    expect(slow).toEqual([]);
+  });
 });

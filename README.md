@@ -137,17 +137,17 @@ Versions 0.2.1 to 0.2.17 can report a very large input as clean ([GHSA-vr4h-8mw3
 
 ### Eval Suite
 
-264 curated samples (155 adversarial, 109 benign) covering all 16 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
+304 curated samples (170 adversarial, 134 benign) covering all 19 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
 
 | Strictness   | Detection Rate (regex) | False Positive Rate |
 | ------------ | ---------------------- | ------------------- |
-| Permissive   | 90.3%                  | 0.0%                |
-| **Balanced** | **94.2%**              | **0.0%**            |
-| Strict       | 98.1%                  | 0.0%                |
+| Permissive   | 91.1%                  | 0.0%                |
+| **Balanced** | **94.7%**              | **0.0%**            |
+| Strict       | 99.4%                  | 0.0%                |
 
 The 0.0% false-positive figure covers every benign sample except 11 **known false positives** (`acceptedFlagAt` in `scripts/eval/samples.ts`): honest text that quotes an attack or tells an assistant to run a command, such as a security paper quoting an exfiltration instruction. They flag at every strictness, are reported separately by `npm run eval`, and are excluded from the rate. The gate still fails on any other benign sample that flags.
 
-The eval suite includes 14 adversarial samples drawn from real-world incidents (2025-2026): MCP tool poisoning, RAG vector DB saturation, covert exfiltration via image proxies, supply chain prompt injection, memory poisoning, HITL dialog forgery, and the July 2026 OpenAI sandbox escape (credential reuse, C2 over public paste services, package-proxy egress, cross-environment persistence). Regex flags 6 of these at balanced and 12 at strict (5 and 11 when the trap type must also match what the sample expects); the remaining 8 at balanced are where the [ML classifier](#ml-classifier-optional) helps, measured 2026-10-08 at its 0.5 threshold: the first model (v1) flags 6 of the 8, the model in 0.1.7 all 8, and the model in 0.1.8 (run 7) 5 of 8, missing two that the regex catches at strict. The regex still misses two even at strict (rw-011 and rw-014), which the classifier flags. **These headline numbers move down whenever we add a blind spot we can't yet catch — that is deliberate.** `scripts/eval/thresholds.json` records every floor change and why. On the original 49 adversarial samples, regex detection is 100% at balanced strictness.
+The eval suite includes 14 adversarial samples drawn from real-world incidents (2025-2026): MCP tool poisoning, RAG vector DB saturation, covert exfiltration via image proxies, supply chain prompt injection, memory poisoning, HITL dialog forgery, and the July 2026 OpenAI sandbox escape (credential reuse, C2 over public paste services, package-proxy egress, cross-environment persistence). Regex flags 6 of these at balanced and all 14 at strict (5 and 13 when the trap type must also match what the sample expects); the remaining 8 at balanced are where the [ML classifier](#ml-classifier-optional) helps, measured 2026-10-08 at its 0.5 threshold: the first model (v1) flags 6 of the 8, the model in 0.1.7 all 8, and the model in 0.1.8 (run 7) 5 of 8, missing two that the regex catches at strict. Two of the 14 (rw-011, C2 over public paste services, and rw-014, persistence with logging suppression) are caught by regex at strict only, because honest advisories, tunnel docs and orchestration docs use the same words; the classifier flags both. **These headline numbers move down whenever we add a blind spot we can't yet catch — that is deliberate.** `scripts/eval/thresholds.json` records every floor change and why. On the original 49 adversarial samples, regex detection is 100% at balanced strictness.
 
 Sources: [WASP benchmark](https://arxiv.org/abs/2312.02119) (Evtimov et al.), [HackAPrompt](https://arxiv.org/abs/2311.16119) (Schulhoff et al., 2023), [Greshake et al. (2023)](https://arxiv.org/abs/2302.12173), the [DeepMind paper](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438), and incident reports from [Invariant Labs](https://invariantlabs.ai/blog), [Unit 42](https://unit42.paloaltonetworks.com), [Snyk Labs](https://labs.snyk.io), [Legit Security](https://www.legitsecurity.com/blog/camoleak), and [Socket Research](https://socket.dev/blog). Benign samples include security blog posts, legitimate HTML, CI/CD docs, MCP tool descriptions, agent interaction logs, and procurement policy emails.
 
@@ -171,15 +171,15 @@ Run it: `npx tsx examples/real-world-validation.ts`
 
 ## Attack Categories Covered
 
-| Category                  | Target       | Status  | What It Detects                                                                                                                                                                               |
-| ------------------------- | ------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Content Injection**     | Perception   | Shipped | Hidden HTML/CSS instructions, metadata injection, dynamic cloaking artifacts, syntactic masking, steganographic payloads (ASCII smuggling)                                                    |
-| **Behavioural Control**   | Action       | Shipped | Embedded jailbreak sequences, data exfiltration patterns, sub-agent spawning traps                                                                                                            |
-| **Cognitive State**       | Memory       | Shipped | RAG knowledge poisoning, latent memory poisoning, contextual learning manipulation                                                                                                            |
-| **Semantic Manipulation** | Reasoning    | Shipped | Biased framing/priming, oversight evasion, persona hyperstition                                                                                                                               |
-| **Systemic**              | Multi-Agent  | Planned | Congestion traps, interdependence cascades, tacit collusion, compositional fragments, sybil attacks                                                                                           |
-| **Human-in-the-Loop**     | Overseer     | Planned | Approval fatigue induction, social engineering via compromised agent                                                                                                                          |
-| **Transport Integrity**   | Supply Chain | Partial | Credential exposure (AC-2) and dependency substitution (AC-1.a) shipped; tool-call tampering (AC-1), response anomaly screening planned ([Liu et al. 2026](https://arxiv.org/abs/2604.08407)) |
+| Category                  | Target       | Status  | What It Detects                                                                                                                                                                       |
+| ------------------------- | ------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Content Injection**     | Perception   | Shipped | Hidden HTML/CSS instructions, metadata injection, dynamic cloaking artifacts, syntactic masking, steganographic payloads (ASCII smuggling), encoded payloads (base64, hex, rot13)     |
+| **Behavioural Control**   | Action       | Shipped | Embedded jailbreak sequences, data exfiltration patterns, sub-agent spawning traps                                                                                                    |
+| **Cognitive State**       | Memory       | Shipped | RAG knowledge poisoning, latent memory poisoning, contextual learning manipulation                                                                                                    |
+| **Semantic Manipulation** | Reasoning    | Shipped | Biased framing/priming, oversight evasion, persona hyperstition                                                                                                                       |
+| **Systemic**              | Multi-Agent  | Planned | Congestion traps, interdependence cascades, tacit collusion, compositional fragments, sybil attacks                                                                                   |
+| **Human-in-the-Loop**     | Overseer     | Planned | Approval fatigue induction, social engineering via compromised agent                                                                                                                  |
+| **Transport Integrity**   | Supply Chain | Partial | Credential exposure (AC-2), dependency substitution (AC-1.a), tool-call tampering (AC-1) and response anomaly screening shipped ([Liu et al. 2026](https://arxiv.org/abs/2604.08407)) |
 
 ## Configuration
 
@@ -191,14 +191,15 @@ const armor = await AgentArmor.create({
     metadataInjection: true, // aria-label, HTML comments with instructions
     dynamicCloaking: true, // Bot detection scripts
     syntacticMasking: true, // Markdown/LaTeX payload hiding
+    encodedPayload: true, // base64, hex and rot13 text that decodes to an attack
   },
   behaviouralControl: {
     jailbreakPatterns: true, // Known jailbreak sequence detection
     exfiltrationURLs: true, // Data exfiltration patterns
     privilegeEscalation: true, // Sub-agent spawning triggers
   },
-  // 'permissive' = only high-confidence threats (90.3% detection)
-  // 'balanced'   = recommended default (94.2% detection, 0% FP)
+  // 'permissive' = only high-confidence threats (91.1% detection)
+  // 'balanced'   = recommended default (94.7% detection, 0% FP)
   // 'strict'     = maximum coverage, catches subtle attacks
   strictness: 'balanced',
 
@@ -250,12 +251,14 @@ At `permissive`, 6 of the original 49 adversarial samples go undetected because 
 
 A few detectors report at `strict` and nowhere else. In each case honest text uses the same words as the attack, and a regex cannot tell a description, a ban or a how-to from an order. Independent adversarial reviews kept finding honest text flagged at `balanced`, so these ship at `strict` rather than risk false positives on content people actually write. Scan content you did not write (issue text, tool descriptions, third-party packages) at `strict`.
 
-| What it catches                                                                                                                          | Why it is `strict` only                                                    | Issue |
-| ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ----- |
-| Package installs that skip the trusted registry: custom index flags, config commands, installs from a raw URL                            | Private registries, git installs and internal mirror guides look the same  | #29   |
-| "Install from a URL, then commit or push the result" (the Clinejection shape)                                                            | Release runbooks, contributor guides and bans use the same words           | #252  |
-| "Read private repository data and publish it to a public gist or paste"                                                                  | Security policies and advisories say the same thing                        | #250  |
-| Poisoned MCP tool descriptions: read a key file and pass it along, redirect a recipient, hidden `bcc`, marked blocks that conceal a step | XML system prompts, MCP setup guides and CRM email docs use the same words | #218  |
+| What it catches                                                                                                                                   | Why it is `strict` only                                                                       | Issue |
+| ------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ----- |
+| Package installs that skip the trusted registry: custom index flags, config commands, installs from a raw URL                                     | Private registries, git installs and internal mirror guides look the same                     | #29   |
+| "Install from a URL, then commit or push the result" (the Clinejection shape)                                                                     | Release runbooks, contributor guides and bans use the same words                              | #252  |
+| "Read private repository data and publish it to a public gist or paste"                                                                           | Security policies and advisories say the same thing                                           | #250  |
+| Poisoned MCP tool descriptions: read a key file and pass it along, redirect a recipient, hidden `bcc`, marked blocks that conceal a step          | XML system prompts, MCP setup guides and CRM email docs use the same words                    | #218  |
+| Links to public paste, request-capture, OAST, file-drop and tunnel services, and "fetch the address from a paste" or "send collected data to one" | Bug reports, ngrok quickstarts, webhook tutorials and advisories use the same hosts and verbs | #98   |
+| A reset trigger beside a re-acquire verb and concealment from the operator or the log, or beside a listener or channel to re-establish            | Kubernetes, CI and front-end docs say "when it restarts, re-register the listener"            | #99   |
 
 ## Scan Results
 
@@ -263,7 +266,7 @@ Every scan returns a `ScanResult` with full threat details:
 
 ```typescript
 interface ScanResult {
-  clean: boolean; // true if no threats found
+  clean: boolean; // true only if every detector ran and found nothing
   threats: Threat[]; // sorted by severity, then confidence
   sanitized: string; // content with threats neutralized
   durationMs: number; // scan time in milliseconds
@@ -273,6 +276,8 @@ interface ScanResult {
     threatsFound: number;
     highestSeverity: 'low' | 'medium' | 'high' | 'critical' | null;
     detectorsSkipped?: { detectorId: string; reason: string }[]; // only when a detector could not judge the input
+    degraded?: boolean; // true only when a detector threw; the scan was not complete
+    failedDetectors?: string[]; // ids of the detectors that threw
   };
 }
 
@@ -294,6 +299,12 @@ The `source` field indicates which detection method found the threat:
 - `'pattern'` — matched by a regex pattern from the built-in pattern database
 - `'ml'` — flagged by the ML classifier
 - `'custom'` — found by a user-provided custom detector
+
+### Degraded scans and bad config
+
+A scan where a detector throws is **degraded**. `stats.degraded` is `true`, `stats.failedDetectors` lists the detector ids, `stats.detectorsRun` does not count them, and `clean` is `false` even when no threat was found, so a detector that throws can no longer hide behind `clean: true`. `clean: true` is still not proof that every check you wanted ran: a detector that reports it skipped an input (`stats.detectorsSkipped`), `scanSync()` with the ML classifier loaded (ML inference runs only on the async methods), and an ML classifier that was unavailable under `onUnavailable: 'warn-and-skip'` all leave `clean` true. `riskLevel` still reflects only the threats that were found, so check `stats.degraded` if you branch on it. The audit record carries `degraded` and `failedDetectors`, and its `decision` is `block` (never `allow`) unless you recorded an exception. Session scans carry the same two fields on `stats`. When nothing fails, none of these fields appear and the result is unchanged.
+
+An unknown `strictness` (for example `'Strict'`) throws from the constructor, `create()` and `regexOnly()` instead of scanning with no threshold.
 
 ### `riskLevel` — one-line allow/deny
 
@@ -455,11 +466,14 @@ npx @stylusnexus/agentarmor scan <path...> [options]
 | `--format`     | `text`, `json`, `sarif`                     | `text`                        | Output format                                                 |
 | `--fail-on`    | `none`, `low`, `medium`, `high`, `critical` | `low`                         | Minimum risk level that fails the run                         |
 | `--ml`         | flag                                        | off                           | Use the ML classifier (requires `@stylusnexus/agentarmor-ml`) |
+| `--require-ml` | flag                                        | off                           | Like `--ml`, but exit `2` if the classifier cannot load       |
 | `--include`    | comma-separated extensions                  | `.md,.txt,.json,.cursorrules` | Override default extensions when scanning a directory         |
 
 A file path is always scanned regardless of extension; a directory path recurses, filtered by `--include` (skips `node_modules/`, `.git/`, `dist/`, `coverage/`).
 
-Exit codes: `0` clean, `1` threat(s) at/above `--fail-on`, `2` usage/IO error.
+With `--ml` alone, a missing classifier prints a warning on stderr and the scan runs with regex detectors only. A degraded scan (a detector threw) counts as a failure and exits `1` unless `--fail-on none`.
+
+Exit codes: `0` clean, `1` threat(s) at/above `--fail-on` or a degraded scan, `2` usage/IO error or `--require-ml` could not load the classifier.
 
 ### GitHub Actions
 
@@ -570,11 +584,21 @@ Phrase matching is English only, so an override written in another language isn'
 
   Keys on the _carrier_ (a run of invisible codepoints), never on entropy or encoding. Base64 data URIs, JWTs, and git SHAs are ordinary agent-ingested content and must not fire. Legitimate single selectors — CJK ideographic variation sequences, emoji VS16 — sit below the run threshold by design.
 
+- **EncodedPayloadDetector** — Catches an instruction written in base64, hex or rot13, which reads as noise to every other detector while an agent told to decode it will obey it. It finds encoded runs, decodes them, runs the other detectors on the decoded text at the strictness of the scan, and reports **only when the decoded text is itself a finding**, at that finding's confidence, so it reports at `balanced`. A base64 image, a JWT, a hash, a UUID, an SSH key, a hex colour and an encoded harmless sentence stay clean. It is code, not patterns: a hand-written scanner reads each character once.
+
+  Reads base64 (standard and url-safe, with or without padding, wrapped lines including JSON-escaped `\n`, JSON-escaped `\/`, and a payload that starts after a `-`, `_` or `/` such as a URL path or an id prefix), hex (a digit run with or without `0x`, also split over lines as `xxd -p` writes it, pairs split by a space, colon, comma, semicolon or dash, and bytes written `\xNN`, `\u00NN`, `0xNN` or `%NN`), and rot13. It decodes up to two layers (hex inside base64, base64 inside hex, base64 inside base64). Base64 of UTF-16 text is read as UTF-16: a byte order mark at the start of a run, or ASCII written as UTF-16 (a NUL in most of the odd or even places) anywhere in it, as PowerShell's `-EncodedCommand` writes it, and only when the decode holds a stretch of plain text. If only some windows of a buffer look like UTF-16 (a font's name table, or non-ASCII text ahead of the payload), only those windows and their neighbours are read, so the rest of a binary is not. The UTF-8 reading of the same bytes is always rescanned too, so a UTF-16 decoy beside a UTF-8 payload does not hide it. Control characters in the decoded text are dropped before it is rescanned, and a decode that is mostly control characters is judged on its long stretches of text.
+
+  rot13 has no shape to detect, so it is read two ways. The whole text is rot13-decoded (letters only, one pass) and rescanned on its own, with no cue word needed; it is never joined to another reading, so no pattern can match across the two. It reads the first 1,000,000 characters (the default `maxInputLength`) and is skipped for text with fewer than 16 letters. Separately, around a cue word (`rot13`, `rot-13`, `caesar`, `cipher`, `decipher`, `decrypt` or `decode`), the cue's paragraph and the one before and the one after are read up to 4,000 characters each way, which also covers rot13 past the first 1,000,000 characters. A sentence both passes read is reported once. The threat's location is the encoded run (for rot13, the phrase the other detectors matched, not the whole sentence), its evidence is the decoded text with any credential cut down to its first four characters, and sanitization replaces only that span with a warning. A decoded credential is described as a credential (a Kubernetes Secret with a real key in it reports under the credential rules, not as an instruction).
+
+  **When the budget runs out, the scan fails closed.** A scan decodes at most 3,000,000 characters and 100,000 runs, shared by every layer, and judges identical decoded text once, so repeated decoys cost nothing. A run the budget cannot cover is not skipped quietly: it is reported (`Encoded content past the scan budget`, confidence 0.7, so at every strictness) and replaced in sanitized output. A run too big for what is left skips only itself. Input over `maxInputLength` is refused before this, as for every detector. If a detector throws while reading decoded text, the scan is marked degraded and the detector is listed in `stats.failedDetectors`.
+
+  **What it does not catch:** rot13 past the first 1,000,000 characters with no cue word nearby, and rot13 with fewer than 16 letters; percent-encoded rot13; other shifts (rot5, rot47, a Caesar shift other than 13), reversed text, atbash, XOR and any custom cipher; base32, base85 and other alphabets; full-width or look-alike base64 characters; rot13 inside base64 or hex, and base64 or hex that is itself rot13-encoded; base64 broken up by spaces or words; base64 that starts inside a longer word with no `-`, `_` or `/` before it; base64 wrapped at under 16 characters per line, indented YAML block lines, `"..." + "..."` string concatenation, and one markdown table cell per line (each line is too short or is cut off by other text, so the pieces are never joined); a decode where control characters outnumber text (two after every character, for example); UTF-32 text; UTF-16 text with little plain ASCII (look-alike letters, for example), and a short UTF-16 payload inside font or other binary bytes; UTF-16 without a byte order mark that hides tag characters or variation selectors, or bidi controls, only in part of the buffer (a partial decode drops format characters, because binary read as UTF-16 makes them); a third layer of encoding; and an attack the other detectors would not flag in plain text. It judges the decoded text exactly as it would judge it written out, so a write-up that quotes an encoded attack is flagged the way one that quotes the plain sentence is. It sees only the detectors that are turned on; turn off `jailbreakPatterns` and a decoded jailbreak is not reported either.
+
 ### Behavioural Control (Shipped)
 
 - **JailbreakPatternDetector** — Pattern-matches against known jailbreak templates (DAN, role-play bypasses, educational framing exploits, developer mode claims), plus, at `strict` only, an instruction to install a package from a raw URL or git source and then commit, push, merge or publish the result to a protected branch (the Clinejection shape)
-- **ExfiltrationDetector** — Flags instructions that attempt to locate, encode, and transmit context data to external endpoints, and, at `strict` only, instructions to read private repository data and publish it to a public gist or paste (the GitHub MCP attack), and, at `strict` only, instructions hidden in an MCP tool description: read a key file and pass it along, redirect a recipient or add a bcc address, or a marked `<IMPORTANT>` block that conceals a step or names a secret file. At balanced these are not reported, because honest MCP setup guides, XML system prompts and CRM email docs use the same words; scan tool descriptions you did not write at `strict` It also catches markdown images that leak data through the image URL: inline `![](url?data=...)` and reference-style `![alt][ref]` / `![ref][]` / `![ref]` with a `[ref]: url?data=...` definition before or after the image, at any distance, following CommonMark's rules for labels (nested and escaped brackets, line breaks, `\r` line endings, Unicode case folding).
-- **SubAgentSpawningDetector** — Detects instructions that try to instantiate new agents, escalate tool permissions, or inject pipeline steps
+- **ExfiltrationDetector** — Flags instructions that attempt to locate, encode, and transmit context data to external endpoints, and, at `strict` only, instructions to read private repository data and publish it to a public gist or paste (the GitHub MCP attack), and, at `strict` only, instructions hidden in an MCP tool description: read a key file and pass it along, redirect a recipient or add a bcc address, or a marked `<IMPORTANT>` block that conceals a step or names a secret file. At balanced these are not reported, because honest MCP setup guides, XML system prompts and CRM email docs use the same words; scan tool descriptions you did not write at `strict`. At `strict` only, it also flags links to public drop services (paste, request-capture, OAST, file-drop and tunnel hosts such as `pastebin.com`, `webhook.site` and `transfer.sh`) and the C2 shapes built on them: fetching the destination address from one, sending collected data to one, or reaching one after an environment reset (the July 2026 sandbox escape, #98). Placeholder forms such as `https://webhook.site/<your-id>` are excluded; honest bug reports and tunnel docs still flag at `strict`. It also catches markdown images that leak data through the image URL: inline `![](url?data=...)` and reference-style `![alt][ref]` / `![ref][]` / `![ref]` with a `[ref]: url?data=...` definition before or after the image, at any distance, following CommonMark's rules for labels (nested and escaped brackets, line breaks, `\r` line endings, Unicode case folding).
+- **SubAgentSpawningDetector** — Detects instructions that try to instantiate new agents, escalate tool permissions, or inject pipeline steps, plus, at `strict` only, an instruction to re-establish a listener, relay or channel after an environment reset (#99)
 
 ### Transport Integrity (Partial)
 
@@ -585,6 +609,12 @@ Phrase matching is English only, so an override written in another language isn'
 - **DependencySubstitutionDetector** — Flags package installs that skip the trusted registry ([Liu et al. 2026](https://arxiv.org/abs/2604.08407), AC-1.a): custom index flags (`--extra-index-url`, `--index-url`, `--registry`, `pip install -i`), config commands and variables that set the index (`pip config set global.index-url`, `npm config set registry`, `PIP_INDEX_URL`, `GOPROXY`), installs from a raw URL or git source, and a package resolver redirected to a proxy with an egress reason (the July 2026 Artifactory escape path). It reports at `strict` only: private registries, git installs and internal-mirror guides are normal, and a regex cannot tell a mirror guide from the attack that borrows its wording. It does not keep a typosquat dictionary or look packages up. Matched text is replaced with a warning in sanitized output.
 
   Published example keys (`AKIAIOSFODNN7EXAMPLE`), placeholders (`sk-your-key-here`), and masked references (`AKIA****`) are excluded by design. Low-confidence formats that are common in API documentation — bare bearer tokens and JWTs — surface only at `strict`.
+
+- **ToolCallTamperingDetector** — Flags shell that a rewritten tool call would run ([Liu et al. 2026](https://arxiv.org/abs/2604.08407), AC-1): a download piped or chained into a shell or interpreter (`curl ... | sh`, `| /usr/bin/env bash`, `| sudo -E bash`, `| python3`, `wget ...; chmod +x`, `&& ./x`), a shell run on a downloaded script (`bash -c "$(curl ...)"`, `sh <(curl ...)`, `source <(curl ...)`), PowerShell download-and-run (`irm ... | iex`, `-enc`), and decoded text run by a shell or an interpreter (`base64 -d | sh`, `base32 -d | sh`, `base64 -d | gunzip | sh`, `xxd -r -p | sh`, `exec(base64.b64decode(...))`, `os.system(...)`, Node `eval(Buffer.from(..., 'base64'))`, Perl `decode_base64`). Wrappers such as `sudo`, `doas`, `env`, `timeout 60`, `nice -n 5` and `setsid` before the shell are read. A router that swaps an installer URL leaves a call that is still valid JSON, so the structure is the signal: the detector reads the JSON, finds each tool call (an object with a tool name and an `input`, `arguments`, `args` or `action` value, in any key order), and scans the `command` strings inside (also `cmd`, `script`, `shell`, `bash`, `code`, as a string or an array such as `["bash", "-lc", "..."]`, at any depth, after any other keys, repeated or escaped keys included). Arguments sent as a JSON string, pretty-printed or not, are read too, and escapes such as `\u007c` are decoded first. In a command these report at every level. Hook, MCP-server, task and automation configs with a `command` key have no tool name beside an arguments value, so they are not calls. The sanitized result replaces only the command value, so the JSON stays valid, and a credential in evidence is cut down to its first four characters.
+
+  A download piped or chained into a shell written as plain text is **not flagged**: install guides, READMEs and security posts write `curl | sh` too, and the two read the same there. An honest agent that runs an installer inside a real tool call looks the same as a tampered one, so that is flagged too. Base64 decoded into a shell and Python executing decoded text, written as plain text, report at `strict` only. The reader works on the original text, before Unicode folding, so structure is what a client's JSON parser sees (a full-width quote is just a character); command text is folded afterwards, so look-alike letters do not hide `curl`. Not read: a stray double quote earlier on the same line of prose (it hides the rest of that line from the reader), Cohere-style `parameters`, computer-use `text` and `keystrokes` actions (they flag at strict through `response-anomaly` only), YAML or XML tool calls, Python-dict output with single quotes, streamed partial JSON, a tool call with no name beside its arguments, non-curl fetchers (`urllib`, `fetch`, `aria2c`, `http`, Perl LWP), a shell wrapped in a group or a function (`| (bash)`, `| { bash; }`, `tee >(bash)`, `xargs sh -c`, `time sh`), `source /dev/stdin`, `pwsh`, `[scriptblock]::Create`, `exec(sys.stdin.read())`, `at now`, reverse shells, a shell name built from quotes or variables, and a rewritten package install (`pip install https://...`), which only dependency substitution reports, at `strict`. It does not compare a URL with the one the model meant.
+
+- **ResponseAnomalyDetector** — Scores a command line, or the arguments of a tool call, for the signals the paper's anomaly screener uses that a scanner can compute from text ([Liu et al. 2026](https://arxiv.org/abs/2604.08407), section 7.2): a download that is then run (`curl ... -o x && sh x`, counted only inside a tool call, since install guides write it as plain text), secrets sent out (a secret variable in a URL or a request body, one inside a command substitution, or a dump of the environment or a key file), double, hex or percent encoding, a credential inside a tool call's arguments (and, in a tool call, a secret variable in a header other than `Authorization`, or an upload of a key file with `-d @~/.aws/credentials`), and the Shannon entropy of long base64-like tokens. It is code, not patterns. Each signal weighs under 0.5 and entropy only adds to a finding another signal started, so one signal reports at `strict` and two or more combine (`1 - (1 - a)(1 - b)`, plus a small bonus inside a tool call) and report at `balanced`. Entropy is measured on tokens of 40 characters or more and ramps from 4.5 bits per character (ordinary text) to 5.5 (random base64); JWTs, hashes and a credential's own entropy do not count. A secret variable in an `Authorization` header or a `-u` flag is not a signal. It does not learn a per-session baseline, so it cannot see a tool that is called too often, or a call that drifts from the tool's schema. Matched text is replaced with a warning in sanitized output, and a credential in evidence is cut down to its first four characters.
 
 ## Performance
 
@@ -656,8 +686,20 @@ armor.loadPatterns(latestPatterns);
 armor.loadPatterns(myCustomPatterns);
 
 // Check current pattern version
-console.log(armor.patternVersion); // '0.9.13'
+console.log(armor.patternVersion); // '0.9.21'
 ```
+
+`fetchLatestPatterns` checks the file before it hands it back, and throws a `PatternValidationError` (with a `problems` list) if anything fails. Nothing changes in a running `armor` until you call `loadPatterns` with the result, so a rejected file leaves the current patterns in place.
+
+- The URL must be `https`. Plain `http` is allowed for `localhost`, `127.0.0.1` and `[::1]` only. Redirects are followed up to three times and must stay on `https`.
+- The body is capped at 2 MiB, and reading stops at the cap.
+- Every field is checked, every pattern needs the `g` flag, and a regex that can match empty text is rejected.
+- Every detector the package ships must be present, with at least one pattern that runs on the whole text (no `scope`) and reports at `balanced`. `minLength` cannot be above the 1,000,000-character input limit.
+- Each regex that is not identical to a shipped one runs against 20,000-character probes of single repeated fragments (spaces, letters, brackets and similar, bare and followed by a stop character) in a worker thread. One that takes over 200 ms, or does not finish in 10 seconds, is rejected. This only catches slowness on input made of those fragments. A regex that is slow only on input shaped like its own wording, such as `ignore(?:\s*\w+)*$`, passes. Review new patterns yourself.
+
+These checks catch mistakes. They do not protect you from a hostile pattern host: a pattern that never matches passes, so a file can still weaken detection. Signatures are not part of this change, so only fetch from a host you trust.
+
+`loadPatterns` builds the new detectors first and swaps them in only if all of them build, so a regex that fails to compile leaves the previous patterns active. It does not run the checks above. A pattern without the `g` flag gets it added, and a pattern that matches empty text is skipped during scans, so neither can stall a scan. Call `validatePatternDatabase(db)` (exported) on a database from any other source first. Signatures are not part of this check.
 
 ## Versioning
 
@@ -715,12 +757,12 @@ Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy, plus t
 
 ### Shipped
 
-- **Content Injection** (5 detectors) and **Behavioural Control** (3 detectors) since v0.1.0
+- **Content Injection** (5 detectors) and **Behavioural Control** (3 detectors) since v0.1.0; encoded payload screening is a sixth Content Injection detector added later
 - **Cognitive State** (3 detectors) and **Semantic Manipulation** (3 detectors) since v0.2.0
-- **Transport Integrity** (2 detectors): credential exposure and dependency substitution
+- **Transport Integrity** (4 detectors): credential exposure, dependency substitution, tool-call tampering and response anomaly screening
 - **Pre-execution action gate** — deterministic allowlist admissibility check (`checkAction()`)
 - ML classifier (DeBERTa-v3-small, ONNX) as optional companion package
-- Pattern database v0.9.13 with 119 pattern entries
+- Pattern database v0.9.21 with 140 pattern entries
 
 ### In Progress
 
@@ -773,7 +815,7 @@ Where it _does_ fit: if your team is building custom agents _using_ the Claude A
 
 It detects prompt injection, and it covers more than that. Direct and indirect injection are both in scope. These are flagged before they reach your model: override phrasing ("ignore all previous instructions"), persona swaps, instructions hidden in HTML or metadata, and plain-text instructions that tell an agent to run a command or send a secret and hide it from the user.
 
-Prompt injection is one attack type among the many we cover (16 detectors across 5 attack categories). It targets chatbots within a single conversation. Agent traps target autonomous agents with tool access, persistent memory, and sub-agent spawning. Different attack surface, different blast radius.
+Prompt injection is one attack type among the many we cover (19 detectors across 5 attack categories). It targets chatbots within a single conversation. Agent traps target autonomous agents with tool access, persistent memory, and sub-agent spawning. Different attack surface, different blast radius.
 
 The full taxonomy includes content injection, behavioral control, cognitive state manipulation (RAG/memory poisoning), and semantic manipulation (biased framing, persona shifts). These are distinct attack categories with different detection approaches.
 

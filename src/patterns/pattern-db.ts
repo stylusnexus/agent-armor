@@ -24,6 +24,13 @@ export interface PatternEntry {
   label: string;
   /** Which capture group to extract text from (0 = full match) */
   extractGroup?: number;
+  /**
+   * Where the regex runs. Omitted: on the whole text. `tool-call-command`: on
+   * the shell commands inside the tool calls found in the text (see
+   * `detectors/tool-call-json.ts`), each decoded from its JSON string, and a
+   * finding's location is the command's value, so sanitizing keeps the JSON valid.
+   */
+  scope?: 'tool-call-command';
   /** Minimum extracted text length to trigger (avoids false positives) */
   minLength?: number;
   /** Whether to boost confidence when instruction signals are found */
@@ -46,8 +53,10 @@ export interface PatternDatabase {
 }
 
 /**
- * Compile a PatternEntry's regex string into a RegExp object.
+ * Compile a PatternEntry's regex string into a RegExp object. The scanner
+ * walks matches with a global `exec` loop, which never advances without the
+ * `g` flag, so it is added when missing.
  */
 export function compilePattern(entry: PatternEntry): RegExp {
-  return new RegExp(entry.regex, entry.flags);
+  return new RegExp(entry.regex, entry.flags.includes('g') ? entry.flags : `${entry.flags}g`);
 }
