@@ -18,8 +18,12 @@ export function agentArmorMiddleware(fieldName: string = 'content') {
   return (req: any, res: any, next: any) => {
     const value = req.body?.[fieldName];
     const isArray = Array.isArray(value);
+    if (value === undefined || value === null || value === '') {
+      return next();
+    }
     if (
-      (isArray && (value.length === 0 || value.some((item: unknown) => typeof item !== 'string'))) ||
+      (isArray &&
+        (value.length === 0 || value.some((item: unknown) => typeof item !== 'string'))) ||
       (!isArray && typeof value !== 'string')
     ) {
       return res.status(400).json({
@@ -121,4 +125,4 @@ function runDemo() {
 }
 
 // Keep importing the middleware safe for applications that copy or reuse it.
-if (process.argv[1]?.endsWith('express-middleware.ts')) runDemo();
+if (/(?:^|[/\\])express-middleware\.(?:[cm]?js|ts)$/.test(process.argv[1] ?? '')) runDemo();
