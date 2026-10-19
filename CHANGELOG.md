@@ -7,6 +7,15 @@ This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor 
 <!-- New entries are generated automatically by release-please from Conventional
 Commit messages on merge to main. Do not edit unreleased entries by hand. -->
 
+## [0.2.26](https://github.com/stylusnexus/agent-armor/compare/v0.2.25...v0.2.26) (2026-10-19)
+
+
+### Fixed
+
+* **cli:** close scan and action gaps ([#343](https://github.com/stylusnexus/agent-armor/issues/343)) ([bf890cf](https://github.com/stylusnexus/agent-armor/commit/bf890cf4222ca66c5091706c930ab50505b16d40)), closes [#184](https://github.com/stylusnexus/agent-armor/issues/184)
+* **example:** scan Express arrays safely ([#341](https://github.com/stylusnexus/agent-armor/issues/341)) ([7428a53](https://github.com/stylusnexus/agent-armor/commit/7428a534750d28edaa99e2962432b50e66ab8165)), closes [#185](https://github.com/stylusnexus/agent-armor/issues/185)
+* **ml:** verify and bound model artifacts ([#344](https://github.com/stylusnexus/agent-armor/issues/344)) ([4fd60f0](https://github.com/stylusnexus/agent-armor/commit/4fd60f0020eab262345c2ec11ff8b61bc38b1c03)), closes [#186](https://github.com/stylusnexus/agent-armor/issues/186)
+
 ## [0.2.25](https://github.com/stylusnexus/agent-armor/compare/v0.2.24...v0.2.25) (2026-10-18)
 
 
