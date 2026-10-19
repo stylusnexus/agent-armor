@@ -14,6 +14,7 @@ export interface ScanCliOptions {
   ml: boolean;
   requireMl?: boolean;
   include?: string[];
+  strictMissing?: boolean;
 }
 
 /** Thrown for any invalid CLI invocation — callers map this to exit code 2. */
@@ -36,6 +37,7 @@ export function parseScanArgs(argv: string[]): ScanCliOptions {
   const failOnRaw = readFlagValue(argv, '--fail-on');
   const includeRaw = readFlagValue(argv, '--include');
   const requireMl = argv.includes('--require-ml');
+  const strictMissing = argv.includes('--strict-missing');
   const ml = argv.includes('--ml') || requireMl;
 
   const strictness = (strictnessRaw ?? 'balanced') as Strictness;
@@ -70,6 +72,7 @@ export function parseScanArgs(argv: string[]): ScanCliOptions {
     includeRaw,
     '--ml',
     '--require-ml',
+    '--strict-missing',
   ]);
   const paths = argv.filter((a) => !flagsAndValues.has(a));
 
@@ -85,5 +88,6 @@ export function parseScanArgs(argv: string[]): ScanCliOptions {
     ml,
     requireMl,
     include: includeRaw ? includeRaw.split(',') : undefined,
+    strictMissing: strictMissing || undefined,
   };
 }

@@ -68,4 +68,10 @@ describe('parseScanArgs', () => {
     expect(opts.requireMl).toBe(true);
     expect(opts.paths).toEqual(['file.md']);
   });
+
+  it('parses --strict-missing without treating it as a path', () => {
+    const opts = parseScanArgs(['file.md', '--strict-missing']);
+    expect(opts.strictMissing).toBe(true);
+    expect(opts.paths).toEqual(['file.md']);
+  });
 });

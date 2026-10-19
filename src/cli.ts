@@ -17,6 +17,7 @@ Options:
                                                and the scan runs regex-only)
   --include <.ext,.ext,...>                   Override default file extensions for directory scans
                                                (default: ${DEFAULT_INCLUDE_EXTENSIONS.join(', ')})
+  --strict-missing                            Exit 2 instead of skipping missing paths
   --help, -h                                  Show this help
 
 Exit codes:
@@ -47,8 +48,9 @@ export async function runCli(argv: string[]): Promise<number> {
 
   try {
     const options = parseScanArgs(rest);
-    const { output, exitCode } = await runScan(options);
-    console.log(output);
+    const { output, error, exitCode } = await runScan(options);
+    if (output) console.log(output);
+    if (error) console.error(error);
     return exitCode;
   } catch (err) {
     if (err instanceof CliUsageError) {

@@ -1,4 +1,4 @@
-import { readdirSync, statSync } from 'node:fs';
+import { readdirSync, realpathSync, statSync } from 'node:fs';
 import path from 'node:path';
 
 /** Extensions/filenames scanned by default when a directory is passed. */
@@ -13,14 +13,37 @@ function matchesInclude(fileName: string, includeExtensions: string[]): boolean 
   );
 }
 
-function walkDir(dir: string, includeExtensions: string[]): string[] {
+function walkDir(dir: string, includeExtensions: string[], visited: Set<string>): string[] {
+  let realDir: string;
+  try {
+    realDir = realpathSync(dir);
+  } catch {
+    return [];
+  }
+  if (visited.has(realDir)) return [];
+  visited.add(realDir);
   const out: string[] = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const entryPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       if (DEFAULT_EXCLUDE_DIRS.has(entry.name)) continue;
-      out.push(...walkDir(path.join(dir, entry.name), includeExtensions));
+      out.push(...walkDir(entryPath, includeExtensions, visited));
+    } else if (entry.isSymbolicLink()) {
+      // stat follows the link, allowing symlinked config files and directories.
+      try {
+        const target = statSync(entryPath);
+        if (target.isDirectory()) {
+          if (!DEFAULT_EXCLUDE_DIRS.has(entry.name)) {
+            out.push(...walkDir(entryPath, includeExtensions, visited));
+          }
+        } else if (target.isFile() && matchesInclude(entry.name, includeExtensions)) {
+          out.push(entryPath);
+        }
+      } catch {
+        // Dangling links are not scan inputs.
+      }
     } else if (entry.isFile() && matchesInclude(entry.name, includeExtensions)) {
-      out.push(path.join(dir, entry.name));
+      out.push(entryPath);
     }
   }
   return out;
@@ -35,11 +58,12 @@ function walkDir(dir: string, includeExtensions: string[]): string[] {
 export function discoverFiles(paths: string[], includeExtensions?: string[]): string[] {
   const extensions = includeExtensions ?? DEFAULT_INCLUDE_EXTENSIONS;
   const out: string[] = [];
+  const visited = new Set<string>();
   for (const p of paths) {
     const resolved = path.resolve(p);
     const stats = statSync(resolved);
     if (stats.isDirectory()) {
-      out.push(...walkDir(resolved, extensions));
+      out.push(...walkDir(resolved, extensions, visited));
     } else {
       out.push(resolved);
     }

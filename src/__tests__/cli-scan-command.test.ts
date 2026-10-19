@@ -96,7 +96,7 @@ describe('runScan', () => {
   });
 
   it('exits 2 with no matching files', async () => {
-    const { exitCode, output } = await runScan({
+    const { exitCode, output, error } = await runScan({
       paths: [dir],
       strictness: 'balanced',
       format: 'text',
@@ -104,18 +104,82 @@ describe('runScan', () => {
       ml: false,
     });
     expect(exitCode).toBe(2);
-    expect(output).toContain('No files matched');
+    expect(output).toBe('');
+    expect(error).toContain('No files matched');
   });
 
   it('exits 2 with a nonexistent path', async () => {
-    const { exitCode } = await runScan({
+    const { exitCode, output, error } = await runScan({
       paths: [path.join(dir, 'does-not-exist.md')],
+      strictness: 'balanced',
+      format: 'text',
+      failOn: 'low',
+      ml: false,
+      strictMissing: true,
+    });
+    expect(exitCode).toBe(2);
+    expect(output).toBe('');
+    expect(error).toContain('Missing path');
+  });
+
+  it('exits 2 when all missing paths are skipped and stdin was not requested', async () => {
+    const warn = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { exitCode, output, error } = await runScan({
+      paths: [path.join(dir, 'optional.md')],
       strictness: 'balanced',
       format: 'text',
       failOn: 'low',
       ml: false,
     });
     expect(exitCode).toBe(2);
+    expect(output).toBe('');
+    expect(error).toContain('every specified path was missing');
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('Skipping missing path'));
+  });
+
+  it('reports and skips a missing optional path', async () => {
+    const file = path.join(dir, 'present.md');
+    writeFileSync(file, 'Nothing suspicious here.');
+    const warn = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { exitCode, output } = await runScan({
+      paths: [path.join(dir, 'optional.md'), file],
+      strictness: 'balanced',
+      format: 'text',
+      failOn: 'low',
+      ml: false,
+    });
+    expect(exitCode).toBe(0);
+    expect(output).toContain('[ok]');
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('optional.md'));
+  });
+
+  it('reports missing paths as errors when --strict-missing is enabled', async () => {
+    const { exitCode, output, error } = await runScan({
+      paths: [path.join(dir, 'optional.md')],
+      strictness: 'balanced',
+      format: 'sarif',
+      failOn: 'low',
+      ml: false,
+      strictMissing: true,
+    });
+    expect(exitCode).toBe(2);
+    expect(output).toBe('');
+    expect(error).toContain('Missing path');
+  });
+
+  it('scans stdin when the path is -', async () => {
+    const { exitCode, output } = await runScan(
+      {
+        paths: ['-'],
+        strictness: 'balanced',
+        format: 'text',
+        failOn: 'low',
+        ml: false,
+      },
+      'Nothing suspicious here.',
+    );
+    expect(exitCode).toBe(0);
+    expect(output).toContain('[ok]      - - clean');
   });
 });
 
@@ -154,9 +218,10 @@ describe('runScan --ml unavailable', () => {
 
   it('--require-ml exits 2 instead of scanning regex-only', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const { exitCode, output } = await runScan({ ...base(), requireMl: true });
+    const { exitCode, output, error } = await runScan({ ...base(), requireMl: true });
     expect(exitCode).toBe(2);
-    expect(output).toContain('--require-ml');
+    expect(output).toBe('');
+    expect(error).toContain('--require-ml');
   });
 });
 

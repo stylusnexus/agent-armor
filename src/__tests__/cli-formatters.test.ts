@@ -56,6 +56,11 @@ describe('formatJson', () => {
     expect(parsed[1].file).toBe('/repo/.cursorrules');
     expect(parsed[1].result.riskLevel).toBe('high');
   });
+
+  it('does not serialize SARIF-only source content', () => {
+    const input = [{ file: '/repo/private.md', result: cleanResult, content: 'sensitive text' }];
+    expect(formatJson(input)).not.toContain('sensitive text');
+  });
 });
 
 describe('formatSarif', () => {
@@ -78,6 +83,26 @@ describe('formatSarif', () => {
     const region = sarif.runs[0].results[0].locations[0].physicalLocation.region;
     expect(region.charOffset).toBe(10);
     expect(region.charLength).toBe(30);
+  });
+  it('uses repository-relative URIs and one-based start lines', () => {
+    const result: ScanResult = {
+      ...dirtyResult,
+      threats: [{ ...dirtyResult.threats[0], location: { offset: 6, length: 4 } }],
+    };
+    const sarif = JSON.parse(
+      formatSarif([{ file: '/repo/sub/file.md', content: 'first\nattack', result }], '/repo'),
+    );
+    const physical = sarif.runs[0].results[0].locations[0].physicalLocation;
+    expect(physical.artifactLocation.uri).toBe('sub/file.md');
+    expect(physical.region.startLine).toBe(2);
+  });
+
+  it('percent-encodes reserved characters in repository-relative SARIF URIs', () => {
+    const sarif = JSON.parse(
+      formatSarif([{ file: '/repo/docs/a #1%.md', result: dirtyResult }], '/repo'),
+    );
+    const physical = sarif.runs[0].results[0].locations[0].physicalLocation;
+    expect(physical.artifactLocation.uri).toBe('docs/a%20%231%25.md');
   });
   it('omits locations when a threat has no location', () => {
     const noLocation: ScanResult = {
