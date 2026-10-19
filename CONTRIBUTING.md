@@ -129,8 +129,9 @@ Releases are automated end-to-end via [release-please](https://github.com/google
 1. Every PR promoted from `dev` to `main` with a Conventional Commit title (`feat:`, `fix:`, etc.) gets picked up by release-please.
 2. release-please maintains a standing "release PR" per package (root `@stylusnexus/agentarmor` and `packages/ml`'s `@stylusnexus/agentarmor-ml`, versioned and tagged independently) that accumulates changelog entries and the next version bump.
 3. Merging a release PR tags the release and creates a GitHub release, which triggers that package's publish job.
-4. The publish job re-runs build/typecheck/test (and the eval gate, for the core package) as a defense-in-depth check, then waits for a manual approval in the `npm-publish` GitHub Environment before running `npm publish --access public`.
-5. Publishing uses npm Trusted Publishing (OIDC) — no `NPM_TOKEN` secret exists in this repo. Provenance is generated automatically.
+4. The publish job re-runs build/typecheck/test (and the eval gate, for the core package) as a defense-in-depth check, then waits for a manual approval in the `npm-publish` GitHub Environment.
+5. Each job packs the package once, creates a signed GitHub artifact attestation for that exact tarball, publishes that tarball to npm, and attaches the tarball and its `.sigstore.json` bundle to the corresponding GitHub release.
+6. Publishing uses npm Trusted Publishing (OIDC) — no `NPM_TOKEN` secret exists in this repo. npm generates registry provenance automatically; the attached Sigstore bundle lets consumers independently verify the release asset with `gh attestation verify <package.tgz> --bundle <package.tgz.sigstore.json> --repo stylusnexus/agent-armor`.
 
 **One-time setup** (already done if you're reading this after #70 shipped — documented here for anyone re-provisioning the repo):
 
