@@ -25,6 +25,8 @@ jobs:
       - name: Dispatch required checks for current release PR heads
         env:
           GH_TOKEN: ${{ github.token }}
+          # No checkout in this job, so gh cannot infer the repo from git.
+          GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           release_prs=$(gh api --paginate \
