@@ -467,9 +467,12 @@ npx @stylusnexus/agentarmor scan <path...> [options]
 | `--fail-on`    | `none`, `low`, `medium`, `high`, `critical` | `low`                         | Minimum risk level that fails the run                         |
 | `--ml`         | flag                                        | off                           | Use the ML classifier (requires `@stylusnexus/agentarmor-ml`) |
 | `--require-ml` | flag                                        | off                           | Like `--ml`, but exit `2` if the classifier cannot load       |
+| `--strict-missing` | flag                                    | off                           | Exit `2` instead of skipping missing paths                   |
 | `--include`    | comma-separated extensions                  | `.md,.txt,.json,.cursorrules` | Override default extensions when scanning a directory         |
 
 A file path is always scanned regardless of extension; a directory path recurses, filtered by `--include` (skips `node_modules/`, `.git/`, `dist/`, `coverage/`).
+
+Missing paths are reported to stderr and skipped when other inputs remain. If skipping leaves no files to scan, the CLI exits `2`. Pass `--strict-missing` to exit `2` if any path is missing. Pass `-` to scan text from stdin.
 
 With `--ml` alone, a missing classifier prints a warning on stderr and the scan runs with regex detectors only. A degraded scan (a detector threw) counts as a failure and exits `1` unless `--fail-on none`.
 
@@ -479,12 +482,19 @@ Exit codes: `0` clean, `1` threat(s) at/above `--fail-on` or a degraded scan, `2
 
 ```yaml
 - name: Scan for agent traps
+  id: scan
+  continue-on-error: true
   run: npx @stylusnexus/agentarmor scan . --format sarif --fail-on high > results.sarif
 
 - name: Upload SARIF
+  if: always()
   uses: github/codeql-action/upload-sarif@v3
   with:
     sarif_file: results.sarif
+
+- name: Fail if the scan found a blocking result
+  if: steps.scan.outcome == 'failure'
+  run: exit 1
 ```
 
 ### Pre-commit hook

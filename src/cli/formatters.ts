@@ -5,6 +5,7 @@ import { severityToSarifLevel } from './severity';
 export interface FileScanResult {
   file: string;
   result: ScanResult;
+  content?: string;
 }
 
 export function formatText(results: FileScanResult[]): string {
@@ -53,7 +54,7 @@ function titleCase(id: string): string {
     .join(' ');
 }
 
-export function formatSarif(results: FileScanResult[]): string {
+export function formatSarif(results: FileScanResult[], repositoryRoot = process.cwd()): string {
   const ruleIds = new Set<string>();
   const sarifResults: unknown[] = [];
 
@@ -64,8 +65,9 @@ export function formatSarif(results: FileScanResult[]): string {
         ? [
             {
               physicalLocation: {
-                artifactLocation: { uri: toFileUri(file) },
+                artifactLocation: { uri: toFileUri(file, repositoryRoot) },
                 region: {
+                  startLine: lineAt(contentFor(results, file), threat.location.offset),
                   charOffset: threat.location.offset,
                   charLength: threat.location.length,
                 },
@@ -116,7 +118,7 @@ export function formatSarif(results: FileScanResult[]): string {
                       text: `Degraded scan: detector(s) ${(result.stats.failedDetectors ?? []).join(', ')} failed, so ${file} was not fully checked.`,
                     },
                     locations: [
-                      { physicalLocation: { artifactLocation: { uri: toFileUri(file) } } },
+                      { physicalLocation: { artifactLocation: { uri: toFileUri(file, repositoryRoot) } } },
                     ],
                   })),
                 },
@@ -131,6 +133,19 @@ export function formatSarif(results: FileScanResult[]): string {
 }
 
 /** Forward-slash path for SARIF artifactLocation.uri (SARIF requires URI-style separators). */
-function toFileUri(filePath: string): string {
-  return filePath.split(path.sep).join('/');
+function contentFor(results: FileScanResult[], file: string): string {
+  return results.find((entry) => entry.file === file)?.content ?? '';
+}
+
+function lineAt(content: string, offset: number): number {
+  let line = 1;
+  for (let i = 0; i < Math.min(offset, content.length); i++) {
+    if (content.charCodeAt(i) === 10) line++;
+  }
+  return line;
+}
+
+function toFileUri(filePath: string, repositoryRoot: string): string {
+  const relative = path.relative(repositoryRoot, filePath) || path.basename(filePath);
+  return relative.split(path.sep).join('/');
 }

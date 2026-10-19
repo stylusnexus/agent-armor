@@ -79,6 +79,18 @@ describe('formatSarif', () => {
     expect(region.charOffset).toBe(10);
     expect(region.charLength).toBe(30);
   });
+  it('uses repository-relative URIs and one-based start lines', () => {
+    const result: ScanResult = {
+      ...dirtyResult,
+      threats: [{ ...dirtyResult.threats[0], location: { offset: 6, length: 4 } }],
+    };
+    const sarif = JSON.parse(
+      formatSarif([{ file: '/repo/sub/file.md', content: 'first\nattack', result }], '/repo'),
+    );
+    const physical = sarif.runs[0].results[0].locations[0].physicalLocation;
+    expect(physical.artifactLocation.uri).toBe('sub/file.md');
+    expect(physical.region.startLine).toBe(2);
+  });
   it('omits locations when a threat has no location', () => {
     const noLocation: ScanResult = {
       ...dirtyResult,
