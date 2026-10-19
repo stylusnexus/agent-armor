@@ -48,7 +48,7 @@ Subsequent runs load from cache with no network calls.
 const armor = await AgentArmor.create({
   ml: {
     enabled: true,
-    // Point to a local model directory (skips download)
+    // Point to the pinned model release in a local directory (skips download)
     modelDir: './models/agentarmor',
     // Behavior when model is unavailable
     onUnavailable: 'warn-and-skip', // 'throw' | 'warn-and-skip' | 'silent-skip'
@@ -63,6 +63,24 @@ const armor = await AgentArmor.create({
   },
 });
 ```
+
+`modelDir` is checked against the package's pinned SHA-256 digests. For a custom or retrained model, provide all three artifact checksums:
+
+```typescript
+const armor = await AgentArmor.create({
+  ml: {
+    enabled: true,
+    modelDir: './models/custom',
+    modelChecksums: {
+      'model_quantized.onnx': '<64-character SHA-256 hex>',
+      'tokenizer.json': '<64-character SHA-256 hex>',
+      'label_map.json': '<64-character SHA-256 hex>',
+    },
+  },
+});
+```
+
+Every retrain release must update the pinned checksums in `packages/ml/src/constants.ts`; changing a custom model does not require a tokenization-code change.
 
 ## CLI
 
@@ -83,6 +101,8 @@ agentarmor-ml clear-cache
 ## Inference Details
 
 - Tokenizes input to 512 tokens with the Hugging Face [`tokenizers`](https://www.npmjs.com/package/tokenizers) package, reading the model's own `tokenizer.json` (SentencePiece Unigram). A retrained model needs no code change; a test fails if the ids drift from the Python training tokenizer.
+- Caps text passed into the native tokenizer at 16,384 UTF-16 code units to bound work on very long or unbroken input.
+- Verifies SHA-256 checksums for the ONNX model, tokenizer and label map on download and whenever it reuses the cache. Update all three pinned digests alongside a model release.
 - If most of an input's tokens are unknown to the tokenizer, the ML result is dropped and the pattern detectors carry the scan. The scan result lists it in `stats.detectorsSkipped`, and `on.warn` fires once
 - Runs ONNX inference with INT8 quantization via `onnxruntime-node`
 - Applies sigmoid on logits with strictness-based thresholds: `strict=0.3`, `balanced=0.5`, `permissive=0.7`

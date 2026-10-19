@@ -2,7 +2,7 @@
  * Model integrity check — confirms the checksum and label map this package
  * ships still agree with the artifacts actually hosted on HuggingFace.
  *
- * `MODEL_CHECKSUM` is maintained by hand during the model-update lifecycle
+ * `REQUIRED_MODEL_CHECKSUMS` is maintained by hand during the model-update lifecycle
  * (retrain -> export -> update checksum -> push to HF -> publish npm). Nothing
  * previously verified that the constant and the hosted file still matched, so
  * drift surfaced only when an end user hit `CHECKSUM_MISMATCH` on download.
@@ -14,15 +14,22 @@
  * HuggingFace stores large files in LFS and exposes each one's `lfs.oid` via the
  * tree API. That oid IS the file's SHA-256 — verified against real downloaded
  * bytes via `--deep`, which produces an identical digest. So the weekly check is
- * a metadata read, not a large transfer, which is what makes it cheap enough to
- * also gate every npm publish. `--deep` remains available for proof independent
- * of HuggingFace's own metadata.
+ * a metadata read, not a large transfer. Small required files are downloaded
+ * in both modes so their SHA-256 digests can be checked too. `--deep` downloads
+ * the ONNX model as independent proof of HuggingFace's LFS metadata.
  *
  * Decision logic lives in `model-integrity.ts` so it is testable without network.
  */
 
 import { createHash } from 'node:crypto';
-import { HF_REPO_ID, HF_REVISION, MODEL_CHECKSUM, MODEL_FILENAME } from '../src/constants';
+import {
+  HF_REPO_ID,
+  HF_REVISION,
+  MODEL_CHECKSUM,
+  MODEL_FILENAME,
+  REQUIRED_MODEL_CHECKSUMS,
+  REQUIRED_MODEL_FILES,
+} from '../src/constants';
 import {
   checkLabelMap,
   checkModelChecksum,
@@ -72,6 +79,17 @@ async function main(): Promise<void> {
     ? await sha256Remote(`${RESOLVE_BASE}/${MODEL_FILENAME}`)
     : byPath.get(MODEL_FILENAME)?.lfs?.oid;
 
+  const checksumFailures: string[] = [];
+  for (const file of REQUIRED_MODEL_FILES) {
+    if (file === MODEL_FILENAME) continue;
+    const digest = await sha256Remote(`${RESOLVE_BASE}/${file}`);
+    if (digest !== REQUIRED_MODEL_CHECKSUMS[file]) {
+      checksumFailures.push(
+        `${file} checksum mismatch: expected ${REQUIRED_MODEL_CHECKSUMS[file]}, got ${digest}`,
+      );
+    }
+  }
+
   let labelReport: IntegrityReport;
   try {
     const labelMap = await fetchJson<Record<string, string>>(
@@ -95,15 +113,20 @@ async function main(): Promise<void> {
     checkTokenizer(byPath),
   );
 
+  failures.push(...checksumFailures);
+  if (checksumFailures.length === 0) {
+    notes.push('tokenizer.json and label_map.json SHA-256 checksums match');
+  }
+
   for (const note of notes) console.log(`  ok   ${note}`);
 
   if (failures.length > 0) {
     console.error(`\nFAIL — ${failures.length} integrity problem(s):\n`);
     for (const f of failures) console.error(`  - ${f}`);
     console.error(
-      `\nIf a retrain intentionally changed the hosted model, update MODEL_CHECKSUM ` +
-        `(and MODEL_VERSION, if the label space or tokenizer changed) in ` +
-        `packages/ml/src/constants.ts, then re-run.`,
+      `\nIf a retrain intentionally changed hosted artifacts, update ` +
+        `REQUIRED_MODEL_CHECKSUMS in packages/ml/src/constants.ts ` +
+        `(and MODEL_VERSION, if the label space or tokenizer changed), then re-run.`,
     );
     process.exit(1);
   }

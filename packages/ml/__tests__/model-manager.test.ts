@@ -4,6 +4,22 @@ import { createHash } from 'crypto';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
+const TEST_FILES = ['model_quantized.onnx', 'tokenizer.json', 'label_map.json'] as const;
+type TestChecksums = Record<(typeof TEST_FILES)[number], string>;
+
+async function writeTestArtifacts(
+  dir: string,
+  overrides: Partial<Record<(typeof TEST_FILES)[number], string>> = {},
+): Promise<TestChecksums> {
+  const checksums = {} as TestChecksums;
+  for (const file of TEST_FILES) {
+    const contents = overrides[file] ?? `mock:${file}`;
+    await writeFile(join(dir, file), contents);
+    checksums[file] = createHash('sha256').update(contents).digest('hex');
+  }
+  return checksums;
+}
+
 describe('resolveModel', () => {
   let tempDir: string;
 
@@ -17,19 +33,41 @@ describe('resolveModel', () => {
 
   it('resolves from modelDir when all required files exist', async () => {
     const { resolveModel } = await import('../src/model-manager');
-    const { REQUIRED_MODEL_FILES } = await import('../src/constants');
-    for (const file of REQUIRED_MODEL_FILES) {
-      await writeFile(join(tempDir, file), 'mock-content');
-    }
-    const result = await resolveModel({ modelDir: tempDir });
+    const modelChecksums = await writeTestArtifacts(tempDir);
+    const result = await resolveModel({ modelDir: tempDir, modelChecksums });
     expect(result.modelDir).toBe(tempDir);
     expect(result.modelPath).toContain('model_quantized.onnx');
   });
+
+  it.each(['tokenizer.json', 'label_map.json'])(
+    'rejects a tampered custom %s with CHECKSUM_MISMATCH',
+    async (file) => {
+      const { resolveModel } = await import('../src/model-manager');
+      const modelChecksums = await writeTestArtifacts(tempDir);
+      await writeFile(join(tempDir, file), 'tampered');
+      await expect(resolveModel({ modelDir: tempDir, modelChecksums })).rejects.toMatchObject({
+        code: 'CHECKSUM_MISMATCH',
+      });
+    },
+  );
 
   it('throws MODEL_NOT_FOUND when modelDir missing required files', async () => {
     const { resolveModel } = await import('../src/model-manager');
     await writeFile(join(tempDir, 'tokenizer.json'), '{}');
     await expect(resolveModel({ modelDir: tempDir })).rejects.toThrow('model_quantized.onnx');
+  });
+});
+
+describe('getModelCacheDir', () => {
+  it('isolates custom sources and checksums from the pinned release cache', async () => {
+    const { getModelCacheDir } = await import('../src/model-manager');
+    const { REQUIRED_MODEL_CHECKSUMS } = await import('../src/constants');
+    const customChecksums = { ...REQUIRED_MODEL_CHECKSUMS, 'tokenizer.json': 'a'.repeat(64) };
+
+    expect(getModelCacheDir({})).not.toBe(getModelCacheDir({ modelChecksums: customChecksums }));
+    expect(getModelCacheDir({ modelUrl: 'https://models.example/a' })).not.toBe(
+      getModelCacheDir({ modelUrl: 'https://models.example/b' }),
+    );
   });
 });
 
@@ -46,11 +84,8 @@ describe('validateModelDir', () => {
 
   it('passes when all required files exist', async () => {
     const { validateModelDir } = await import('../src/model-manager');
-    const { REQUIRED_MODEL_FILES } = await import('../src/constants');
-    for (const file of REQUIRED_MODEL_FILES) {
-      await writeFile(join(tempDir, file), 'mock-content');
-    }
-    await expect(validateModelDir(tempDir)).resolves.toBeUndefined();
+    const checksums = await writeTestArtifacts(tempDir);
+    await expect(validateModelDir(tempDir, checksums)).resolves.toBeUndefined();
   });
 
   it('throws with MODEL_NOT_FOUND code when files are missing', async () => {
@@ -132,4 +167,29 @@ describe('verifyChecksum', () => {
       MODEL_CHECKSUM.startsWith('PLACEHOLDER') || digestOfContent === MODEL_CHECKSUM,
     );
   });
+});
+
+describe('verifyRequiredModelChecksums', () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'agentarmor-integrity-test-'));
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  it.each(['tokenizer.json', 'label_map.json'])(
+    'rejects a tampered %s with CHECKSUM_MISMATCH',
+    async (tamperedFile) => {
+      const { verifyRequiredModelChecksums } = await import('../src/model-manager');
+      const checksums = await writeTestArtifacts(tempDir);
+      await writeFile(join(tempDir, tamperedFile), 'tampered');
+
+      await expect(verifyRequiredModelChecksums(tempDir, checksums)).rejects.toMatchObject({
+        code: 'CHECKSUM_MISMATCH',
+      });
+    },
+  );
 });

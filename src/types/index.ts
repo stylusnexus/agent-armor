@@ -311,6 +311,15 @@ export interface MLConfig {
   enabled?: boolean;
   /** Local directory containing ONNX model + tokenizer files */
   modelDir?: string;
+  /**
+   * SHA-256 checksums for custom model artifacts. Supply all three entries when
+   * using a model that differs from this package's pinned release.
+   */
+  modelChecksums?: {
+    'model_quantized.onnx': string;
+    'tokenizer.json': string;
+    'label_map.json': string;
+  };
   /** Inject a custom Detector (skips model download, useful for testing) */
   detector?: Detector;
   /** Behavior when ML model is unavailable */

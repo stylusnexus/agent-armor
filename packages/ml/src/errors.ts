@@ -2,6 +2,7 @@
 export type ModelErrorCode =
   | 'MODEL_NOT_FOUND'
   | 'CHECKSUM_MISMATCH'
+  | 'CHECKSUM_REQUIRED'
   | 'DOWNLOAD_FAILED'
   | 'DOWNLOAD_TIMEOUT'
   | 'DISK_FULL'

@@ -34,6 +34,9 @@ const SUPPORTED_MODEL_TYPES = ['Unigram'];
 
 const REQUIRED_SPECIAL = ['[PAD]', '[CLS]', '[SEP]', '[UNK]'] as const;
 
+/** Bound tokenizer work even when callers pass a single enormous token. */
+export const MAX_TOKENIZER_INPUT_CHARS = 16_384;
+
 /** Result of {@link Tokenizer.encode}. */
 export interface Encoded {
   inputIds: BigInt64Array;
@@ -50,8 +53,9 @@ export interface Encoded {
  * model's own `tokenizer.json`, so the ids match what the model saw in training
  * (the training script uses the same Rust code through Python). This file holds
  * no tokenization logic of its own. A retrain that ships a new `tokenizer.json`
- * works without a code change, and the golden-id test in
- * `__tests__/tokenizer-golden.test.ts` fails if the output ever drifts from the
+ * works without changing tokenization code. A retrain must update the pinned
+ * tokenizer checksum in `constants.ts`; the golden-id test in
+ * `__tests__/tokenizer-golden.test.ts` checks that output still matches the
  * Python tokenizer.
  */
 export class Tokenizer {
@@ -144,7 +148,14 @@ export class Tokenizer {
    * ids and ends with [SEP], like the training tokenizer's truncation.
    */
   async encode(text: string, maxLength: number = 512): Promise<Encoded> {
-    const encoding = await this.hf.encode(text, null, { addSpecialTokens: true });
+    let boundedText = text.slice(0, MAX_TOKENIZER_INPUT_CHARS);
+    // String.slice is UTF-16 based; do not pass a dangling high surrogate to
+    // the native tokenizer when the cap lands between a surrogate pair.
+    const lastCodeUnit = boundedText.charCodeAt(boundedText.length - 1);
+    if (lastCodeUnit >= 0xd800 && lastCodeUnit <= 0xdbff) {
+      boundedText = boundedText.slice(0, -1);
+    }
+    const encoding = await this.hf.encode(boundedText, null, { addSpecialTokens: true });
     let ids = encoding.getIds();
 
     if (ids.length > maxLength) {
