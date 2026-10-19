@@ -27,9 +27,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          release_prs=$(gh api --paginate --slurp \
+          release_prs=$(gh api --paginate \
             "repos/$GITHUB_REPOSITORY/pulls?state=open&base=main&per_page=100" \
-            --jq 'add[] | select((.user.login == "app/github-actions" or .user.login == "github-actions[bot]") and (.head.ref | startswith("release-please--branches--main"))) | [.number, .head.ref, .head.sha] | @tsv')
+            --jq '.[] | select((.user.login == "app/github-actions" or .user.login == "github-actions[bot]") and (.head.ref | startswith("release-please--branches--main"))) | [.number, .head.ref, .head.sha] | @tsv')
           while IFS=$'\t' read -r number head_ref head_sha; do
             test -n "$number" || continue
             echo "Dispatching ci.yml and eval.yml for PR #$number at $head_sha"

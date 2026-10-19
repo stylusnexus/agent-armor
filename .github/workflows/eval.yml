@@ -19,7 +19,7 @@ on:
   push:
     branches: [main, dev]
   # release-please commits are created with GITHUB_TOKEN, so they do not
-  # trigger push or pull_request workflows. release-please.yml explicitly
+  # trigger push or pull_request workflows. release-pr-checks.yml
   # dispatches this workflow on each release PR head instead.
   workflow_dispatch:
     inputs:
