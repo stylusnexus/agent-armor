@@ -441,7 +441,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'mi-html-comment',
-        regex: '<!--([\\s\\S]*?)-->',
+        regex: '<!--([\\s\\S]*?)--!?>',
         flags: 'g',
         category: 'content-injection',
         type: 'metadata-injection',
