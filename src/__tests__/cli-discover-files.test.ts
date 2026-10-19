@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { discoverFiles, DEFAULT_INCLUDE_EXTENSIONS } from '../cli/discover-files';
@@ -50,6 +50,16 @@ describe('discoverFiles', () => {
     writeFileSync(path.join(dir, '.cursorrules'), 'x');
     const result = discoverFiles([dir]);
     expect(result).toEqual([path.resolve(dir, '.cursorrules')]);
+  });
+
+  it('discovers symlinked files and safely follows symlinked directories', () => {
+    const actual = path.join(dir, 'actual.md');
+    writeFileSync(actual, 'x');
+    symlinkSync(actual, path.join(dir, 'linked.md'));
+    symlinkSync(dir, path.join(dir, 'loop'));
+    expect(discoverFiles([dir]).sort()).toEqual(
+      [path.resolve(actual), path.resolve(dir, 'linked.md')].sort(),
+    );
   });
 
   it('exports the default include list for reuse by the CLI help text', () => {

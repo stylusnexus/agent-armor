@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { mkdtemp, writeFile, rm } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { Tokenizer } from '../src/tokenizer';
+import { MAX_TOKENIZER_INPUT_CHARS, Tokenizer } from '../src/tokenizer';
 import { AgentArmorModelError } from '../src/errors';
 
 // The tokenizer itself is the Hugging Face `tokenizers` package; these tests
@@ -110,6 +110,24 @@ describe('Tokenizer.encode', () => {
     const { inputIds, attentionMask } = await tok.encode('hello '.repeat(50), 8);
     expect(Array.from(inputIds)).toEqual([1n, 4n, 4n, 4n, 4n, 4n, 4n, 2n]);
     expect(Array.from(attentionMask).every((m) => m === 1n)).toBe(true);
+  });
+
+  it('caps tokenizer input before native encoding, including unbroken long tokens', async () => {
+    const tok = await Tokenizer.fromFile(await write('ok.json', tinyUnigram()));
+    const longToken = 'z'.repeat(MAX_TOKENIZER_INPUT_CHARS * 64);
+    const bounded = await tok.encode(longToken, 8);
+    const expected = await tok.encode(longToken.slice(0, MAX_TOKENIZER_INPUT_CHARS), 8);
+    expect(Array.from(bounded.inputIds)).toEqual(Array.from(expected.inputIds));
+    expect(Array.from(bounded.attentionMask)).toEqual(Array.from(expected.attentionMask));
+  });
+
+  it('does not pass a dangling surrogate past the input cap', async () => {
+    const tok = await Tokenizer.fromFile(await write('ok.json', tinyUnigram()));
+    const prefix = 'z'.repeat(MAX_TOKENIZER_INPUT_CHARS - 1);
+    const withPairAtBoundary = `${prefix}😀`;
+    const bounded = await tok.encode(withPairAtBoundary, 8);
+    const expected = await tok.encode(prefix, 8);
+    expect(Array.from(bounded.inputIds)).toEqual(Array.from(expected.inputIds));
   });
 
   it('ignores the padding and truncation settings stored in the file', async () => {

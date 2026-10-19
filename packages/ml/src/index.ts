@@ -1,9 +1,11 @@
 import { MLDetector } from './ml-detector';
 import { resolveModel } from './model-manager';
+import type { ModelArtifactChecksums } from './constants';
 
 export { AgentArmorModelError } from './errors';
 export { MLDetector } from './ml-detector';
 export type { ModelArtifacts } from './model-manager';
+export type { ModelArtifactChecksums } from './constants';
 
 /**
  * Create an ML detector from config.
@@ -11,6 +13,7 @@ export type { ModelArtifacts } from './model-manager';
  */
 export async function createMLDetector(mlConfig: {
   modelDir?: string;
+  modelChecksums?: ModelArtifactChecksums;
   enabled?: boolean;
   modelUrl?: string;
   download?: {

@@ -12,8 +12,10 @@ import {
   HF_REVISION,
   MODEL_CHECKSUM,
   MODEL_FILENAME,
+  type ModelArtifactChecksums,
   OPTIONAL_MODEL_FILES,
   REQUIRED_MODEL_FILES,
+  REQUIRED_MODEL_CHECKSUMS,
   getDefaultCacheDir,
 } from './constants';
 import { AgentArmorModelError } from './errors';
@@ -32,6 +34,7 @@ export interface ModelArtifacts {
 
 interface MLConfigLike {
   modelDir?: string;
+  modelChecksums?: ModelArtifactChecksums;
   enabled?: boolean;
   modelUrl?: string;
   download?: {
@@ -54,7 +57,10 @@ function artifactsFrom(dir: string): ModelArtifacts {
  * Validate that all required model files exist in a directory.
  * Throws AgentArmorModelError('MODEL_NOT_FOUND') with a helpful message if any are missing.
  */
-export async function validateModelDir(dir: string): Promise<void> {
+export async function validateModelDir(
+  dir: string,
+  checksums: ModelArtifactChecksums = REQUIRED_MODEL_CHECKSUMS,
+): Promise<void> {
   const missing: string[] = [];
   for (const file of REQUIRED_MODEL_FILES) {
     try {
@@ -70,6 +76,32 @@ export async function validateModelDir(dir: string): Promise<void> {
         `Required files: ${REQUIRED_MODEL_FILES.join(', ')}`,
     );
   }
+  await verifyRequiredModelChecksums(dir, checksums);
+}
+
+/** Verify pinned SHA-256 digests for all required artifacts in a complete directory. */
+export async function verifyRequiredModelChecksums(
+  dir: string,
+  checksums: ModelArtifactChecksums = REQUIRED_MODEL_CHECKSUMS,
+): Promise<void> {
+  const invalid = REQUIRED_MODEL_FILES.filter(
+    (file) => !/^[a-f0-9]{64}$/i.test(checksums?.[file] ?? ''),
+  );
+  if (invalid.length > 0) {
+    throw new AgentArmorModelError(
+      'CHECKSUM_REQUIRED',
+      `A valid SHA-256 checksum is required for each model artifact; missing or invalid: ${invalid.join(', ')}`,
+    );
+  }
+  for (const file of REQUIRED_MODEL_FILES) {
+    const path = join(dir, file);
+    if (!(await verifyChecksum(path, checksums[file]))) {
+      throw new AgentArmorModelError(
+        'CHECKSUM_MISMATCH',
+        `Required model file checksum verification failed for ${path}`,
+      );
+    }
+  }
 }
 
 /**
@@ -80,16 +112,19 @@ export async function resolveModel(config: MLConfigLike = {}): Promise<ModelArti
   const modelDir = config.modelDir || process.env.AGENTARMOR_MODEL_DIR;
 
   if (modelDir) {
-    await validateModelDir(modelDir);
+    await validateModelDir(modelDir, config.modelChecksums);
     return artifactsFrom(modelDir);
   }
 
-  const cacheDir = getDefaultCacheDir();
+  // Keep custom model sources/checksums out of the shared pinned-release cache.
+  // Otherwise one caller can overwrite or invalidate artifacts another caller
+  // expects to match the package-pinned digests.
+  const cacheDir = getModelCacheDir(config);
   await mkdir(cacheDir, { recursive: true });
 
   // Check if a valid cached model exists
   try {
-    await validateModelDir(cacheDir);
+    await validateModelDir(cacheDir, config.modelChecksums);
     return artifactsFrom(cacheDir);
   } catch {
     // Not cached — download
@@ -97,6 +132,17 @@ export async function resolveModel(config: MLConfigLike = {}): Promise<ModelArti
 
   await downloadWithLock(cacheDir, config);
   return artifactsFrom(cacheDir);
+}
+
+export function getModelCacheDir(config: MLConfigLike): string {
+  if (!config.modelChecksums && !config.modelUrl) return getDefaultCacheDir();
+
+  const source = config.modelUrl ?? `https://huggingface.co/${HF_REPO_ID}/resolve/${HF_REVISION}`;
+  const checksumIdentity = REQUIRED_MODEL_FILES.map(
+    (file) => `${file}:${config.modelChecksums?.[file] ?? REQUIRED_MODEL_CHECKSUMS[file]}`,
+  ).join('\n');
+  const key = createHash('sha256').update(`${source}\n${checksumIdentity}`).digest('hex');
+  return join(getDefaultCacheDir(), 'custom', key);
 }
 
 /**
@@ -114,7 +160,7 @@ export async function downloadWithLock(cacheDir: string, config: MLConfigLike): 
       await waitForLock(lockPath, config);
       // After lock is released, check if model is now valid
       try {
-        await validateModelDir(cacheDir);
+        await validateModelDir(cacheDir, config.modelChecksums);
         return;
       } catch {
         // Still missing — acquire lock and download ourselves
@@ -136,18 +182,15 @@ export async function downloadWithLock(cacheDir: string, config: MLConfigLike): 
       await downloadFile(file, cacheDir, config, true);
     }
 
-    // Verify checksum of the main model file
-    const modelPath = join(cacheDir, MODEL_FILENAME);
-    const checksumOk = await verifyChecksum(modelPath);
-    if (!checksumOk) {
+    // Verify every required artifact before treating the cache as usable.
+    try {
+      await validateModelDir(cacheDir, config.modelChecksums);
+    } catch (err) {
       // Clean up the bad download
       for (const file of REQUIRED_MODEL_FILES) {
         await unlink(join(cacheDir, file)).catch(() => {});
       }
-      throw new AgentArmorModelError(
-        'CHECKSUM_MISMATCH',
-        `Model file checksum verification failed for ${modelPath}`,
-      );
+      throw err;
     }
   } finally {
     await lockFd.close();
@@ -309,7 +352,7 @@ export async function downloadFile(
 
 /**
  * Verify the SHA-256 checksum of a file against an expected value (defaults to
- * the shipped MODEL_CHECKSUM). Returns true if the digest matches. Skips
+ * the shipped model checksum). Returns true if the digest matches. Skips
  * verification (returns true) when the expected checksum is a placeholder.
  *
  * `expected` is parameterized so the behavior can be exercised independently of
@@ -329,7 +372,7 @@ export async function verifyChecksum(
     hash.update(chunk);
   }
   const digest = hash.digest('hex');
-  return digest === expected;
+  return digest === expected.toLowerCase();
 }
 
 /**

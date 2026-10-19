@@ -40,6 +40,11 @@ process.stdin.on('end', () => {
       if (m[0].length === 0) re.lastIndex++;
     }
   };
+  // V8 compiles a regex lazily and tiers it up on the second call, which for
+  // the longest shipped patterns costs ~150ms on a shared CI runner. Pay that
+  // once here so the 4,000-character step times matching, not compilation.
+  run('warm up');
+  run('warm up');
   const slow: string[] = [];
   for (const unit of units) {
     for (const { chars, budgetMs } of steps) {
