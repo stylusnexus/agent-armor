@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.10](https://github.com/stylusnexus/agent-armor/compare/agentarmor-ml-v0.1.9...agentarmor-ml-v0.1.10) (2026-10-19)
+
+
+### Fixed
+
+* **ml:** verify and bound model artifacts ([#344](https://github.com/stylusnexus/agent-armor/issues/344)) ([4fd60f0](https://github.com/stylusnexus/agent-armor/commit/4fd60f0020eab262345c2ec11ff8b61bc38b1c03)), closes [#186](https://github.com/stylusnexus/agent-armor/issues/186)
+
+
+### Documentation
+
+* **ml:** say the real-document result is tuned ([#323](https://github.com/stylusnexus/agent-armor/issues/323)) ([44561cd](https://github.com/stylusnexus/agent-armor/commit/44561cd0bfab795fed50bf8ea6a03c6bd2df0654)), closes [#298](https://github.com/stylusnexus/agent-armor/issues/298)
+
 ## [0.1.9](https://github.com/stylusnexus/agent-armor/compare/agentarmor-ml-v0.1.8...agentarmor-ml-v0.1.9) (2026-10-16)
 
 
