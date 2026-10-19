@@ -27,16 +27,14 @@ on:
     branches:
       - main
 
-permissions:
-  contents: write
-  pull-requests: write
+permissions: read-all
 
 jobs:
   release-please:
     runs-on: ubuntu-latest
     permissions:
-      actions: write
       contents: write
+      issues: write
       pull-requests: write
     outputs:
       # release-please-action only prefixes non-root paths (`${path}--${key}`);
@@ -69,7 +67,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm install -g npm@^11.5.1 # npm's OIDC Trusted Publishing needs npm >=11.5.1; Node 22's bundled npm predates it
+      - run: npm install -g npm@11.21.1 # pinned for OIDC Trusted Publishing; Node 22's bundled npm predates the minimum
       - run: npm ci
       - run: npm run typecheck
       - run: npm run test:run
@@ -97,7 +95,7 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: packages/ml/package-lock.json
-      - run: npm install -g npm@^11.5.1 # npm's OIDC Trusted Publishing needs npm >=11.5.1; Node 22's bundled npm predates it
+      - run: npm install -g npm@11.21.1 # pinned for OIDC Trusted Publishing; Node 22's bundled npm predates the minimum
       - run: npm ci
       - run: npm run typecheck
       - run: npm run test
