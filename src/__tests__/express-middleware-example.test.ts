@@ -1,5 +1,10 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@stylusnexus/agentarmor', async () => {
+  const { AgentArmor } = await import('../agent-armor');
+  return { AgentArmor };
+});
+
 let agentArmorMiddleware: typeof import('../../examples/express-middleware').agentArmorMiddleware;
 
 interface MockRequest {
