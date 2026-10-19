@@ -10,16 +10,55 @@ on:
     branches: [main, dev]
   push:
     branches: [main, dev]
+  # release-please commits are created with GITHUB_TOKEN, so they do not
+  # trigger push or pull_request workflows. release-please.yml explicitly
+  # dispatches this workflow on each release PR head instead.
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Full expected release PR head SHA
+        required: true
+        type: string
+      pull_request_number:
+        description: Release PR number to validate against this run
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
+  validate-release-dispatch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Confirm dispatched run matches an open release PR head
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          PR_NUMBER: ${{ inputs.pull_request_number }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_SHA" = "$EXPECTED_SHA"
+          pull=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER")
+          test "$(jq -r 'select(.state == "open" and .base.ref == "main" and (.head.ref | startswith("release-please--branches--main")) and (.user.login == "app/github-actions" or .user.login == "github-actions[bot]")) | .number' <<<"$pull")" = "$PR_NUMBER"
+          test "$(jq -r '.head.sha' <<<"$pull")" = "$EXPECTED_SHA"
+
   lint:
+    needs: validate-release-dispatch
+    if: always()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - name: Fail if release PR validation did not pass
+        if: github.event_name == 'workflow_dispatch' && needs.validate-release-dispatch.result != 'success'
+        run: exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_sha || github.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 20
           cache: npm
@@ -33,10 +72,17 @@ jobs:
           }
 
   docs-drift:
+    needs: validate-release-dispatch
+    if: always()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - name: Fail if release PR validation did not pass
+        if: github.event_name == 'workflow_dispatch' && needs.validate-release-dispatch.result != 'success'
+        run: exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_sha || github.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 20
           cache: npm
@@ -44,10 +90,17 @@ jobs:
       - run: npm run check:docs
 
   build:
+    needs: validate-release-dispatch
+    if: always()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - name: Fail if release PR validation did not pass
+        if: github.event_name == 'workflow_dispatch' && needs.validate-release-dispatch.result != 'success'
+        run: exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_sha || github.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 20
           cache: npm
@@ -60,10 +113,17 @@ jobs:
           npm run build
 
   ml-package:
+    needs: validate-release-dispatch
+    if: always()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - name: Fail if release PR validation did not pass
+        if: github.event_name == 'workflow_dispatch' && needs.validate-release-dispatch.result != 'success'
+        run: exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_sha || github.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 20
           cache: npm
@@ -75,17 +135,24 @@ jobs:
           npm run test
 
   action-gate-fuzz:
+    needs: validate-release-dispatch
+    if: always()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - name: Fail if release PR validation did not pass
+        if: github.event_name == 'workflow_dispatch' && needs.validate-release-dispatch.result != 'success'
+        run: exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_sha || github.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 20
           cache: npm
       - run: npm ci
       - name: Restore SecLists LFI corpus cache
         id: cache-seclists
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ../SecLists
           key: seclists-lfi-v1
@@ -97,10 +164,17 @@ jobs:
       - run: npm run eval:action-gate
 
   docs-api:
+    needs: validate-release-dispatch
+    if: always()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - name: Fail if release PR validation did not pass
+        if: github.event_name == 'workflow_dispatch' && needs.validate-release-dispatch.result != 'success'
+        run: exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_sha || github.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 20
           cache: npm
