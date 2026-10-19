@@ -96,6 +96,14 @@ describe('formatSarif', () => {
     expect(physical.artifactLocation.uri).toBe('sub/file.md');
     expect(physical.region.startLine).toBe(2);
   });
+
+  it('percent-encodes reserved characters in repository-relative SARIF URIs', () => {
+    const sarif = JSON.parse(
+      formatSarif([{ file: '/repo/docs/a #1%.md', result: dirtyResult }], '/repo'),
+    );
+    const physical = sarif.runs[0].results[0].locations[0].physicalLocation;
+    expect(physical.artifactLocation.uri).toBe('docs/a%20%231%25.md');
+  });
   it('omits locations when a threat has no location', () => {
     const noLocation: ScanResult = {
       ...dirtyResult,

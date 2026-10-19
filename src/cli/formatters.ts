@@ -153,5 +153,8 @@ function lineAt(content: string, offset: number): number {
 
 function toFileUri(filePath: string, repositoryRoot: string): string {
   const relative = path.relative(repositoryRoot, filePath) || path.basename(filePath);
-  return relative.split(path.sep).join('/');
+  return relative
+    .split(path.sep)
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
 }
