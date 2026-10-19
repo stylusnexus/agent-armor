@@ -7,7 +7,7 @@ ML classifier add-on for [Agent Armor](https://github.com/stylusnexus/agent-armo
 
 ## Why Use the ML Classifier?
 
-Regex-based detection handles the obvious attacks: hidden HTML instructions, known jailbreak patterns, blatant exfiltration triggers. But sophisticated attacks use natural language to manipulate agent behavior through biased framing, subtle persona shifts, or contextual learning traps. These don't have a regex signature.
+Regex-based detection handles some explicit attacks: hidden HTML instructions, known jailbreak patterns, and exfiltration patterns with clear hostile signals. Some conversation-to-destination wording is intentionally reported only at `strict` because API tutorials, support messages, and tracing docs can use the same words. Balanced regex results are not an authorization check for outbound actions; use an action or network allowlist to constrain where an agent can send data. More sophisticated attacks use natural language to manipulate behavior through biased framing, subtle persona shifts, or contextual learning traps. These don't have a regex signature.
 
 The ML classifier catches what patterns can't. It's trained on the full [AI Agent Traps](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438) taxonomy, runs locally (no API calls, no data leaves your machine), and adds meaningful detection coverage on the semantic manipulation categories where regex falls short.
 
