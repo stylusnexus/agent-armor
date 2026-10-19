@@ -460,15 +460,15 @@ Scan files from a terminal, pre-commit hook, or CI pipeline — no TypeScript re
 npx @stylusnexus/agentarmor scan <path...> [options]
 ```
 
-| Option         | Values                                      | Default                       | Description                                                   |
-| -------------- | ------------------------------------------- | ----------------------------- | ------------------------------------------------------------- |
-| `--strictness` | `permissive`, `balanced`, `strict`          | `balanced`                    | Confidence threshold                                          |
-| `--format`     | `text`, `json`, `sarif`                     | `text`                        | Output format                                                 |
-| `--fail-on`    | `none`, `low`, `medium`, `high`, `critical` | `low`                         | Minimum risk level that fails the run                         |
-| `--ml`         | flag                                        | off                           | Use the ML classifier (requires `@stylusnexus/agentarmor-ml`) |
-| `--require-ml` | flag                                        | off                           | Like `--ml`, but exit `2` if the classifier cannot load       |
-| `--strict-missing` | flag                                    | off                           | Exit `2` instead of skipping missing paths                   |
-| `--include`    | comma-separated extensions                  | `.md,.txt,.json,.cursorrules` | Override default extensions when scanning a directory         |
+| Option             | Values                                      | Default                       | Description                                                   |
+| ------------------ | ------------------------------------------- | ----------------------------- | ------------------------------------------------------------- |
+| `--strictness`     | `permissive`, `balanced`, `strict`          | `balanced`                    | Confidence threshold                                          |
+| `--format`         | `text`, `json`, `sarif`                     | `text`                        | Output format                                                 |
+| `--fail-on`        | `none`, `low`, `medium`, `high`, `critical` | `low`                         | Minimum risk level that fails the run                         |
+| `--ml`             | flag                                        | off                           | Use the ML classifier (requires `@stylusnexus/agentarmor-ml`) |
+| `--require-ml`     | flag                                        | off                           | Like `--ml`, but exit `2` if the classifier cannot load       |
+| `--strict-missing` | flag                                        | off                           | Exit `2` instead of skipping missing paths                    |
+| `--include`        | comma-separated extensions                  | `.md,.txt,.json,.cursorrules` | Override default extensions when scanning a directory         |
 
 A file path is always scanned regardless of extension; a directory path recurses, filtered by `--include` (skips `node_modules/`, `.git/`, `dist/`, `coverage/`).
 

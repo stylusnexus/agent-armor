@@ -5,6 +5,9 @@ import { severityToSarifLevel } from './severity';
 export interface FileScanResult {
   file: string;
   result: ScanResult;
+}
+
+export interface FileScanInput extends FileScanResult {
   content?: string;
 }
 
@@ -38,7 +41,11 @@ export function formatText(results: FileScanResult[]): string {
 }
 
 export function formatJson(results: FileScanResult[]): string {
-  return JSON.stringify(results, null, 2);
+  return JSON.stringify(
+    results.map(({ file, result }) => ({ file, result })),
+    null,
+    2,
+  );
 }
 
 interface SarifRule {
@@ -54,11 +61,11 @@ function titleCase(id: string): string {
     .join(' ');
 }
 
-export function formatSarif(results: FileScanResult[], repositoryRoot = process.cwd()): string {
+export function formatSarif(results: FileScanInput[], repositoryRoot = process.cwd()): string {
   const ruleIds = new Set<string>();
   const sarifResults: unknown[] = [];
 
-  for (const { file, result } of results) {
+  for (const { file, result, content = '' } of results) {
     for (const threat of result.threats as Threat[]) {
       ruleIds.add(threat.detectorId);
       const location = threat.location
@@ -67,7 +74,7 @@ export function formatSarif(results: FileScanResult[], repositoryRoot = process.
               physicalLocation: {
                 artifactLocation: { uri: toFileUri(file, repositoryRoot) },
                 region: {
-                  startLine: lineAt(contentFor(results, file), threat.location.offset),
+                  startLine: lineAt(content, threat.location.offset),
                   charOffset: threat.location.offset,
                   charLength: threat.location.length,
                 },
@@ -118,7 +125,11 @@ export function formatSarif(results: FileScanResult[], repositoryRoot = process.
                       text: `Degraded scan: detector(s) ${(result.stats.failedDetectors ?? []).join(', ')} failed, so ${file} was not fully checked.`,
                     },
                     locations: [
-                      { physicalLocation: { artifactLocation: { uri: toFileUri(file, repositoryRoot) } } },
+                      {
+                        physicalLocation: {
+                          artifactLocation: { uri: toFileUri(file, repositoryRoot) },
+                        },
+                      },
                     ],
                   })),
                 },
@@ -130,11 +141,6 @@ export function formatSarif(results: FileScanResult[], repositoryRoot = process.
   };
 
   return JSON.stringify(sarif, null, 2);
-}
-
-/** Forward-slash path for SARIF artifactLocation.uri (SARIF requires URI-style separators). */
-function contentFor(results: FileScanResult[], file: string): string {
-  return results.find((entry) => entry.file === file)?.content ?? '';
 }
 
 function lineAt(content: string, offset: number): number {

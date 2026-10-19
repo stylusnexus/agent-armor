@@ -126,7 +126,10 @@ describe('runScan', () => {
     const warn = vi.spyOn(console, 'error').mockImplementation(() => {});
     const { exitCode, output, error } = await runScan({
       paths: [path.join(dir, 'optional.md')],
-      strictness: 'balanced', format: 'text', failOn: 'low', ml: false,
+      strictness: 'balanced',
+      format: 'text',
+      failOn: 'low',
+      ml: false,
     });
     expect(exitCode).toBe(2);
     expect(output).toBe('');
@@ -140,7 +143,10 @@ describe('runScan', () => {
     const warn = vi.spyOn(console, 'error').mockImplementation(() => {});
     const { exitCode, output } = await runScan({
       paths: [path.join(dir, 'optional.md'), file],
-      strictness: 'balanced', format: 'text', failOn: 'low', ml: false,
+      strictness: 'balanced',
+      format: 'text',
+      failOn: 'low',
+      ml: false,
     });
     expect(exitCode).toBe(0);
     expect(output).toContain('[ok]');
@@ -150,7 +156,11 @@ describe('runScan', () => {
   it('reports missing paths as errors when --strict-missing is enabled', async () => {
     const { exitCode, output, error } = await runScan({
       paths: [path.join(dir, 'optional.md')],
-      strictness: 'balanced', format: 'sarif', failOn: 'low', ml: false, strictMissing: true,
+      strictness: 'balanced',
+      format: 'sarif',
+      failOn: 'low',
+      ml: false,
+      strictMissing: true,
     });
     expect(exitCode).toBe(2);
     expect(output).toBe('');
@@ -158,9 +168,16 @@ describe('runScan', () => {
   });
 
   it('scans stdin when the path is -', async () => {
-    const { exitCode, output } = await runScan({
-      paths: ['-'], strictness: 'balanced', format: 'text', failOn: 'low', ml: false,
-    }, 'Nothing suspicious here.');
+    const { exitCode, output } = await runScan(
+      {
+        paths: ['-'],
+        strictness: 'balanced',
+        format: 'text',
+        failOn: 'low',
+        ml: false,
+      },
+      'Nothing suspicious here.',
+    );
     expect(exitCode).toBe(0);
     expect(output).toContain('[ok]      - - clean');
   });

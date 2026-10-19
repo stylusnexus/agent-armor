@@ -56,6 +56,11 @@ describe('formatJson', () => {
     expect(parsed[1].file).toBe('/repo/.cursorrules');
     expect(parsed[1].result.riskLevel).toBe('high');
   });
+
+  it('does not serialize SARIF-only source content', () => {
+    const input = [{ file: '/repo/private.md', result: cleanResult, content: 'sensitive text' }];
+    expect(formatJson(input)).not.toContain('sensitive text');
+  });
 });
 
 describe('formatSarif', () => {
