@@ -1,0 +1,40 @@
+# GITHUB_TOKEN-created release PR commits do not trigger pull_request or push
+# workflows. Wait until release-please has completed, then dispatch checks for
+# the current PR head SHA. ci.yml and eval.yml validate that SHA before running.
+name: release-pr-checks
+
+on:
+  workflow_run:
+    workflows: [release-please]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  actions: write
+  contents: read
+  pull-requests: read
+
+jobs:
+  dispatch:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch required checks for current release PR heads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          release_prs=$(gh api --paginate --slurp \
+            "repos/$GITHUB_REPOSITORY/pulls?state=open&base=main&per_page=100" \
+            --jq 'add[] | select((.user.login == "app/github-actions" or .user.login == "github-actions[bot]") and (.head.ref | startswith("release-please--branches--main"))) | [.number, .head.ref, .head.sha] | @tsv')
+          while IFS=$'\t' read -r number head_ref head_sha; do
+            test -n "$number" || continue
+            echo "Dispatching ci.yml and eval.yml for PR #$number at $head_sha"
+            gh workflow run ci.yml --ref "$head_ref" \
+              -f "expected_sha=$head_sha" -f "pull_request_number=$number"
+            gh workflow run eval.yml --ref "$head_ref" \
+              -f "expected_sha=$head_sha" -f "pull_request_number=$number"
+          done <<< "$release_prs"
