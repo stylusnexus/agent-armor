@@ -34,7 +34,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      issues: write
       pull-requests: write
     outputs:
       # release-please-action only prefixes non-root paths (`${path}--${key}`);
@@ -182,6 +181,7 @@ jobs:
       - name: Verify and attach signed assets to the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ needs.release-please.outputs.core_tag }}
         run: |
           set -euo pipefail
@@ -206,6 +206,7 @@ jobs:
       - name: Verify and attach signed assets to the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ needs.release-please.outputs.ml_tag }}
         run: |
           set -euo pipefail
