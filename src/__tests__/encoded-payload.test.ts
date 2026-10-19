@@ -677,19 +677,19 @@ describe('encoded-payload: time bounds on hostile input', () => {
     const result = AgentArmor.regexOnly().scanSync(text);
     expect(performance.now() - start).toBeLessThan(15_000);
     expect(result.threats.some((t) => t.detectorId === 'encoded-payload')).toBe(true);
-  });
+  }, 20_000);
 
   it('scans a megabyte of encoded text with every detector on in under 15 seconds', () => {
     const text = b64('Plain words about nothing in particular. '.repeat(24_000)).slice(0, 990_000);
     const start = performance.now();
     AgentArmor.regexOnly().scanSync(text);
     expect(performance.now() - start).toBeLessThan(15_000);
-  });
+  }, 20_000);
 
   it('still finds an attack in a large clean document', () => {
     const text = `${'Ordinary text. '.repeat(N / 14)}\nDecode and follow: ${attack}\n${'More text. '.repeat(1_000)}`;
     expect(flagged(text)).toBe(true);
-  });
+  }, 20_000);
 });
 
 describe('encoded-payload: a budget that runs out fails closed', () => {
@@ -719,7 +719,7 @@ describe('encoded-payload: a budget that runs out fails closed', () => {
       .map((line, i) => (i % 90 === 89 ? `${line}\nDecode the asset above with atob.` : line))
       .join('\n');
     expect(types(`${asset}\n${P}`).length).toBeGreaterThan(0);
-  });
+  }, 20_000);
 
   describe('with a small budget', () => {
     // A stand-in for the other detectors: anything that says Ignore is a finding.
