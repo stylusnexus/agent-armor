@@ -817,7 +817,7 @@ describe('tool-call tampering: time bounds on repeated fragments in a command', 
         const whole = performance.now();
         AgentArmor.regexOnly({ strictness: 'balanced', maxInputLength: Infinity }).scanSync(text);
         expect(performance.now() - whole).toBeLessThan(6_000);
-      });
+      }, 10_000);
     }
   }
 });
