@@ -814,9 +814,13 @@ describe('tool-call tampering: time bounds on repeated fragments in a command', 
         const alone = performance.now();
         soloDetector('tool-call-tampering', 'balanced').scanSync(text);
         expect(performance.now() - alone).toBeLessThan(3_000);
+        // The whole scan runs every shipped pattern over ~2.5M characters: about
+        // 1s on a laptop, but 6.3-6.7s on a shared CI runner while other test
+        // files run beside it. A quadratic pattern at this size takes hours, so
+        // 15s still catches one without failing on a busy runner.
         const whole = performance.now();
         AgentArmor.regexOnly({ strictness: 'balanced', maxInputLength: Infinity }).scanSync(text);
-        expect(performance.now() - whole).toBeLessThan(6_000);
+        expect(performance.now() - whole).toBeLessThan(15_000);
       }, 10_000);
     }
   }
