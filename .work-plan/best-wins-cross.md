@@ -161,11 +161,12 @@ Checked against the live repo on 2026-10-20. The 2026-08-05 corrections are all 
 (#26 closed with #28; launch-infra shipped; #69 closed). Items 1–3 below were resolved the same day
 (see Housekeeping).
 
-1. ✅ **#309 duplicates #302.** #310 shipped the README `## Versioning` section and closed #302.
-2. ✅ **#98 and #99 are partly shipped.** #329 (0.2.25) added strict-only C2 and persistence
-   patterns. The issues are still open, and nothing says whether `balanced` coverage is wanted.
-3. ✅ **#35 is still open** although detection-hardening marks it shipped. That keeps #38 blocked
-   on paper.
+1. ✅ **#309 closed as a duplicate of #302.** #310 shipped the README `## Versioning` section.
+2. ✅ **#98 and #99 closed as complete at `strict`** (#329, pattern DB 0.9.14). Their patterns
+   miss at `balanced` because the same wording flags honest text; balanced coverage is tracked as
+   ML training work in #25.
+3. ✅ **#35 remains open for the ML retrain only** and now lives in `ml-v2-retrain`, dependent on
+   #25. The shipped scanning satisfies #38's prerequisite, so #38 is unblocked.
 4. **Transport integrity is done except #31.** #27, #29 and #30 are closed, so #32 waits only on
    #25.
 5. **Two #345 review findings are deliberate, not bugs.** Re-hashing the model at every start and

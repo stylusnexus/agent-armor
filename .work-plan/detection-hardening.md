@@ -43,7 +43,7 @@ Reprioritized 2026-07-07 (down from P0, alongside a value pass across all tracks
 | #    | Title                                                                                                                    | Assignee | Status                                                             |
 | ---- | ------------------------------------------------------------------------------------------------------------------------ | -------- | ------------------------------------------------------------------ |
 | #34  | Add computed riskLevel roll-up to ScanResult                                                                             | —        | ✅ Shipped                                                         |
-| #35  | ML retrain: cross-turn semantic accumulation (mt-mem/mt-ctx) — structural half shipped via #50/#53, ML windowing via #62 | —        | ➡️ Retrain step moved to `ml-v2-retrain` (2026-10-20)              |
+| #35  | ML retrain: cross-turn semantic accumulation (mt-mem/mt-ctx) — structural half shipped via #50/#53, ML windowing via #62 | —        | 🔲 Open (retrain step; after #25)                                  |
 | #37  | Long-context attention-dilution detection                                                                                | —        | 🔲 Open                                                            |
 | #57  | feat: allowlist-based pre-execution action gate (`checkAction`)                                                          | —        | ✅ Shipped                                                         |
 | #68  | feat(action-gate): policy ergonomics and hardening                                                                       | —        | 🔲 Open                                                            |
