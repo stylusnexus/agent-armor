@@ -8,16 +8,16 @@ github:
   issues:
     - 25
     - 32
+    - 35
     - 40
     - 71
     - 275
   references:
-    - 35
     - 245
   branches: []
 depends_on: [transport-integrity]
-last_touched: 2026-07-07T21:07
-last_handoff: 2026-07-07T21:07
+last_touched: 2026-10-20T03:00
+last_handoff: 2026-10-20T03:00
 next_up:
   - 275
   - 40
@@ -35,6 +35,7 @@ Next model retrain: data requirements, transport-integrity training samples, eva
 | ---- | ------------------------------------------------------------------------------------ | -------- | -------------------------- |
 | #25  | ML v2: data requirements for next model retrain                                      | —        | 🔲 Open                    |
 | #32  | ML v2: Add transport-integrity attack samples to training data                       | —        | 🔲 Open                    |
+| #35  | ML retrain: cross-turn semantic accumulation (mt-mem/mt-ctx)                         | —        | 🔲 Open (after #25)        |
 | #40  | Eval-gated external-feed ingestion (patterns + ML training data)                     | —        | 🔲 Open                    |
 | #71  | ci(ml): scheduled integrity check of MODEL_CHECKSUM against the HuggingFace artifact | —        | ✅ Shipped                 |
 | #275 | ml: cut over-defense on short benign text with attack words (NotInject)              | —        | 🟡 Run 6 at 89% (goal 90%) |
@@ -59,3 +60,13 @@ Next model retrain: data requirements, transport-integrity training samples, eva
 - Referenced, owned elsewhere: #35 (detection-hardening). Its only remaining step is a cross-turn retrain that rides with #25. #245 (multilingual) needs the tokenizer and training data from #25.
 - Model loading and integrity at runtime (#274, #359, #360) belong to `runtime-hardening`, not this track.
 - next_up: #275 (decision), #40, #25.
+
+### Session — 2026-10-20 03:00 (#35 moved here; #25 data checklist extended)
+
+- **#35 now lives in this track.** Rescoped on GitHub to the retrain step only, retitled "ML retrain: cross-turn semantic accumulation (mt-mem/mt-ctx)". The SDK windowing path (#62) is live, but the current model wasn't trained on turn sequences, so `mt-mem-001` and `mt-ctx-001` are still `expectedToday: 'blind-spot'`. Acceptance: multi-turn training variants plus benign iterative-work negatives, both samples caught with 0% multi-turn false positives, `evaluate_holdout` shows no regression, then flip `expectedToday` in a separate diff. Depends on #25. The model release needs the maintainer and new pinned checksums.
+- **#25 checklist gained two data items:**
+  - C2/drop-service and persistence-plus-concealment training variants with honest look-alikes. This is the only route to `balanced` coverage after #98 and #99 closed at `strict`.
+  - Multi-turn accumulation chains for #35.
+  - In both cases, never train on the `rw-*`/`mt-*` eval samples or the `HOLDOUT_*` set.
+- Dependency chain: #40 ─► #25 ─► #32, #35, #245.
+- next_up unchanged: #275 (decision), #40, #25.
