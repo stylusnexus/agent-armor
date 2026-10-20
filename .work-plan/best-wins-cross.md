@@ -32,10 +32,7 @@ github:
     - 245
     - 232
     - 31
-    - 98
-    - 99
     - 35
-    - 309
   branches: []
 depends_on:
   - scan-performance
@@ -47,8 +44,8 @@ depends_on:
   - enterprise-readiness
   - systemic-traps
   - human-in-the-loop
-last_touched: 2026-10-20T00:45
-last_handoff: 2026-10-20T00:45
+last_touched: 2026-10-20T03:00
+last_handoff: 2026-10-20T03:00
 next_up:
   - 308
   - 359
@@ -73,7 +70,8 @@ Rules of the road:
 - **Don't run `canonicalize` on this file** — it would prepend an auto-managed issue table and
   overwrite the hand-written ranking below.
 - Re-ranked 2026-10-20 against the live repo (36 open issues, after filing #358–#360) and live
-  source. Every open issue now has a home track.
+  source. Every open issue now has a home track. After the housekeeping below (2026-10-20 03:00),
+  33 issues are open.
 
 ## Context
 
@@ -90,14 +88,14 @@ The repo now has a `dev` branch (reversing the 2026-08-05 decision): branch from
 squash-merge to `dev`, and promote `dev` → `main` with a merge commit. After each release,
 merge `main` back into `dev`.
 
-## Housekeeping (no code)
+## Housekeeping (done 2026-10-20)
 
-| Issue    | Action                                                                                                                                |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| #309     | Close as a duplicate of #302 (shipped in #310; the README has `## Versioning`). No release-notes template exists for the second half. |
-| #98, #99 | #329 shipped strict-only patterns. Decide whether `balanced` coverage is worth more work, or close both.                              |
-| #35      | Close, or rescope to the retrain step only (which rides with #25). This is the last blocker on #38.                                   |
-| #38      | Once #35 is resolved, update the "do not start" line in the issue body.                                                               |
+| Issue    | Outcome                                                                                                                                           |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| #309     | Closed as a duplicate of #302.                                                                                                                    |
+| #98, #99 | Closed as completed at `strict` (#329). `balanced` regex flagged honest text, so the remaining coverage is ML work, now a data item on #25.       |
+| #35      | Rescoped to the retrain step only and moved to `ml-v2-retrain`. Depends on #25.                                                                   |
+| #38      | Unblocked. The "do not start" line is replaced, and all three dependencies (audit records, multi-turn scanning, eval gate) are ticked as shipped. |
 
 ## Ranking
 
@@ -121,10 +119,10 @@ merge `main` back into `dev`.
 | 16    | #275 NotInject over-defense            | ml-v2-retrain                     | —                                  | Run 6 at 89% vs a 90% goal: decide ship or retrain                                                        | Decision |
 | 17    | #332 tool-call shapes                  | transport-integrity               | #308                               | Each shape needs honest-text probes and time-bound tests                                                  | Med      |
 | 18    | #37 attention dilution                 | detection-hardening               | long-document eval set             | Shares the long-document set with #274                                                                    | Med      |
-| 19    | #40 eval-gated feed ingestion          | ml-v2-retrain                     | —                                  | Mechanism behind future pattern feeds and #25's data                                                      | High     |
-| 20    | #25 ML v2 retrain data                 | ml-v2-retrain                     | #40 (data)                         | The big lift (~5,400 labelled samples)                                                                    | High     |
-| 21    | #32 transport-integrity ML samples     | ml-v2-retrain                     | #25                                | Unblocked on the detector side; rides #25                                                                 | Med      |
-| 22    | #38 SOC 2 / ISO crosswalk              | enterprise-readiness              | #35 (housekeeping)                 | Writing work against the shipped audit schema                                                             | Med      |
+| 19    | #38 SOC 2 / ISO crosswalk              | enterprise-readiness              | —                                  | Unblocked 2026-10-20. Writing work against the shipped audit schema; ahead of the High-effort ML items    | Med      |
+| 20    | #40 eval-gated feed ingestion          | ml-v2-retrain                     | —                                  | Mechanism behind future pattern feeds and #25's data                                                      | High     |
+| 21    | #25 ML v2 retrain data                 | ml-v2-retrain                     | #40 (data)                         | The big lift (~5,400 labelled samples). Now also carries the C2/persistence variants from #98/#99         | High     |
+| 22    | #32, #35 retrain-riding samples        | ml-v2-retrain                     | #25                                | #32: transport-integrity samples. #35: cross-turn accumulation (the `mt-mem`/`mt-ctx` blind spots)        | Med      |
 | 23    | #245 multilingual language packs       | detection-hardening               | #25                                | Design first; ML coverage needs the retrain                                                               | High     |
 | 24    | #232 community break-the-scan          | detection-hardening               | —                                  | Ongoing; no dependency                                                                                    | —        |
 | 25    | #31 provider response signing          | transport-integrity               | providers                          | Needs provider cooperation that doesn't exist yet                                                         | High     |
@@ -145,7 +143,7 @@ merge `main` back into `dev`.
 long-document eval set ─► #274, #37
 
 #40 ─► #25 ─► #32, #35 (retrain step), #245
-#35 (close/rescope) ─► #38
+#38 (unblocked; no dependencies)
 ```
 
 ## Release batching
@@ -160,12 +158,13 @@ long-document eval set ─► #274, #37
 ## Corrections to the backlog
 
 Checked against the live repo on 2026-10-20. The 2026-08-05 corrections are all resolved
-(#26 closed with #28; launch-infra shipped; #69 closed); #35 is still open (below).
+(#26 closed with #28; launch-infra shipped; #69 closed). Items 1–3 below were resolved the same day
+(see Housekeeping).
 
-1. **#309 duplicates #302.** #310 shipped the README `## Versioning` section and closed #302.
-2. **#98 and #99 are partly shipped.** #329 (0.2.25) added strict-only C2 and persistence
+1. ✅ **#309 duplicates #302.** #310 shipped the README `## Versioning` section and closed #302.
+2. ✅ **#98 and #99 are partly shipped.** #329 (0.2.25) added strict-only C2 and persistence
    patterns. The issues are still open, and nothing says whether `balanced` coverage is wanted.
-3. **#35 is still open** although detection-hardening marks it shipped. That keeps #38 blocked
+3. ✅ **#35 is still open** although detection-hardening marks it shipped. That keeps #38 blocked
    on paper.
 4. **Transport integrity is done except #31.** #27, #29 and #30 are closed, so #32 waits only on
    #25.
@@ -244,3 +243,14 @@ miss before any pattern is written.
 - Weighting moved from "legible credibility before launch" to "don't break real consumers": downloads are up about 6x since August, and CritForge depends on the package.
 - Added a dependency graph and release batching, so the two behaviour-changing items (#358 and #307) ship together in `0.3.0`.
 - Nothing implemented. Analysis, ordering and issue filing only.
+
+### Session — 2026-10-20 03:00 (housekeeping decisions applied)
+
+- All four housekeeping items are resolved:
+  - #309 closed as a duplicate of #302.
+  - #98 and #99 closed at `strict`. The `balanced` measurement in #329 showed honest-text false flags, so that coverage moved to #25's data checklist.
+  - #35 rescoped to the retrain step and moved from detection-hardening to `ml-v2-retrain`.
+  - #38 unblocked on GitHub.
+- Re-ranked rather than appended: #38 moves from 22 to 19, ahead of the High-effort ML chain, because it now has no dependencies. #32 and #35 share rank 22, since both ride #25.
+- Dropped closed issues (#98, #99, #309) from `references`. 33 issues are open.
+- The top of the ranking is unchanged: #308, #359, #306.

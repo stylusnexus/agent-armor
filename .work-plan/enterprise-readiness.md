@@ -11,8 +11,8 @@ github:
     - 75
   branches: []
 depends_on: []
-last_touched: 2026-10-20T00:45
-last_handoff: 2026-10-20T00:45
+last_touched: 2026-10-20T03:00
+last_handoff: 2026-10-20T03:00
 next_up:
   - 38
 blockers: []
@@ -26,11 +26,11 @@ Reprioritized P3 → P1 on 2026-07-07: #24 is the most actively-discussed open i
 
 ## Issues
 
-| #   | Title                                                                     | Assignee | Status     |
-| --- | ------------------------------------------------------------------------- | -------- | ---------- |
-| #24 | feat: extensible diagnostics/event system (warn, error, detectorSkipped)  | —        | ✅ Shipped |
-| #38 | Compliance control mapping (SOC 2 / ISO 27001 crosswalk) — deferred       | —        | 🔲 Open    |
-| #75 | feat: audit-evidence records (AuditRecord + evidence-package aggregation) | —        | ✅ Shipped |
+| #   | Title                                                                     | Assignee | Status                    |
+| --- | ------------------------------------------------------------------------- | -------- | ------------------------- |
+| #24 | feat: extensible diagnostics/event system (warn, error, detectorSkipped)  | —        | ✅ Shipped                |
+| #38 | Compliance control mapping (SOC 2 / ISO 27001 crosswalk)                  | —        | 🟢 Unblocked (2026-10-20) |
+| #75 | feat: audit-evidence records (AuditRecord + evidence-package aggregation) | —        | ✅ Shipped                |
 
 ## Session log
 
@@ -88,3 +88,14 @@ Reprioritized P3 → P1 on 2026-07-07: #24 is the most actively-discussed open i
 
 - #24 and #75 are closed. #38's only remaining stated blocker is #35, which is still open on GitHub, although its shipped work is done. Its remaining step is a retrain that rides with #25.
 - To unblock #38: close #35, or rescope it to the retrain step only, then update the "do not start" line in #38's body. After that, #38 is writing work against the shipped `AuditRecord` and `buildEvidencePackage` schema.
+
+### Session — 2026-10-20 03:00 (#38 unblocked)
+
+- #35 was rescoped to the ML retrain step (now in `ml-v2-retrain`), so it no longer blocks #38.
+- Updated #38 on GitHub:
+  - Dropped "— deferred" from the title.
+  - Replaced the "Do not start until #24 and #35 have landed" line with "Status: Unblocked (2026-10-20)".
+  - Ticked all three dependencies: audit records (#24/#75), multi-turn scanning (#50, #53, #62), and the eval gate (`eval:gate` in `eval.yml` against `thresholds.json`).
+  - Pointed the eval-suite references at `eval:gate` instead of #25.
+- Scope guard written into the issue: write the crosswalk against the shipped `AuditRecord` and `buildEvidencePackage` schema, and describe cross-turn semantic accumulation as in progress (#35), not as a control.
+- #38 is ready to start. It's writing work, medium effort.
