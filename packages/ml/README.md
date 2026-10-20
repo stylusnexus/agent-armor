@@ -38,7 +38,7 @@ On first use, the model (~165MB quantized ONNX) is downloaded from HuggingFace a
 
 - **macOS:** `~/Library/Caches/agentarmor/v2/`
 - **Linux:** `~/.cache/agentarmor/v2/`
-- **Custom:** Set `AGENTARMOR_CACHE_DIR` or pass `ml.modelDir` in config
+- **Custom:** Set `AGENTARMOR_CACHE_DIR` to move the cache, or pass `ml.modelDir` (or set `AGENTARMOR_MODEL_DIR`) to use a model directory instead of the cache
 
 Subsequent runs load from cache with no network calls.
 
@@ -81,6 +81,22 @@ const armor = await AgentArmor.create({
 ```
 
 Every retrain release must update the pinned checksums in `packages/ml/src/constants.ts`; changing a custom model does not require a tokenization-code change.
+
+### `AGENTARMOR_MODEL_DIR`
+
+When `ml.enabled` is set and `modelDir` isn't, the package reads the model directory from `AGENTARMOR_MODEL_DIR`. Use it for an offline or pre-downloaded copy of the **pinned** model release, for example one fetched with `agentarmor-ml download --dir`.
+
+The directory is checked like `modelDir`: against the package's pinned digests unless `modelChecksums` is passed in code. There is no environment variable for checksums. Pointing `AGENTARMOR_MODEL_DIR` at a custom or retrained model fails with `CHECKSUM_MISMATCH` unless the code also passes that model's `modelChecksums`.
+
+### When the model check fails
+
+Model loading fails with an `AgentArmorModelError` whose `code` says why:
+
+- `CHECKSUM_REQUIRED`: `modelChecksums` is missing an entry, or a digest isn't 64 hex characters. This is checked before any file is read or downloaded.
+- `CHECKSUM_MISMATCH`: a model file doesn't match its digest.
+- `MODEL_NOT_FOUND`: a required file is missing from `modelDir` or `AGENTARMOR_MODEL_DIR`.
+
+With the default `onUnavailable: 'warn-and-skip'`, the ML layer is skipped with a warning (through `on.warn` if set, otherwise `console.warn`), and scans run with the pattern detectors only. Set `onUnavailable: 'throw'` to fail startup instead.
 
 ## CLI
 
