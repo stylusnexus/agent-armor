@@ -11,8 +11,8 @@ github:
     - 75
   branches: []
 depends_on: []
-last_touched: 2026-07-09T00:33
-last_handoff: 2026-07-09T00:33
+last_touched: 2026-10-20T00:45
+last_handoff: 2026-10-20T00:45
 next_up:
   - 38
 blockers: []
@@ -83,3 +83,8 @@ Reprioritized P3 → P1 on 2026-07-07: #24 is the most actively-discussed open i
 - Verified live post-merge: `agentarmor.dev/api/interfaces/AuditRecord.html` resolves 200.
 - Local/remote feature branch deleted, main synced.
 - Enterprise-readiness track is now down to #38 (SOC2/ISO crosswalk) as the sole open issue, correctly deferred.
+
+### Session — 2026-10-20 00:45 (backlog review)
+
+- #24 and #75 are closed. #38's only remaining stated blocker is #35, which is still open on GitHub, although its shipped work is done. Its remaining step is a retrain that rides with #25.
+- To unblock #38: close #35, or rescope it to the retrain step only, then update the "do not start" line in #38's body. After that, #38 is writing work against the shipped `AuditRecord` and `buildEvidencePackage` schema.
