@@ -79,11 +79,12 @@ export async function validateModelDir(
   await verifyRequiredModelChecksums(dir, checksums);
 }
 
-/** Verify pinned SHA-256 digests for all required artifacts in a complete directory. */
-export async function verifyRequiredModelChecksums(
-  dir: string,
-  checksums: ModelArtifactChecksums = REQUIRED_MODEL_CHECKSUMS,
-): Promise<void> {
+/**
+ * Throw CHECKSUM_REQUIRED unless every required artifact has a 64-character
+ * hex SHA-256 digest. Needs no file I/O, so a bad config fails before any
+ * cache read or download.
+ */
+function assertModelChecksums(checksums: ModelArtifactChecksums = REQUIRED_MODEL_CHECKSUMS): void {
   const invalid = REQUIRED_MODEL_FILES.filter(
     (file) => !/^[a-f0-9]{64}$/i.test(checksums?.[file] ?? ''),
   );
@@ -93,6 +94,26 @@ export async function verifyRequiredModelChecksums(
       `A valid SHA-256 checksum is required for each model artifact; missing or invalid: ${invalid.join(', ')}`,
     );
   }
+}
+
+/**
+ * Whether a failed cache check means "download again": a required file is
+ * missing or does not match its digest. Any other error (a bad checksum
+ * config, an unreadable cache) would fail the same way after a download.
+ */
+function isCacheMiss(err: unknown): boolean {
+  if (err instanceof AgentArmorModelError) {
+    return err.code === 'MODEL_NOT_FOUND' || err.code === 'CHECKSUM_MISMATCH';
+  }
+  return (err as NodeJS.ErrnoException | undefined)?.code === 'ENOENT';
+}
+
+/** Verify pinned SHA-256 digests for all required artifacts in a complete directory. */
+export async function verifyRequiredModelChecksums(
+  dir: string,
+  checksums: ModelArtifactChecksums = REQUIRED_MODEL_CHECKSUMS,
+): Promise<void> {
+  assertModelChecksums(checksums);
   for (const file of REQUIRED_MODEL_FILES) {
     const path = join(dir, file);
     if (!(await verifyChecksum(path, checksums[file]))) {
@@ -109,6 +130,9 @@ export async function verifyRequiredModelChecksums(
  * Downloads from HuggingFace if not cached.
  */
 export async function resolveModel(config: MLConfigLike = {}): Promise<ModelArtifacts> {
+  // A bad checksum config would fail again after every download (#359).
+  assertModelChecksums(config.modelChecksums);
+
   const modelDir = config.modelDir || process.env.AGENTARMOR_MODEL_DIR;
 
   if (modelDir) {
@@ -126,7 +150,8 @@ export async function resolveModel(config: MLConfigLike = {}): Promise<ModelArti
   try {
     await validateModelDir(cacheDir, config.modelChecksums);
     return artifactsFrom(cacheDir);
-  } catch {
+  } catch (err) {
+    if (!isCacheMiss(err)) throw err;
     // Not cached — download
   }
 
@@ -162,7 +187,8 @@ export async function downloadWithLock(cacheDir: string, config: MLConfigLike): 
       try {
         await validateModelDir(cacheDir, config.modelChecksums);
         return;
-      } catch {
+      } catch (validateErr) {
+        if (!isCacheMiss(validateErr)) throw validateErr;
         // Still missing — acquire lock and download ourselves
         lockFd = await open(lockPath, 'wx');
       }
