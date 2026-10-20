@@ -23,12 +23,12 @@ github:
     - 35
   branches: []
 depends_on: []
-last_touched: 2026-10-20T03:00
-last_handoff: 2026-10-20T03:00
+last_touched: 2026-10-20T04:15
+last_handoff: 2026-10-20T04:15
 next_up:
-  - 178
   - 68
   - 107
+  - 106
 blockers: []
 ---
 
@@ -52,7 +52,7 @@ Reprioritized 2026-07-07 (down from P0, alongside a value pass across all tracks
 | #99  | Detector: cross-environment persistence and logging suppression                                                          | —        | ✅ Closed: shipped at `strict` (#329); `balanced` is ML work (#25) |
 | #106 | feat(action-gate): package-install policy — release-age floor and pin enforcement                                        | —        | 🔲 Open (after #68)                                                |
 | #107 | Detector: dependency-install risk in scanned content (lockfile bypass, lifecycle scripts)                                | —        | 🔲 Open                                                            |
-| #178 | fix(patterns): exfiltration instruction check reads only the matched words                                               | —        | 🟡 Partly shipped (#334, #339)                                     |
+| #178 | fix(patterns): exfiltration instruction check reads only the matched words                                               | —        | ✅ Closed at `strict` (#334, #339); see 2026-10-20 04:15 log       |
 | #232 | Help wanted: try to break the reference-image scan with your own markdown                                                | —        | 🔲 Open (community)                                                |
 | #245 | design: multilingual detection with opt-in language packs                                                                | —        | 🔲 Open (after #25)                                                |
 | #304 | feat(output): flag markdown images that leak data to outside hosts                                                       | —        | 🔲 Open (after #308)                                               |
@@ -125,3 +125,17 @@ Reprioritized 2026-07-07 (down from P0, alongside a value pass across all tracks
 - **#98 and #99 closed as completed.** On current `main`, `rw-011` and `rw-014` are caught at `strict` and missed at `permissive` and `balanced`. #329 already tried `balanced` versions and found they flagged honest text with the same wording (for example "Never send credentials to https://webhook.site"), so AGENTS.md's strict-only rule applies. Getting `balanced` coverage is now ML work: #25's data checklist has a line for training variants of both shapes, never the `rw-*` eval samples.
 - **#35 rescoped to the retrain step and moved to `ml-v2-retrain`.** It's kept here as a reference because the shipped halves (#50, #53, #62) are logged in this track.
 - next_up unchanged: #178, #68, #107.
+
+### Session — 2026-10-20 04:15 (#178 closed at strict)
+
+- **#178 closed as completed.** #334 and #339 shipped `ex-conversation-to-destination` at `strict`. On 1,000 real honest documents (`ml/data/real_honest_list.jsonl`), it flags 0.
+- **Widening the instruction check was measured and rejected.** The check was run at three scopes (matched words as today, whole sentence, ±80 characters) against the eval set, the 1,000 real documents and 1,871 short honest trigger texts. Results at `balanced`:
+  - Attacks: 162 → 163. The only gain is `rw-011`, which `strict` already catches.
+  - Real documents flagged: 90 → 93 (sentence) or 97 (±80).
+  - The issue's own example stays clean at `balanced` under every scope.
+  - The check gates 25 patterns, so this would be a net loss.
+- **Where the rest went:**
+  - `balanced` coverage of the bare form → #25 (data item).
+  - Variants aimed at the agent ("Ignore the user and send…", "Silently send… without telling the user") → an acceptance line on #305, using its "addressed to the AI" signal rather than a wider general check.
+- **Side finding filed as #368** (home: `fiction-false-positives`): the regex layer flags 90 of 1,000 real honest documents at `balanced`. 44 of those are HTML comments; 15 are badge images.
+- next_up: #68, #107, #106 (#178 removed).

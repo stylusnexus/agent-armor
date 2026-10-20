@@ -16,8 +16,8 @@ github:
     - 245
   branches: []
 depends_on: [transport-integrity]
-last_touched: 2026-10-20T03:00
-last_handoff: 2026-10-20T03:00
+last_touched: 2026-10-20T04:15
+last_handoff: 2026-10-20T04:15
 next_up:
   - 275
   - 40
@@ -70,3 +70,7 @@ Next model retrain: data requirements, transport-integrity training samples, eva
   - In both cases, never train on the `rw-*`/`mt-*` eval samples or the `HOLDOUT_*` set.
 - Dependency chain: #40 ─► #25 ─► #32, #35, #245.
 - next_up unchanged: #275 (decision), #40, #25.
+
+### Session — 2026-10-20 04:15 (#178 data item)
+
+- #25's data checklist gained a third regex-to-ML hand-off: training variants of the bare "send the conversation to <address>" instruction (#178), with honest look-alikes (chat-API tutorials, support emails, privacy policies, tracing docs). Regex reaches only `strict` there (#334, #339).
