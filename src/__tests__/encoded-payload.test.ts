@@ -665,9 +665,19 @@ describe('encoded-payload: time bounds on hostile input', () => {
   for (const [name, text] of Object.entries(hostile)) {
     it(`scans ${name} in under 3 seconds`, () => {
       expect(text.length).toBeGreaterThan(N * 0.5);
+      const cpuStart = process.cpuUsage();
       const alone = performance.now();
       AgentArmor.regexOnly({ strictness: 'strict' }).scanSync(text);
-      expect(performance.now() - alone).toBeLessThan(3_000);
+      const elapsedMs = performance.now() - alone;
+      if (elapsedMs >= 3_000) {
+        const cpu = process.cpuUsage(cpuStart);
+        console.error('[encoded-payload timing diagnostic]', {
+          case: name,
+          elapsedMs,
+          cpuMs: (cpu.user + cpu.system) / 1_000,
+        });
+      }
+      expect(elapsedMs).toBeLessThan(3_000);
     });
   }
 
