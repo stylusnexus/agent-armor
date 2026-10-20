@@ -14,12 +14,11 @@ github:
     - 37
   branches: []
 depends_on: []
-last_touched: 2026-10-20T00:45
-last_handoff: 2026-10-20T00:45
+last_touched: 2026-10-20T04:15
+last_handoff: 2026-10-20T04:15
 next_up:
-  - 359
   - 358
-  - 360
+  - 274
 blockers: []
 ---
 
@@ -31,12 +30,12 @@ Created P1 on 2026-10-20. Most issues here came out of the review of the 0.2.26 
 
 ## Issues
 
-| #    | Title                                                              | Assignee | Status  |
-| ---- | ------------------------------------------------------------------ | -------- | ------- |
-| #274 | fix(ml): long documents are scanned only up to token 510           | —        | 🔲 Open |
-| #358 | fix(cli): fail closed on missing scan paths by default             | —        | 🔲 Open |
-| #359 | fix(ml): bad modelChecksums downloads the model on every start     | —        | 🔲 Open |
-| #360 | docs(ml): document AGENTARMOR_MODEL_DIR and custom-model checksums | —        | 🔲 Open |
+| #    | Title                                                              | Assignee       | Status                                        |
+| ---- | ------------------------------------------------------------------ | -------------- | --------------------------------------------- |
+| #274 | fix(ml): long documents are scanned only up to token 510           | —              | 🔲 Open                                       |
+| #358 | fix(cli): fail closed on missing scan paths by default             | —              | 🔲 Open                                       |
+| #359 | fix(ml): bad modelChecksums downloads the model on every start     | maneumeyer-chs | 🟡 Merged to `dev` (#366); ships in ML 0.1.11 |
+| #360 | docs(ml): document AGENTARMOR_MODEL_DIR and custom-model checksums | maneumeyer-chs | 🟡 Merged to `dev` (#367); ships in ML 0.1.11 |
 
 ## Dependencies
 
@@ -55,3 +54,13 @@ Created P1 on 2026-10-20. Most issues here came out of the review of the 0.2.26 
 
 - Created from the 2026-10-20 backlog review (see `best-wins-cross`). Filed #358, #359 and #360 from the #345 review; #274 had no home track.
 - Two #345 review findings were not filed as bugs, because AGENTS.md defines that behavior. Re-hashing at startup is recorded above. "A custom model set by env var is rejected" became the docs issue #360.
+
+### Session — 2026-10-20 04:15 (#359 and #360 merged to dev)
+
+- **#366 (#359):**
+  - Checks the checksum shape before any file or network I/O.
+  - Counts only `MODEL_NOT_FOUND`, `CHECKSUM_MISMATCH` and `ENOENT` as a cache miss. This covers both cache checks, including the one after waiting on another process's lock, which the issue didn't mention.
+  - An unreadable cache now reports its real error instead of being downloaded over.
+- **#367 (#360):** documents `AGENTARMOR_MODEL_DIR` and the model-check error codes. The optional `AGENTARMOR_MODEL_CHECKSUMS` variable is left as a separate decision.
+- Both issues close when `dev` is promoted to `main`. They're ready for the ML 0.1.11 release PR.
+- next_up: #358 (build now, merge with #307 for 0.3.0), #274.
