@@ -12,14 +12,22 @@ github:
     - 57
     - 68
     - 69
+    - 98
+    - 99
+    - 106
+    - 107
+    - 178
+    - 232
+    - 245
+    - 304
   branches: []
 depends_on: []
-last_touched: 2026-08-06T09:00
-last_handoff: 2026-08-06T09:00
+last_touched: 2026-10-20T00:45
+last_handoff: 2026-10-20T00:45
 next_up:
+  - 178
   - 68
-  - 69
-  - 37
+  - 107
 blockers: []
 ---
 
@@ -31,14 +39,22 @@ Reprioritized 2026-07-07 (down from P0, alongside a value pass across all tracks
 
 ## Issues
 
-| #   | Title                                                                                                                                                                   | Assignee | Status                                                     |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------- |
-| #34 | Add computed riskLevel roll-up to ScanResult                                                                                                                            | —        | ✅ Shipped                                                 |
-| #35 | ML-based semantic accumulation detection across turns (mt-mem/mt-ctx blind spots) — structural half shipped via #50/#53, ML-windowing half shipped via #62 (2026-07-09) | —        | ✅ Shipped                                                 |
-| #37 | Long-context attention-dilution detection                                                                                                                               | —        | 🔲 Open                                                    |
-| #57 | feat: allowlist-based pre-execution action gate (`checkAction`)                                                                                                         | —        | ✅ Shipped                                                 |
-| #68 | feat(action-gate): policy ergonomics and hardening                                                                                                                      | —        | 🔲 Open                                                    |
-| #69 | test(eval): cover zero/thin-coverage trap types; extract multi-turn gate thresholds                                                                                     | —        | 🟡 Item 1 shipped (steganographic-payload); items 2-3 open |
+| #    | Title                                                                                                                                                                   | Assignee | Status                                                              |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------- |
+| #34  | Add computed riskLevel roll-up to ScanResult                                                                                                                            | —        | ✅ Shipped                                                          |
+| #35  | ML-based semantic accumulation detection across turns (mt-mem/mt-ctx blind spots) — structural half shipped via #50/#53, ML-windowing half shipped via #62 (2026-07-09) | —        | 🟡 Shipped here; issue still open (retrain step rides with #25)     |
+| #37  | Long-context attention-dilution detection                                                                                                                               | —        | 🔲 Open                                                             |
+| #57  | feat: allowlist-based pre-execution action gate (`checkAction`)                                                                                                         | —        | ✅ Shipped                                                          |
+| #68  | feat(action-gate): policy ergonomics and hardening                                                                                                                      | —        | 🔲 Open                                                             |
+| #69  | test(eval): cover zero/thin-coverage trap types; extract multi-turn gate thresholds                                                                                     | —        | ✅ Shipped                                                          |
+| #98  | Detector: C2 / drop-service channel endpoints in scanned content                                                                                                        | —        | 🟡 Strict-only patterns shipped (#329); decide on balanced or close |
+| #99  | Detector: cross-environment persistence and logging suppression                                                                                                         | —        | 🟡 Strict-only patterns shipped (#329); decide on balanced or close |
+| #106 | feat(action-gate): package-install policy — release-age floor and pin enforcement                                                                                       | —        | 🔲 Open (after #68)                                                 |
+| #107 | Detector: dependency-install risk in scanned content (lockfile bypass, lifecycle scripts)                                                                               | —        | 🔲 Open                                                             |
+| #178 | fix(patterns): exfiltration instruction check reads only the matched words                                                                                              | —        | 🟡 Partly shipped (#334, #339)                                      |
+| #232 | Help wanted: try to break the reference-image scan with your own markdown                                                                                               | —        | 🔲 Open (community)                                                 |
+| #245 | design: multilingual detection with opt-in language packs                                                                                                               | —        | 🔲 Open (after #25)                                                 |
+| #304 | feat(output): flag markdown images that leak data to outside hosts                                                                                                      | —        | 🔲 Open (after #308)                                                |
 
 ## Session log
 
@@ -88,3 +104,17 @@ Reprioritized 2026-07-07 (down from P0, alongside a value pass across all tracks
 - **Normalization was making it worse, not better.** The Tags block is absent from `src/normalize/unicode.ts` entirely; variation selectors are stripped only from the detection skeleton, while `sanitize()` operates on raw content — so nothing flagged meant nothing removed. Normalization was silently converting a detection problem into a clean pass-through. There is now a test asserting the detector runs on RAW input; if anyone moves it onto the normalized skeleton, that test fails.
 - **Gotcha for anyone touching these patterns:** they deliberately carry no `requireInstructions`/`boostOnInstructions`. `findPatterns` tests instruction signals against the MATCHED text, which by construction contains no ASCII, so `hasInstruction` is always false and either flag would permanently suppress them. Presence of the carrier is the signal.
 - Items 2 (thin per-type coverage) and 3 (multi-turn threshold extraction) remain open. Reordered `next_up`: #68 and #69 now lead #37.
+
+### Session — 2026-10-20 00:45 (backlog review: untracked issues slotted)
+
+- Gave this track the detection and action-gate issues that had no home track: #98, #99, #106, #107 (previously only referenced from `best-wins-cross`), plus #178, #232, #245 and #304.
+- Status corrections: #69 is closed (all items shipped). #35 is still open on GitHub. Its remaining step is a retrain, which rides with #25 in `ml-v2-retrain`. Closing or rescoping it unblocks #38 (`enterprise-readiness`).
+- #98 and #99 got strict-only patterns in #329 (0.2.25). Decide whether `balanced` coverage is worth more work, or close both.
+- Dependencies:
+  - **#178 before #305** (`fiction-false-positives`). Both change the instruction-signal check.
+  - **#68 before #106.** A bare `{ tool: 'npm.install' }` rule would admit any package, so fix the rule hygiene before adding the rule type.
+  - **#107** can run in parallel with #106. It's the content-scanning side of the same threat.
+  - **#304 after #308** (`scan-performance`), because it adds time-bound tests.
+  - **#245 after #25.** Multilingual needs tokenizer and training data that the retrain brings.
+  - **#37** shares a long-document eval set with #274 (`runtime-hardening`). Build it once.
+- next_up re-ranked: #178 (unblocks the fiction track), #68 (rule hygiene before new rule types), #107.
