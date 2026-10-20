@@ -409,6 +409,8 @@ When ML is enabled, calling `await armor.scan(content)` runs both regex and ML d
 
 If the ML package is not installed or the model is unavailable, behavior depends on the `onUnavailable` setting: `'warn-and-skip'` (default), `'throw'`, or `'silent-skip'`.
 
+`modelDir` can also come from the `AGENTARMOR_MODEL_DIR` environment variable. Either way, the model files are checked against the package's pinned SHA-256 digests, so a custom or retrained model also needs `modelChecksums` in code. See the [ML package README](packages/ml/README.md#agentarmor_model_dir).
+
 ### How well it works
 
 Measured on 2026-10-08 through the npm package (the shipped INT8 model and its own tokenizer; regex column at the default `balanced` level) on the repo's 105 benign and 142 adversarial eval samples, 110 held-out attack samples written after the training data was fixed (original wording plus paraphrases of public 2025-2026 write-ups), 47 held-out Chinese attacks, and NotInject (339 short benign prompts that contain attack words, 255 English and 84 Chinese; MIT). None of the models was trained on any of them, but the eval samples are part of the validation split that picks the best checkpoint, so the eval-suite rows favour the retrained models somewhat; the held-out attacks and NotInject are the clean measurements. A sample is flagged when the model reports any trap label at the default 0.5 threshold. Run 7 shipped in 0.1.8 as the same file that was measured (SHA-256 `17a4ae95…`).
