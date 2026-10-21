@@ -27,22 +27,21 @@ on:
     branches:
       - main
 
-permissions:
-  contents: write
-  pull-requests: write
+permissions: read-all
 
 jobs:
   release-please:
     runs-on: ubuntu-latest
     permissions:
-      actions: write
       contents: write
       pull-requests: write
     outputs:
       # release-please-action only prefixes non-root paths (`${path}--${key}`);
       # for path "." it sets the bare key (see its src/index.ts setPathOutput).
       core_released: ${{ steps.release.outputs.release_created }}
+      core_tag: ${{ steps.release.outputs.tag_name }}
       ml_released: ${{ steps.release.outputs['packages/ml--release_created'] }}
+      ml_tag: ${{ steps.release.outputs['packages/ml--tag_name'] }}
     steps:
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         id: release
@@ -63,19 +62,49 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
-          cache: npm
-      - run: npm install -g npm@^11.5.1 # npm's OIDC Trusted Publishing needs npm >=11.5.1; Node 22's bundled npm predates it
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - run: npm install -g npm@11.21.1 # pinned for OIDC Trusted Publishing; Node 22's bundled npm predates the minimum
       - run: npm ci
       - run: npm run typecheck
       - run: npm run test:run
       - run: npm run eval:gate
       - run: npm run build
-      - run: npm publish --access public
+      - name: Pack the exact tarball that will be published
+        id: pack
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/release-assets"
+          tarball_name=$(npm pack --json --pack-destination "$RUNNER_TEMP/release-assets" | node -e 'let data = ""; process.stdin.on("data", chunk => data += chunk).on("end", () => process.stdout.write(JSON.parse(data)[0].filename));')
+          echo "tarball=$RUNNER_TEMP/release-assets/$tarball_name" >> "$GITHUB_OUTPUT"
+      - name: Generate a signed attestation for the package tarball
+        id: attest
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ${{ steps.pack.outputs.tarball }}
+      - name: Publish the attested tarball to npm
+        env:
+          PACKAGE_TARBALL: ${{ steps.pack.outputs.tarball }}
+        run: npm publish "$PACKAGE_TARBALL" --access public
+      - name: Save the tarball and attestation for the GitHub release
+        env:
+          PACKAGE_TARBALL: ${{ steps.pack.outputs.tarball }}
+          ATTESTATION_BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        run: cp "$ATTESTATION_BUNDLE" "$PACKAGE_TARBALL.sigstore.json"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: core-release-assets
+          path: |
+            ${{ steps.pack.outputs.tarball }}
+            ${{ steps.pack.outputs.tarball }}.sigstore.json
+          if-no-files-found: error
+          retention-days: 7
 
   # Publishes @stylusnexus/agentarmor-ml the same way, independently — only
   # runs when packages/ml's own version bumped.
@@ -87,6 +116,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      attestations: write
     defaults:
       run:
         working-directory: packages/ml
@@ -95,9 +125,9 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: packages/ml/package-lock.json
-      - run: npm install -g npm@^11.5.1 # npm's OIDC Trusted Publishing needs npm >=11.5.1; Node 22's bundled npm predates it
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - run: npm install -g npm@11.21.1 # pinned for OIDC Trusted Publishing; Node 22's bundled npm predates the minimum
       - run: npm ci
       - run: npm run typecheck
       - run: npm run test
@@ -107,4 +137,82 @@ jobs:
       # so it costs the publish path essentially nothing.
       - run: npm run check:model
       - run: npm run build
-      - run: npm publish --access public
+      - name: Pack the exact tarball that will be published
+        id: pack
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/release-assets"
+          tarball_name=$(npm pack --json --pack-destination "$RUNNER_TEMP/release-assets" | node -e 'let data = ""; process.stdin.on("data", chunk => data += chunk).on("end", () => process.stdout.write(JSON.parse(data)[0].filename));')
+          echo "tarball=$RUNNER_TEMP/release-assets/$tarball_name" >> "$GITHUB_OUTPUT"
+      - name: Generate a signed attestation for the package tarball
+        id: attest
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ${{ steps.pack.outputs.tarball }}
+      - name: Publish the attested tarball to npm
+        env:
+          PACKAGE_TARBALL: ${{ steps.pack.outputs.tarball }}
+        run: npm publish "$PACKAGE_TARBALL" --access public
+      - name: Save the tarball and attestation for the GitHub release
+        env:
+          PACKAGE_TARBALL: ${{ steps.pack.outputs.tarball }}
+          ATTESTATION_BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        run: cp "$ATTESTATION_BUNDLE" "$PACKAGE_TARBALL.sigstore.json"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: ml-release-assets
+          path: |
+            ${{ steps.pack.outputs.tarball }}
+            ${{ steps.pack.outputs.tarball }}.sigstore.json
+          if-no-files-found: error
+          retention-days: 7
+
+  attach-core-release-assets:
+    needs: [release-please, publish-core]
+    if: needs.release-please.outputs.core_released == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: core-release-assets
+          path: release-assets
+      - name: Verify and attach signed assets to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.release-please.outputs.core_tag }}
+        run: |
+          set -euo pipefail
+          tarball=$(find release-assets -maxdepth 1 -type f -name '*.tgz' -print -quit)
+          test -n "$tarball"
+          bundle="$tarball.sigstore.json"
+          test -f "$bundle"
+          gh attestation verify "$tarball" --bundle "$bundle" --repo "$GITHUB_REPOSITORY"
+          gh release upload "$RELEASE_TAG" "$tarball" "$bundle" --clobber
+
+  attach-ml-release-assets:
+    needs: [release-please, publish-ml]
+    if: needs.release-please.outputs.ml_released == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: ml-release-assets
+          path: release-assets
+      - name: Verify and attach signed assets to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.release-please.outputs.ml_tag }}
+        run: |
+          set -euo pipefail
+          tarball=$(find release-assets -maxdepth 1 -type f -name '*.tgz' -print -quit)
+          test -n "$tarball"
+          bundle="$tarball.sigstore.json"
+          test -f "$bundle"
+          gh attestation verify "$tarball" --bundle "$bundle" --repo "$GITHUB_REPOSITORY"
+          gh release upload "$RELEASE_TAG" "$tarball" "$bundle" --clobber

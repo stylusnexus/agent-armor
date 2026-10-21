@@ -9,10 +9,7 @@ on:
     types: [completed]
     branches: [main]
 
-permissions:
-  actions: write
-  contents: read
-  pull-requests: read
+permissions: read-all
 
 jobs:
   dispatch:
@@ -21,6 +18,9 @@ jobs:
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      pull-requests: read
     steps:
       - name: Dispatch required checks for current release PR heads
         env:
