@@ -37,7 +37,7 @@ This isn't theoretical. It's happening now:
 
 Google DeepMind's [AI Agent Traps](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438) taxonomy (Franklin et al., 2026) catalogs 14 attack types across 6 categories. [OpenAI has stated](https://techcrunch.com/2025/12/22/openai-says-ai-browsers-may-always-be-vulnerable-to-prompt-injection-attacks/) that AI browsers "may always be vulnerable" to prompt injection.
 
-Most defenses answer one guess with another — an LLM judging whether another LLM was fooled. That's a guessing system grading a guessing system. Agent Armor inverts it: detection is **deterministic** by default. Inference is probabilistic; the layer that decides what reaches your agent shouldn't be. Versioned regex patterns run first; typical small inputs scan in under a millisecond. The ML classifier is an optional second opinion, never the gate.
+Most defenses answer one guess with another — an LLM judging whether another LLM was fooled. That's a guessing system grading a guessing system. Agent Armor inverts it: detection is **deterministic** by default. Inference is probabilistic; the layer that decides what reaches your agent shouldn't be. Versioned regex patterns run first; a 1,000-character input typically scans in about a millisecond. The ML classifier is an optional second opinion, never the gate.
 
 Agent Armor scans content at every stage of the agent lifecycle: before ingestion, after retrieval, and before the agent's output reaches the user. Input validation _and_ output validation in one pipeline.
 
@@ -45,7 +45,7 @@ Agent Armor scans content at every stage of the agent lifecycle: before ingestio
 
 ### Regex-only (synchronous)
 
-Zero runtime dependencies; typical small inputs scan in under a millisecond:
+Zero runtime dependencies; a 1,000-character input typically scans in about a millisecond:
 
 ```typescript
 import { AgentArmor } from '@stylusnexus/agentarmor';
@@ -632,12 +632,17 @@ Phrase matching is English only, so an override written in another language isn'
 
 ## Performance
 
-The core regex detectors have zero runtime dependencies. Typical small inputs scan in under a millisecond. When the ML classifier is enabled, scan times increase but remain practical for real-time use:
+The core regex detectors have zero runtime dependencies. These `scanSync()` measurements are medians of seven runs after a warm-up on Node 22, across prose, fiction, Markdown, JSON, code and HTML, using regex-only and default configurations:
 
-- **Regex only:** <1ms for small content, ~2-5ms for 10KB, ~10-20ms for 100KB
-- **With ML:** ~50-200ms depending on content length and hardware
+| Input size         | Measured median range |
+| ------------------ | --------------------- |
+| 1,000 characters   | 0.7–1.3 ms            |
+| 10,000 characters  | 4.7–10 ms             |
+| 100,000 characters | 45–70 ms              |
 
-Latency figures are representative, not a guarantee for every input or process state. Performance tests exercise shipped patterns and selected hostile inputs, including 200,000-character cases, with a one-second per-pattern budget. Input over `maxInputLength` (default 1,000,000 characters) is refused with a not-clean result instead of being scanned.
+When the ML classifier is enabled, scan times increase; expect about 50–200 ms depending on content length and hardware.
+
+These measurements are representative, not a guarantee for every input or process state. Performance tests exercise shipped patterns and selected hostile inputs, including 200,000-character cases, with a one-second per-pattern budget. Input over `maxInputLength` (default 1,000,000 characters) is refused with a not-clean result instead of being scanned.
 
 Use `scanSync()` for latency-critical paths and `await scan()` when ML detection is needed.
 
@@ -863,7 +868,7 @@ Security writing that **quotes** an attack ("an attacker may write `AI assistant
 
 ### How much latency does this add?
 
-The regex-based core has zero runtime dependencies. Typical small inputs scan in under a millisecond; the representative 10KB and 100KB timings are under 5ms and 20ms respectively. Timings vary by input and process state.
+The regex-based core has zero runtime dependencies. A 1,000-character input typically takes about a millisecond. See [Performance](#performance) for measured ranges by input size; timings vary by input and process state.
 
 With the ML classifier enabled, expect 50-200ms depending on content length and hardware. Use `scanSync()` for latency-critical paths and `await scan()` when you want ML detection.
 
