@@ -705,7 +705,7 @@ armor.loadPatterns(latestPatterns);
 armor.loadPatterns(myCustomPatterns);
 
 // Check current pattern version
-console.log(armor.patternVersion); // '0.9.23'
+console.log(armor.patternVersion); // '0.9.24'
 ```
 
 `fetchLatestPatterns` checks the file before it hands it back, and throws a `PatternValidationError` (with a `problems` list) if anything fails. Nothing changes in a running `armor` until you call `loadPatterns` with the result, so a rejected file leaves the current patterns in place.
@@ -781,7 +781,7 @@ Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy, plus t
 - **Transport Integrity** (4 detectors): credential exposure, dependency substitution, tool-call tampering and response anomaly screening
 - **Pre-execution action gate** — deterministic allowlist admissibility check (`checkAction()`)
 - ML classifier (DeBERTa-v3-small, ONNX) as optional companion package
-- Pattern database v0.9.23 with 140 pattern entries
+- Pattern database v0.9.24 with 141 pattern entries
 
 ### In Progress
 

@@ -134,6 +134,8 @@ const segTogether = (...signals: string[]) =>
  *            content (#356)
  *   0.9.23 — exfiltration: ex-read-env no longer matches a bare `secrets`, so
  *            "reveal the secrets of the court" in fiction is not critical (#303)
+ *   0.9.24 — exfiltration: ex-read-secrets-tail flags "secrets" beside a file
+ *            name or machine location (#387). Strict only
  */
 /**
  * tool-call-tampering (#27): shell the model's tool call would run, rewritten
@@ -311,7 +313,7 @@ const CONVERSATION_TO_DESTINATION =
   `|${CONV_FETCH}${convDestOnce(CONV_DEST_OPEN, 7)}${CONV_WITH}${CONV_OBJECT}`;
 
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.23',
+  version: '0.9.24',
   updatedAt: '2026-10-17',
   detectors: {
     'hidden-html': [
@@ -981,6 +983,23 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         confidence: 0.8,
         label: 'Sensitive credential access instruction',
         boostOnInstructions: true,
+      },
+      {
+        // Bare "secrets" is a story word ("reveal the secrets of the court"), so
+        // ex-read-env no longer matches it (#303). This keeps the cases where a
+        // file name or a machine location follows it. Strict only (0.4): a ban
+        // ("this tool will not reveal secrets stored in your vault") and an
+        // incident report that quotes the attack share its wording. "print the
+        // secrets" and "reveal secrets to me" read as fiction and stay clean.
+        id: 'ex-read-secrets-tail',
+        regex:
+          '(?:read|access|open|cat|print|output|display|show|reveal)\\s+(?:the\\s+)?(?:contents?\\s+of\\s+)?(?:my\\s+)?secrets?(?:\\.(?:ya?ml|json|env|toml|txt)\\b|\\s+files?\\b|\\s+(?:stored\\s+|kept\\s+|held\\s+)?(?:in|from)\\s+(?:the\\s+|your\\s+|this\\s+)?(?:process\\.env|\\.env|env\\b|environment|ci\\b|pipeline|vault|keychain|context|config|~/))',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'critical',
+        confidence: 0.4,
+        label: 'Instruction to read secrets from a file or machine location',
       },
       {
         id: 'ex-concealment',
