@@ -132,6 +132,8 @@ const segTogether = (...signals: string[]) =>
  *   0.9.22 — metadata-injection: an HTML comment also ends at `--!>`, which
  *            browsers accept, so visible text after it is not read as comment
  *            content (#356)
+ *   0.9.23 — exfiltration: ex-read-env no longer matches a bare `secrets`, so
+ *            "reveal the secrets of the court" in fiction is not critical (#303)
  */
 /**
  * tool-call-tampering (#27): shell the model's tool call would run, rewritten
@@ -309,7 +311,7 @@ const CONVERSATION_TO_DESTINATION =
   `|${CONV_FETCH}${convDestOnce(CONV_DEST_OPEN, 7)}${CONV_WITH}${CONV_OBJECT}`;
 
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.22',
+  version: '0.9.23',
   updatedAt: '2026-10-17',
   detectors: {
     'hidden-html': [
@@ -971,7 +973,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       {
         id: 'ex-read-env',
         regex:
-          '(?:read|access|open|cat|print|output|display|show|reveal)\\s+(?:the\\s+)?(?:contents?\\s+of\\s+)?(?:my\\s+)?(?:\\.env|\\.ssh|~/\\.ssh|~/\\.aws|environment\\s+variables?|api\\s+keys?|credentials?|secrets?|private\\s+keys?|ssh\\s+keys?|id_rsa)',
+          '(?:read|access|open|cat|print|output|display|show|reveal)\\s+(?:the\\s+)?(?:contents?\\s+of\\s+)?(?:my\\s+)?(?:\\.env|\\.ssh|~/\\.ssh|~/\\.aws|environment\\s+variables?|api\\s+keys?|credentials?|private\\s+keys?|ssh\\s+keys?|id_rsa)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
