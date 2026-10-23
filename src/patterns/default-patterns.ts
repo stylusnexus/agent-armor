@@ -986,14 +986,15 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         // Bare "secrets" is a story word ("reveal the secrets of the court"), so
-        // ex-read-env no longer matches it (#303). This keeps the cases where a
-        // file name or a machine location follows it. Strict only (0.4): a ban
-        // ("this tool will not reveal secrets stored in your vault") and an
-        // incident report that quotes the attack share its wording. "print the
-        // secrets" and "reveal secrets to me" read as fiction and stay clean.
+        // ex-read-env no longer matches it (#303). This keeps only the cases
+        // where a secrets file name or a developer location (process.env, .env,
+        // env, CI, ~/) follows it. Story places (vault, archive, context,
+        // environment, config) are left out on purpose: a red team found 32 of
+        // 36 tabletop sentences flagged with them. Strict only (0.4): a ban and
+        // an incident report that quotes the attack share its wording.
         id: 'ex-read-secrets-tail',
         regex:
-          '(?:read|access|open|cat|print|output|display|show|reveal)\\s+(?:the\\s+)?(?:contents?\\s+of\\s+)?(?:my\\s+)?secrets?(?:\\.(?:ya?ml|json|env|toml|txt)\\b|\\s+files?\\b|\\s+(?:stored\\s+|kept\\s+|held\\s+)?(?:in|from)\\s+(?:the\\s+|your\\s+|this\\s+)?(?:process\\.env|\\.env|env\\b|environment|ci\\b|pipeline|vault|keychain|context|config|~/))',
+          '\\b(?:read|access|open|cat|print|output|display|show|reveal)\\s+(?:the\\s+)?(?:contents?\\s+of\\s+)?(?:my\\s+)?secrets?(?:\\.(?:ya?ml|json|env|toml|txt)\\b|\\s+(?:stored\\s+|kept\\s+|held\\s+)?(?:in|from)\\s+(?:the\\s+|your\\s+|this\\s+)?(?:process\\.env\\b|\\.env\\b|env\\b|ci\\b|~/))',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',

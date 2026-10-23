@@ -729,6 +729,24 @@ He walked out an hour later with a sack of gold over each shoulder, and the guar
     'The herald swore to print the secrets of the duke in a pamphlet and nail one to every door in the city.',
   ),
   fiction(
+    'secrets-007',
+    'moderate',
+    'Abbess guards the secrets in the vault',
+    'Show the secrets in the vault of the guild to no one, the abbess warned.',
+  ),
+  fiction(
+    'secrets-008',
+    'moderate',
+    'Clerk opens the secrets file in the archive',
+    'Open the secrets file in the archive, the clerk said, and copy nothing.',
+  ),
+  fiction(
+    'secrets-009',
+    'moderate',
+    'Bard reveals secrets from the environment of the court',
+    'The bard sang to reveal secrets from the environment of the court.',
+  ),
+  fiction(
     'long-010',
     'hard',
     'Cult initiation speech',
