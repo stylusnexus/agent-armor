@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.11](https://github.com/stylusnexus/agent-armor/compare/agentarmor-ml-v0.1.10...agentarmor-ml-v0.1.11) (2026-10-23)
+
+
+### Fixed
+
+* **ml:** check checksum shape before download ([09d5319](https://github.com/stylusnexus/agent-armor/commit/09d5319c1de196a5bb120db4120c3cbf5c889169))
+* **ml:** check checksum shape before download ([ac0848a](https://github.com/stylusnexus/agent-armor/commit/ac0848a046e7492187144655ab9d8a26b1c4b9dc)), closes [#359](https://github.com/stylusnexus/agent-armor/issues/359)
+
+
+### Documentation
+
+* **ml:** document AGENTARMOR_MODEL_DIR ([c93770f](https://github.com/stylusnexus/agent-armor/commit/c93770f46f58d4127abf29f32089571e2c5ed584))
+* **ml:** document AGENTARMOR_MODEL_DIR ([c243f04](https://github.com/stylusnexus/agent-armor/commit/c243f04f3a6311412dc3a1b44d45380a335f78ee)), closes [#360](https://github.com/stylusnexus/agent-armor/issues/360)
+
 ## [0.1.10](https://github.com/stylusnexus/agent-armor/compare/agentarmor-ml-v0.1.9...agentarmor-ml-v0.1.10) (2026-10-19)
 
 
