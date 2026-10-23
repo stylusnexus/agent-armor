@@ -12,13 +12,13 @@ github:
     - 29
     - 30
     - 31
+    - 332
   branches: []
 depends_on: []
-last_touched: 2026-08-06T09:00
-last_handoff: 2026-08-06T09:00
+last_touched: 2026-10-20T00:45
+last_handoff: 2026-10-20T00:45
 next_up:
-  - 27
-  - 29
+  - 332
 blockers: []
 ---
 
@@ -30,14 +30,15 @@ Confirmed P1 on 2026-07-07's value pass: already correctly ordered — #26 is th
 
 ## Issues
 
-| #   | Title                                                                       | Assignee | Status     |
-| --- | --------------------------------------------------------------------------- | -------- | ---------- |
-| #26 | New taxonomy category: Transport Integrity (malicious intermediary attacks) | —        | ✅ Shipped |
-| #27 | Detector: Tool-call tampering (AC-1 payload injection)                      | —        | 🔲 Open    |
-| #28 | Detector: Credential exposure scanning (AC-2 secret exfiltration)           | —        | ✅ Shipped |
-| #29 | Detector: Dependency substitution (AC-1.a typosquat injection)              | —        | ✅ Shipped |
-| #30 | Detector: Response anomaly screening for intermediary manipulation          | —        | 🔲 Open    |
-| #31 | Future: Provider response-envelope verification (response signing)          | —        | 🔲 Open    |
+| #    | Title                                                                       | Assignee | Status               |
+| ---- | --------------------------------------------------------------------------- | -------- | -------------------- |
+| #26  | New taxonomy category: Transport Integrity (malicious intermediary attacks) | —        | ✅ Shipped           |
+| #27  | Detector: Tool-call tampering (AC-1 payload injection)                      | —        | ✅ Shipped           |
+| #28  | Detector: Credential exposure scanning (AC-2 secret exfiltration)           | —        | ✅ Shipped           |
+| #29  | Detector: Dependency substitution (AC-1.a typosquat injection)              | —        | ✅ Shipped           |
+| #30  | Detector: Response anomaly screening for intermediary manipulation          | —        | ✅ Shipped           |
+| #31  | Future: Provider response-envelope verification (response signing)          | —        | 🔲 Open              |
+| #332 | tool-call-tampering: shell and fetcher shapes not yet detected              | —        | 🔲 Open (after #308) |
 
 ## Session log
 
@@ -63,3 +64,10 @@ Confirmed P1 on 2026-07-07's value pass: already correctly ordered — #26 is th
 - Commented on #29 with the July 2026 OpenAI sandbox escape: the models escaped containment via a zero-day in **self-hosted Artifactory**, a package-registry cache proxy. That widens #29's motivation — the resolver redirection is itself an **egress path**, not only a substitution vector. Severity framing should reflect that; the detection shapes in the issue body already cover the observable form. Eval sample `rw-013` models it and is a ready-made acceptance test (currently a documented miss).
 - Filed #107 (dependency-install risk in scanned content: lockfile bypass, lifecycle scripts) and #106 (action-gate package policy: release-age floor, pin enforcement). Both are adjacent to #29 but distinct: #29 is _which package you get_, #107 is _how it is installed_, #106 is _whether the install is admissible at all_.
 - **Precedent worth remembering:** this repo already received this attack. PR #73 (2026-07-08) carried a comment recommending `pip install vulnledger` — a package whose claimed source repo 404s. A human investigated and declined. An agent triaging that PR would have had nothing stopping it. #107 asks for an eval sample modelled on it.
+
+### Session — 2026-10-20 00:45 (backlog review)
+
+- Status refresh: #26–#30 are all closed. Every transport-integrity detector has shipped, which also unblocks #32 in `ml-v2-retrain`.
+- Slotted #332 (follow-up shapes for `tool-call-tampering` from #330). Each new shape needs an honest-text probe, a time-bound test and a unit test. Land it after #308 (`scan-performance`) so the new time-bound tests don't start on a flaky baseline.
+- #31 stays deferred: it needs providers to sign responses, and none do yet.
+- next_up: #332.

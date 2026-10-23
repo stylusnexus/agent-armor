@@ -32,7 +32,7 @@ npm run test:run
 - Edit `src/patterns/default-patterns.ts`
 - Run the eval suite to verify no regressions: `npx tsx scripts/eval/run-eval.ts`
 - Include both adversarial and benign test cases when relevant
-- Keep scan time linear. `npm run test:run` runs every pattern against 200,000 characters of repeated trigger fragments and fails any that takes over a second. Avoid unbounded `[^x]*` runs on both sides of a keyword, lazy `[\s\S]*?` with no guaranteed closer, and `\s*` after a character that can repeat. If a pattern can't be written to pass, add a hand-written matcher in `src/patterns/matchers/` bound to the pattern's exact regex (see `types.ts`); `matchers-equivalence.test.ts` fuzzes it against the regex. Editing a regex that has a matcher drops the matcher, so the new regex must pass the speed test on its own
+- Keep scan time linear. `npm run test:run` checks shipped patterns against 200,000-character hostile inputs, including one trigger followed by long whitespace, and fails any pattern that takes over a second. Avoid unbounded `[^x]*` runs on both sides of a keyword, lazy `[\s\S]*?` with no guaranteed closer, and `\s*` after a character that can repeat. If a pattern can't be written to pass, add a hand-written matcher in `src/patterns/matchers/` bound to the pattern's exact regex (see `types.ts`); `matchers-equivalence.test.ts` fuzzes it against the regex. Editing a regex that has a matcher drops the matcher, so the new regex must pass the speed test on its own
 
 ## Adding Eval Samples
 
@@ -129,9 +129,9 @@ Releases are automated end-to-end via [release-please](https://github.com/google
 1. Every PR promoted from `dev` to `main` with a Conventional Commit title (`feat:`, `fix:`, etc.) gets picked up by release-please.
 2. release-please maintains a standing "release PR" per package (root `@stylusnexus/agentarmor` and `packages/ml`'s `@stylusnexus/agentarmor-ml`, versioned and tagged independently) that accumulates changelog entries and the next version bump.
 3. Merging a release PR tags the release and creates a GitHub release, which triggers that package's publish job.
-4. The publish job re-runs build/typecheck/test (and the eval gate, for the core package) as a defense-in-depth check, then waits for a manual approval in the `npm-publish` GitHub Environment.
-5. Each job packs the package once, creates a signed GitHub artifact attestation for that exact tarball, publishes that tarball to npm, and attaches the tarball and its `.sigstore.json` bundle to the corresponding GitHub release.
-6. Publishing uses npm Trusted Publishing (OIDC) — no `NPM_TOKEN` secret exists in this repo. npm generates registry provenance automatically; the attached Sigstore bundle lets consumers independently verify the release asset with `gh attestation verify <package.tgz> --bundle <package.tgz.sigstore.json> --repo stylusnexus/agent-armor`.
+4. The publish job re-runs build/typecheck/test (and the eval gate, for the core package), then waits for approval in the `npm-publish` GitHub Environment.
+5. Each job packs the package once, creates a GitHub artifact attestation for that tarball, publishes that exact tarball to npm, and attaches the tarball and `.sigstore.json` bundle to the GitHub release. Verify an asset with `gh attestation verify <package.tgz> --bundle <package.tgz.sigstore.json> --repo stylusnexus/agent-armor`.
+6. Publishing uses npm Trusted Publishing (OIDC) — no `NPM_TOKEN` secret exists in this repo. npm also generates registry provenance.
 
 **One-time setup** (already done if you're reading this after #70 shipped — documented here for anyone re-provisioning the repo):
 
@@ -156,6 +156,6 @@ It runs weekly (`.github/workflows/model-integrity.yml`), on any PR touching `pa
 
 No secrets required; the HuggingFace repo is public and access is read-only.
 
-If the automated publish is ever unavailable (e.g. before the one-time setup above is complete), fall back to a manual publish: `npm run build && npm publish --access public` from a clean `main` checkout, run once per package that needs it.
+Do not publish manually. A manual publish bypasses the guarded workflow and its tarball attestation. If the automated publish is blocked, fix the workflow or its GitHub/npm configuration before releasing.
 
 Pre-1.0 bump policy: a breaking change (`feat!:` / `BREAKING CHANGE:`) bumps the **minor** version; `feat:`/`fix:` bump the **patch** version.

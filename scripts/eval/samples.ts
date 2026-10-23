@@ -17,6 +17,7 @@
  */
 
 import type { Strictness, TrapType } from '../../src/types';
+import { fictionSamples } from './fiction-samples';
 
 export interface EvalSample {
   id: string;
@@ -3323,6 +3324,7 @@ export const ALL_SAMPLES: EvalSample[] = [
   ...encodedPayloadSamples,
   ...encodedPayloadBenignSamples,
   ...conversationDestinationBenignSamples,
+  ...fictionSamples,
 ];
 
 export const ADVERSARIAL_SAMPLES = ALL_SAMPLES.filter((s) => s.category === 'adversarial');

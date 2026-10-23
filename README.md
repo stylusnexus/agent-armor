@@ -37,7 +37,7 @@ This isn't theoretical. It's happening now:
 
 Google DeepMind's [AI Agent Traps](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6372438) taxonomy (Franklin et al., 2026) catalogs 14 attack types across 6 categories. [OpenAI has stated](https://techcrunch.com/2025/12/22/openai-says-ai-browsers-may-always-be-vulnerable-to-prompt-injection-attacks/) that AI browsers "may always be vulnerable" to prompt injection.
 
-Most defenses answer one guess with another — an LLM judging whether another LLM was fooled. That's a guessing system grading a guessing system. Agent Armor inverts it: detection is **deterministic** by default. Inference is probabilistic; the layer that decides what reaches your agent shouldn't be. Versioned regex patterns run first and sub-millisecond; the ML classifier is an optional second opinion, never the gate.
+Most defenses answer one guess with another — an LLM judging whether another LLM was fooled. That's a guessing system grading a guessing system. Agent Armor inverts it: detection is **deterministic** by default. Inference is probabilistic; the layer that decides what reaches your agent shouldn't be. Versioned regex patterns run first; a 1,000-character input typically scans in about a millisecond. The ML classifier is an optional second opinion, never the gate.
 
 Agent Armor scans content at every stage of the agent lifecycle: before ingestion, after retrieval, and before the agent's output reaches the user. Input validation _and_ output validation in one pipeline.
 
@@ -45,7 +45,7 @@ Agent Armor scans content at every stage of the agent lifecycle: before ingestio
 
 ### Regex-only (synchronous)
 
-Zero dependencies, sub-millisecond scans:
+Zero runtime dependencies; a 1,000-character input typically scans in about a millisecond:
 
 ```typescript
 import { AgentArmor } from '@stylusnexus/agentarmor';
@@ -137,7 +137,7 @@ Versions 0.2.1 to 0.2.17 can report a very large input as clean ([GHSA-vr4h-8mw3
 
 ### Eval Suite
 
-304 curated samples (170 adversarial, 134 benign) covering all 19 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
+398 curated samples (170 adversarial, 228 benign) covering all 19 shipped detector types across 5 attack categories, including homoglyph-obfuscated payloads, scanner-directed verdict suppression, and leaked-credential near-misses:
 
 | Strictness   | Detection Rate (regex) | False Positive Rate |
 | ------------ | ---------------------- | ------------------- |
@@ -146,6 +146,8 @@ Versions 0.2.1 to 0.2.17 can report a very large input as clean ([GHSA-vr4h-8mw3
 | Strict       | 99.4%                  | 0.0%                |
 
 The 0.0% false-positive figure covers every benign sample except 11 **known false positives** (`acceptedFlagAt` in `scripts/eval/samples.ts`): honest text that quotes an attack or tells an assistant to run a command, such as a security paper quoting an exfiltration instruction. They flag at every strictness, are reported separately by `npm run eval`, and are excluded from the rate. The gate still fails on any other benign sample that flags.
+
+The benign samples include 94 pieces of original narrative and tabletop fiction (`scripts/eval/fiction-samples.ts`, #306): villains, spies, necromancers, heists, ciphers, prison breaks and in-character dialogue full of secrets, orders and instructions. `npm run eval` reports the set on its own line, and the gate fails on any flag in it at any strictness. Stories in which a character gives orders to an AI are not in the set; they read exactly like an attack aimed at the agent.
 
 The eval suite includes 14 adversarial samples drawn from real-world incidents (2025-2026): MCP tool poisoning, RAG vector DB saturation, covert exfiltration via image proxies, supply chain prompt injection, memory poisoning, HITL dialog forgery, and the July 2026 OpenAI sandbox escape (credential reuse, C2 over public paste services, package-proxy egress, cross-environment persistence). Regex flags 6 of these at balanced and all 14 at strict (5 and 13 when the trap type must also match what the sample expects); the remaining 8 at balanced are where the [ML classifier](#ml-classifier-optional) helps, measured 2026-10-08 at its 0.5 threshold: the first model (v1) flags 6 of the 8, the model in 0.1.7 all 8, and the model in 0.1.8 (run 7) 5 of 8, missing two that the regex catches at strict. Two of the 14 (rw-011, C2 over public paste services, and rw-014, persistence with logging suppression) are caught by regex at strict only, because honest advisories, tunnel docs and orchestration docs use the same words; the classifier flags both. **These headline numbers move down whenever we add a blind spot we can't yet catch — that is deliberate.** `scripts/eval/thresholds.json` records every floor change and why. On the original 49 adversarial samples, regex detection is 100% at balanced strictness.
 
@@ -409,6 +411,8 @@ When ML is enabled, calling `await armor.scan(content)` runs both regex and ML d
 
 If the ML package is not installed or the model is unavailable, behavior depends on the `onUnavailable` setting: `'warn-and-skip'` (default), `'throw'`, or `'silent-skip'`.
 
+`modelDir` can also come from the `AGENTARMOR_MODEL_DIR` environment variable. Either way, the model files are checked against the package's pinned SHA-256 digests, so a custom or retrained model also needs `modelChecksums` in code. See the [ML package README](packages/ml/README.md#agentarmor_model_dir).
+
 ### How well it works
 
 Measured on 2026-10-08 through the npm package (the shipped INT8 model and its own tokenizer; regex column at the default `balanced` level) on the repo's 105 benign and 142 adversarial eval samples, 110 held-out attack samples written after the training data was fixed (original wording plus paraphrases of public 2025-2026 write-ups), 47 held-out Chinese attacks, and NotInject (339 short benign prompts that contain attack words, 255 English and 84 Chinese; MIT). None of the models was trained on any of them, but the eval samples are part of the validation split that picks the best checkpoint, so the eval-suite rows favour the retrained models somewhat; the held-out attacks and NotInject are the clean measurements. A sample is flagged when the model reports any trap label at the default 0.5 threshold. Run 7 shipped in 0.1.8 as the same file that was measured (SHA-256 `17a4ae95…`).
@@ -628,12 +632,17 @@ Phrase matching is English only, so an override written in another language isn'
 
 ## Performance
 
-The core regex detectors have zero dependencies and run with sub-millisecond latency. When the ML classifier is enabled, scan times increase but remain practical for real-time use:
+The core regex detectors have zero runtime dependencies. These `scanSync()` measurements are medians of seven runs after a warm-up on Node 22, across prose, fiction, Markdown, JSON, code and HTML, using regex-only and default configurations:
 
-- **Regex only:** <1ms for small content, ~2-5ms for 10KB, ~10-20ms for 100KB
-- **With ML:** ~50-200ms depending on content length and hardware
+| Input size         | Measured median range |
+| ------------------ | --------------------- |
+| 1,000 characters   | 0.7–1.3 ms            |
+| 10,000 characters  | 4.7–10 ms             |
+| 100,000 characters | 45–70 ms              |
 
-Scan time stays linear in input size, including on adversarial input. A test runs every shipped pattern against 200,000 characters of repeated trigger fragments and fails if any takes over a second. Input over `maxInputLength` (default 1,000,000 characters) is refused with a not-clean result instead of being scanned.
+When the ML classifier is enabled, scan times increase; expect about 50–200 ms depending on content length and hardware.
+
+These measurements are representative, not a guarantee for every input or process state. Performance tests exercise shipped patterns and selected hostile inputs, including 200,000-character cases, with a one-second per-pattern budget. Input over `maxInputLength` (default 1,000,000 characters) is refused with a not-clean result instead of being scanned.
 
 Use `scanSync()` for latency-critical paths and `await scan()` when ML detection is needed.
 
@@ -696,7 +705,7 @@ armor.loadPatterns(latestPatterns);
 armor.loadPatterns(myCustomPatterns);
 
 // Check current pattern version
-console.log(armor.patternVersion); // '0.9.21'
+console.log(armor.patternVersion); // '0.9.22'
 ```
 
 `fetchLatestPatterns` checks the file before it hands it back, and throws a `PatternValidationError` (with a `problems` list) if anything fails. Nothing changes in a running `armor` until you call `loadPatterns` with the result, so a rejected file leaves the current patterns in place.
@@ -772,7 +781,7 @@ Agent Armor covers 4 of the 6 attack categories in the DeepMind taxonomy, plus t
 - **Transport Integrity** (4 detectors): credential exposure, dependency substitution, tool-call tampering and response anomaly screening
 - **Pre-execution action gate** — deterministic allowlist admissibility check (`checkAction()`)
 - ML classifier (DeBERTa-v3-small, ONNX) as optional companion package
-- Pattern database v0.9.21 with 140 pattern entries
+- Pattern database v0.9.22 with 140 pattern entries
 
 ### In Progress
 
@@ -859,7 +868,7 @@ Security writing that **quotes** an attack ("an attacker may write `AI assistant
 
 ### How much latency does this add?
 
-The regex-based core runs in sub-millisecond time for typical content. Under 5ms for 10KB, under 20ms for 100KB. Zero runtime dependencies.
+The regex-based core has zero runtime dependencies. A 1,000-character input typically takes about a millisecond. See [Performance](#performance) for measured ranges by input size; timings vary by input and process state.
 
 With the ML classifier enabled, expect 50-200ms depending on content length and hardware. Use `scanSync()` for latency-critical paths and `await scan()` when you want ML detection.
 

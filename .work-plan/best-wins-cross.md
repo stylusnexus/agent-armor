@@ -7,35 +7,49 @@ github:
   repo: stylusnexus/agent-armor
   issues: []
   references:
+    - 306
+    - 303
+    - 368
+    - 308
+    - 359
     - 68
-    - 69
-    - 98
-    - 99
-    - 106
+    - 358
+    - 305
+    - 274
+    - 337
+    - 307
+    - 360
     - 107
-    - 27
+    - 106
+    - 304
+    - 275
+    - 332
     - 37
-    - 29
-    - 38
     - 40
-    - 30
     - 25
     - 32
+    - 38
+    - 245
+    - 232
     - 31
+    - 35
   branches: []
 depends_on:
+  - scan-performance
+  - runtime-hardening
+  - fiction-false-positives
   - detection-hardening
   - transport-integrity
   - ml-v2-retrain
   - enterprise-readiness
   - systemic-traps
   - human-in-the-loop
-last_touched: 2026-08-06T09:00
-last_handoff: 2026-08-06T09:00
+last_touched: 2026-10-20T04:15
+last_handoff: 2026-10-20T04:15
 next_up:
-  - 68
-  - 98
-  - 107
+  - 306
+  - 303
+  - 368
 blockers: []
 ---
 
@@ -44,7 +58,7 @@ blockers: []
 **This track owns nothing.** `github.issues` is deliberately empty and every issue below sits in
 `github.references` — the toolkit's cross-track construct for surfacing scope without claiming
 ownership. Status, session logs, and issue-table upkeep stay in each issue's home track; this
-file answers one question the seven topic tracks can't answer individually: _what should we pick
+file answers one question the topic tracks can't answer individually: _what should we pick
 up next?_
 
 Rules of the road:
@@ -55,99 +69,113 @@ Rules of the road:
   rather than tacking the new item onto the end.
 - **Don't run `canonicalize` on this file** — it would prepend an auto-managed issue table and
   overwrite the hand-written ranking below.
-- Ranked 2026-08-05 against the live repo (22 open issues) and the live source, not against the
-  issue text alone. Several issue bodies are stale — see "Corrections to the backlog".
+- Re-ranked 2026-10-20 against the live repo (36 open issues, after filing #358–#360) and live
+  source. Every open issue now has a home track. After the housekeeping below (2026-10-20 03:00),
+  33 issues are open. Re-ranked again at 04:15: #178 closed, #368 filed, #359/#360 merged to `dev`
+  (still 33 open).
 
-## The thing that isn't in any track
+## Context
 
-Worth stating before the ranking, because it changes how to read it. As of 2026-08-05 the repo
-is public with **4 stars, 0 forks** and **614 npm downloads/month** on the core package (73 on
-the ML package). The launch is parked pending a date. Detection features don't compound until
-there are users to report against them, and the project's own stated near-term goal is
-credibility rather than revenue.
+As of 2026-10-20: **7 stars, 0 forks**, and npm downloads for 2026-09-19 to 2026-10-18 of
+**3,981** for the core package and **929** for the ML package, up from 614 and 73 at the
+2026-08-05 ranking. There is now a named downstream consumer, CritForge, on `^0.2.23`. Its
+evaluation produced the fiction false-positive cluster (#303–#307).
 
-So this ranking optimises for **demoable, legible credibility** over raw detector count. That's
-why a secret scanner and a supply-chain self-check outrank a paper-faithful anomaly model. None
-of it substitutes for picking a launch date.
+That changes the weighting. In August the ranking optimised for legible credibility before
+launch. Now **don't break real consumers** comes first: false positives on honest text, scan
+latency on request paths, and runtime footguns outrank new detectors.
+
+The repo now has a `dev` branch (reversing the 2026-08-05 decision): branch from `dev`,
+squash-merge to `dev`, and promote `dev` → `main` with a merge commit. After each release,
+merge `main` back into `dev`.
+
+## Housekeeping (done 2026-10-20)
+
+| Issue    | Outcome                                                                                                                                           |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| #309     | Closed as a duplicate of #302.                                                                                                                    |
+| #98, #99 | Closed as completed at `strict` (#329). `balanced` regex flagged honest text, so the remaining coverage is ML work, now a data item on #25.       |
+| #35      | Rescoped to the retrain step only and moved to `ml-v2-retrain`. Depends on #25.                                                                   |
+| #38      | Unblocked. The "do not start" line is replaced, and all three dependencies (audit records, multi-turn scanning, eval gate) are ticked as shipped. |
 
 ## Ranking
 
-| Rank  | Issue                                                   | Home track                        | Why it wins                                                                                                                                                                                                                                                         | Effort               | Risk                                                                                                              |
-| ----- | ------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| ~~1~~ | ~~#28 credential-exposure detector~~                    | transport-integrity               | **✅ Shipped 2026-08-05** (PR #94, `0505bc7`) — closed #26 with it. 6/6 detection, FP held at 0.0%.                                                                                                                                                                 | —                    | —                                                                                                                 |
-| 1     | #71 ML checksum integrity CI                            | ml-v2-retrain                     | A security tool that verifies its own supply chain. One scheduled workflow, no secrets, public HF repo. Also blocks publishing an ML version whose checksum disagrees with HuggingFace.                                                                             | **Low**              | Low                                                                                                               |
-| 2     | #69 item 1 — kill or implement `steganographic-payload` | detection-hardening               | A declared-but-dead enum in a public type system reads as a capability claim that isn't real. On a security product that's a trust wart. **Split this item out and ship it alone.**                                                                                 | **Low**              | Low (breaking type change if removed)                                                                             |
-| 3     | #68 items 1+3 — bare-rule footgun + aggregate reasons   | detection-hardening               | The bare-rule footgun is a dangerous default in the _pre-execution gate_ — the README warns about it but nothing prevents it. Aggregate reasons make a denial debuggable without bisecting the policy.                                                              | Low–Med              | Low (fuzz baseline protects it)                                                                                   |
-| 4     | #27 tool-call-tampering detector                        | transport-integrity               | The strongest launch narrative available: 0 of 4 major agent frameworks verify response integrity (Liu et al. 2026), citing real router compromises.                                                                                                                | Med                  | **Med–High** — install docs legitimately contain `curl \| sh`; needs hard negatives and careful confidence tuning |
-| 5     | #68 items 2+4 — tool globs + `baseDir`                  | detection-hardening               | Both need the SecLists fuzz corpus extended alongside them, so they cost more than 1+3. Real value: `baseDir` gives callers who can't pre-normalise a safe option.                                                                                                  | Med                  | Med                                                                                                               |
-| 6     | #69 items 2+3 — thin coverage + threshold extraction    | detection-hardening               | Protects the regression gate that protects every future change. Verified thin: 3 samples each for `dynamic-cloaking`, `syntactic-masking`, `persona-hyperstition`; 4 each for `contextual-learning-trap`, `biased-framing` — against 11 for the best-covered types. | Med (curation grind) | Low                                                                                                               |
-| 7     | #37 long-context attention-dilution                     | detection-hardening               | Real open detection gap against a documented bypass technique. Cheap heuristic over already-computed match positions and content length.                                                                                                                            | Med                  | Med — one open design call (detector vs. pipeline scoring; the issue leans pipeline)                              |
-| 8     | #29 dependency-substitution                             | transport-integrity               | Typosquat/supply-chain angle lands with the same audience as #27 and shares its machinery once #27's patterns exist. Structural approach, no dictionary to maintain.                                                                                                | Med                  | Med                                                                                                               |
-| 9     | #38 SOC 2 / ISO 27001 crosswalk                         | enterprise-readiness              | **Newly unblocked** — all three stated dependencies shipped. Docs, not code, written against a real shipped schema (`AuditRecord`, `buildEvidencePackage`). Enterprise credibility asset.                                                                           | Med (writing)        | Low, provided it doesn't over-claim                                                                               |
-| 10    | #40 eval-gated external-feed ingestion                  | ml-v2-retrain                     | Highest _strategic_ value here — it's the mechanism behind the Pro-tier pattern feed. But design-heavy, and worth more once there's adoption to serve.                                                                                                              | **High**             | Med                                                                                                               |
-| 11    | #30 response-anomaly screening                          | transport-integrity               | Marginal value drops sharply once #27 and #28 ship — its highest-weighted feature (shell risk) is #27's, and its secret-pattern feature is #28's.                                                                                                                   | Med                  | Med                                                                                                               |
-| 12    | #25 ML v2 retrain data                                  | ml-v2-retrain                     | The big lift: ~5,400 labelled samples. High long-term value ("ML demonstrably better than regex" is a monetisation trigger), but weeks, not days.                                                                                                                   | **High**             | Med                                                                                                               |
-| 13    | #32 transport-integrity ML samples                      | ml-v2-retrain                     | Rides #25 plus the #27–#30 detectors. Nothing to do before both.                                                                                                                                                                                                    | Med                  | Low                                                                                                               |
-| 14    | #31 provider response-envelope signing                  | transport-integrity               | Genuinely future — needs provider cooperation that doesn't exist yet.                                                                                                                                                                                               | High                 | High                                                                                                              |
-| 15–21 | #7–#13 systemic + human-in-the-loop                     | systemic-traps, human-in-the-loop | Correctly deferred, and not referenced by this track. These need real incident signal from real users; building them now means guessing.                                                                                                                            | High                 | High                                                                                                              |
+In flight, not ranked: #359 and #360 merged to `dev` (#366, #367) and ship in ML 0.1.11. #356 and
+the pattern-version bump (#365) are on `dev` for core 0.2.27; #356 still needs its human review.
 
-## Suggested sequencing
+| Rank  | Issue                                  | Home track                        | Depends on             | Why now                                                                                                    | Effort   |
+| ----- | -------------------------------------- | --------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------- | -------- |
+| 1     | #306 fiction eval set                  | fiction-false-positives           | —                      | Lets the gate catch fiction false positives. Unblocks #303, #305 and #307                                  | Low–Med  |
+| 2     | #303 `ex-read-env` flags fiction       | fiction-false-positives           | #306                   | Critical false positive at `permissive` for a real consumer. Fix its acceptance criteria first             | Low      |
+| 3     | #368 regex flags 9% of real docs       | fiction-false-positives           | —                      | 90 of 1,000 honest repository documents flag at `balanced`, mostly HTML comments and badges. Measure first | Med      |
+| 4     | #308 latency (narrowed)                | scan-performance                  | —                      | The quadratic jump is gone. README numbers, `maxScanMs` and a CI latency check remain                      | Low–Med  |
+| 5     | #68 action-gate rule hygiene           | detection-hardening               | —                      | The bare-rule footgun gets worse with every new rule type (#106)                                           | Low–Med  |
+| 6     | #358 CLI fails closed on missing paths | runtime-hardening                 | —                      | Scan gates currently pass on a mistyped path. Minor bump; merge with #307                                  | Low      |
+| 7     | #305 messages addressed to the AI      | fiction-false-positives           | #306, #303             | Real detection gap ("Note to the AI…", persona resets); also carries #178's agent-aimed variants           | Med      |
+| 8     | #274 ML reads only 512 tokens          | runtime-hardening                 | long-document eval set | The ML layer misses instructions late in a document. Needs a long-document set to measure fixes            | Med–High |
+| 9     | #337 rescan each decoded reading       | scan-performance                  | encoded-payload timing | Same detector as the open timing investigation (logging shipped in #363); sequence after it                | Low–Med  |
+| 10    | #307 suppress or re-weight patterns    | fiction-false-positives           | #303                   | Adds a pattern id to `Threat` (API change → `0.3.0`)                                                       | Med      |
+| 11    | #107 dependency-install content risk   | detection-hardening               | —                      | Zero coverage of install commands; this repo was targeted (`pip install vulnledger` on #73)                | Med      |
+| 12    | #106 package-install policy            | detection-hardening               | #68                    | Release-age floor for installs an agent runs                                                               | Med      |
+| 13    | #304 markdown image leaks (output)     | detection-hardening               | #308, #368             | Zero-click leak path; shares the markdown-image detection #368 must fix for badges                         | Med      |
+| 14    | #275 NotInject over-defense            | ml-v2-retrain                     | —                      | Run 6 at 89% vs a 90% goal: decide ship or retrain                                                         | Decision |
+| 15    | #332 tool-call shapes                  | transport-integrity               | #308                   | Each shape needs honest-text probes and time-bound tests                                                   | Med      |
+| 16    | #37 attention dilution                 | detection-hardening               | long-document eval set | Shares the long-document set with #274                                                                     | Med      |
+| 17    | #38 SOC 2 / ISO crosswalk              | enterprise-readiness              | —                      | Writing work against the shipped audit schema; ahead of the High-effort ML items                           | Med      |
+| 18    | #40 eval-gated feed ingestion          | ml-v2-retrain                     | —                      | Mechanism behind future pattern feeds and #25's data                                                       | High     |
+| 19    | #25 ML v2 retrain data                 | ml-v2-retrain                     | #40 (data)             | The big lift (~5,400 labelled samples). Also carries the regex hand-offs from #98, #99 and #178            | High     |
+| 20    | #32, #35 retrain-riding samples        | ml-v2-retrain                     | #25                    | #32: transport-integrity samples. #35: cross-turn accumulation (the `mt-mem`/`mt-ctx` blind spots)         | Med      |
+| 21    | #245 multilingual language packs       | detection-hardening               | #25                    | Design first; ML coverage needs the retrain                                                                | High     |
+| 22    | #232 community break-the-scan          | detection-hardening               | —                      | Ongoing; no dependency                                                                                     | —        |
+| 23    | #31 provider response signing          | transport-integrity               | providers              | Needs provider cooperation that doesn't exist yet                                                          | High     |
+| 24–30 | #7–#13 systemic and human-in-the-loop  | systemic-traps, human-in-the-loop | real incidents         | Deferred. Build only with real incident signal from users                                                  | High     |
 
-Three batches, each independently mergeable:
+## Dependency graph
 
-1. **Credibility batch (days):** ~~#28~~ ✅ → **#71 → #69 item 1**. Two small PRs left. Ends with a
-   self-verifying model supply chain and no dead types in the public taxonomy. This is the batch
-   to have finished _before_ a launch post, not after.
-2. **Hardening batch:** #68 items 1+3, then #69 items 2+3. Tightens the pre-execution gate's
-   dangerous defaults, then shores up the regression floor everything else stands on.
-3. **Transport-integrity batch:** #27 → #29 → #68 items 2+4 → #37. No taxonomy prerequisite
-   remains — #26 closed with #28. The paper-backed detector
-   story, plus the remaining gate work and the dilution gap.
+```
+#306 ─► #303 ─► #305
+  └───► #307 ─┐
+#358 ─────────┴─► 0.3.0 (minor bump: CLI default + Threat API)
 
-#38 can run in parallel with any of these — it's writing, not code, and touches nothing the
-other batches touch.
+#308 ─► #304, #332            (new time-bound tests after the latency work)
+#368 ─► #304                  (same markdown-image detection)
+encoded-payload timing investigation ─► #337
+
+#359 + #360 (merged to dev) ─► ML patch release
+#68 ─► #106        #107 (parallel to #106)
+long-document eval set ─► #274, #37
+
+#40 ─► #25 ─► #32, #35 (retrain step), #245
+#38 (unblocked; no dependencies)
+```
+
+## Release batching
+
+- **Next core patch (0.2.27):** #356 with the pattern-version bump (#365), both on `dev` (#356 still
+  needs its human review); then #306/#303, and #308 if its fix is ready. Patch releases may change
+  detection results per the versioning policy.
+- **Next ML patch (0.1.11):** #359 and #360, both merged to `dev`. Ready for a release PR.
+- **0.3.0 (minor):** #358 (CLI default changes) and #307 (pattern id on `Threat`). Batch them so
+  consumers see one behaviour-changing release, not two.
+- Everything else ships as patches in whatever release it's ready for.
 
 ## Corrections to the backlog
 
-Found by checking live source rather than trusting issue text. These change the effort estimates
-above and should be reflected in the home tracks.
+Checked against the live repo on 2026-10-20. The 2026-08-05 corrections are all resolved
+(#26 closed with #28; launch-infra shipped; #69 closed). Items 1–3 below were resolved the same day
+(see Housekeeping).
 
-1. **#26 (transport-integrity taxonomy) is substantially already implemented** and is _not_ the
-   blocker the transport-integrity track's `next_up` implies. Verified live:
-   - `TrapCategory` already includes `'transport-integrity'` (`src/types/index.ts:18`)
-   - `TransportIntegrityType` is fully defined with all four subtypes (`src/types/index.ts:58`)
-     and unioned into `TrapType` (`src/types/index.ts:72`)
-   - The `transportIntegrity` config block exists (`src/types/index.ts:534-537`) with all four
-     toggles defaulting to `true` (`src/agent-armor.ts:56-60`), merged in the constructor
-     (`src/agent-armor.ts:312-314`)
-   - `DetectorRegistration.configGroup` already accepts `'transportIntegrity'`
-     (`src/agent-armor.ts:118`)
-
-   What's genuinely missing is a `DETECTOR_REGISTRY` entry and a pattern-DB key — and those land
-   _with the first detector_, not before it. **Confirmed by shipping it:** #28 supplied both and
-   closed #26 in the same PR. The config defaults were indeed already `true`, so the detector went
-   out on-by-default for existing users — called out in the PR and the merge commit.
-
-2. **#38's "do not start" deferral is stale.** Its three stated blockers have all shipped: #24
-   (diagnostics), #75 (audit-evidence records), and #35 (multi-turn, per detection-hardening's
-   2026-07-09 log). The issue body still opens with "Do not start until #24 and #35 have landed."
-   Re-triage it.
-
-3. **#35 is marked shipped in the track but is still OPEN on GitHub** (`state=OPEN`,
-   `closedAt=null`). detection-hardening marks it ✅ Shipped as of 2026-07-09 and commit 442409d
-   ("update status of #35 to reflect completion") says the same, but the issue was never closed.
-   Close it, or reopen the question of what's left.
-
-4. **launch-infra's last open question is resolved.** Its 2026-07-09 log ends "final confirmation
-   that `npm publish` reaches the registry successfully is still pending the next real cycle."
-   It did: `@stylusnexus/agentarmor@0.2.13` published 2026-07-09T13:31Z through the automated
-   path. (0.2.6–0.2.12 never reached npm — those were the stuck cycles.) That track can close,
-   and CLAUDE.md's "not yet proven end-to-end" Publishing note is now wrong.
-
-5. **#69's claims check out exactly.** `steganographic-payload` has zero patterns and zero eval
-   samples — only `src/types/index.ts:25` declares it. Per-type sample counts confirmed against
-   `scripts/eval/samples.ts`: 11 `oversight-evasion`, 11 `data-exfiltration`, 10
-   `embedded-jailbreak` at the top; 3–4 for the five thin types the issue names.
+1. ✅ **#309 closed as a duplicate of #302.** #310 shipped the README `## Versioning` section.
+2. ✅ **#98 and #99 closed as complete at `strict`** (#329, pattern DB 0.9.14). Their patterns
+   miss at `balanced` because the same wording flags honest text; balanced coverage is tracked as
+   ML training work in #25.
+3. ✅ **#35 remains open for the ML retrain only** and now lives in `ml-v2-retrain`, dependent on
+   #25. The shipped scanning satisfies #38's prerequisite, so #38 is unblocked.
+4. **Transport integrity is done except #31.** #27, #29 and #30 are closed, so #32 waits only on
+   #25.
+5. **Two #345 review findings are deliberate, not bugs.** Re-hashing the model at every start and
+   requiring checksums for custom model directories both follow AGENTS.md. They're recorded in
+   runtime-hardening, and the docs gap is #360.
 
 ## Session log
 
@@ -204,3 +232,39 @@ outright: the type named a live bypass that shipped in every released version. *
 disagree about whether a gap is real, measure the gap.** The same move is available for #98, #99 and
 #107 — each names a concrete payload shape that can be run through `scanSync` today to confirm the
 miss before any pattern is written.
+
+### Session — 2026-10-20 00:45 (full re-rank: 36 open issues, 3 new tracks)
+
+- Re-ranked every open issue, not just the August shortlist, after the 0.2.26 and ml 0.1.10 releases and the #345 review.
+- Created three home tracks so every open issue has an owner:
+  - `scan-performance` (P0): #308 and #337
+  - `fiction-false-positives` (P1): #303 and #305–#307
+  - `runtime-hardening` (P1): #274 and #358–#360
+- Slotted the remaining untracked issues into existing tracks:
+  - #98, #99, #106, #107, #178, #232, #245 and #304 → detection-hardening
+  - #332 → transport-integrity
+  - #275 → ml-v2-retrain
+- Filed #358, #359 and #360 from the #345 review. Two other findings follow AGENTS.md rules, so they're recorded as design notes rather than bugs.
+- Weighting moved from "legible credibility before launch" to "don't break real consumers": downloads are up about 6x since August, and CritForge depends on the package.
+- Added a dependency graph and release batching, so the two behaviour-changing items (#358 and #307) ship together in `0.3.0`.
+- Nothing implemented. Analysis, ordering and issue filing only.
+
+### Session — 2026-10-20 03:00 (housekeeping decisions applied)
+
+- All four housekeeping items are resolved:
+  - #309 closed as a duplicate of #302.
+  - #98 and #99 closed at `strict`. The `balanced` measurement in #329 showed honest-text false flags, so that coverage moved to #25's data checklist.
+  - #35 rescoped to the retrain step and moved from detection-hardening to `ml-v2-retrain`.
+  - #38 unblocked on GitHub.
+- Re-ranked rather than appended: #38 moves from 22 to 19, ahead of the High-effort ML chain, because it now has no dependencies. #32 and #35 share rank 22, since both ride #25.
+- Dropped closed issues (#98, #99, #309) from `references`. 33 issues are open.
+- The top of the ranking is unchanged: #308, #359, #306.
+
+### Session — 2026-10-20 04:15 (#178 closed, #368 filed, re-ranked)
+
+- **#178 closed at `strict`.** A wider instruction check was measured as a net loss: +1 attack (`rw-011`, already caught at `strict`) against +3 to +7 flagged real honest documents at `balanced`. Its remainder went to #25 (data) and #305 (variants aimed at the agent). #305 no longer depends on #178.
+- **#368 filed** (home: `fiction-false-positives`). The regex layer flags 90 of 1,000 real honest documents at `balanced`. Ranked 3rd: it's the broadest "don't break real consumers" item, and measuring comes first. #304 now also follows #368, because both touch markdown-image detection.
+- **#308 drops from 1st to 4th.** The quadratic jump it reported doesn't reproduce on `dev` (scan time is linear, 5–10 ms at 10k characters), so what's left is smaller.
+- **#359 and #360 are out of the ranking:** both merged to `dev` (#366, #367) for ML 0.1.11.
+- Fixed the stale #357 references: #363 replaced it, and #337 waits on the timing investigation.
+- Top three: #306, #303, #368.

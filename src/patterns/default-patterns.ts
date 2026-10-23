@@ -129,6 +129,9 @@ const segTogether = (...signals: string[]) =>
  *            (#178): defanged and scheme-relative addresses, "name at host dot
  *            com", an address first, requests that carry the conversation,
  *            commas inside an address. Still strict only
+ *   0.9.22 — metadata-injection: an HTML comment also ends at `--!>`, which
+ *            browsers accept, so visible text after it is not read as comment
+ *            content (#356)
  */
 /**
  * tool-call-tampering (#27): shell the model's tool call would run, rewritten
@@ -306,7 +309,7 @@ const CONVERSATION_TO_DESTINATION =
   `|${CONV_FETCH}${convDestOnce(CONV_DEST_OPEN, 7)}${CONV_WITH}${CONV_OBJECT}`;
 
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.21',
+  version: '0.9.22',
   updatedAt: '2026-10-17',
   detectors: {
     'hidden-html': [
@@ -441,7 +444,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         id: 'mi-html-comment',
-        regex: '<!--([\\s\\S]*?)-->',
+        regex: '<!--([\\s\\S]*?)--!?>',
         flags: 'g',
         category: 'content-injection',
         type: 'metadata-injection',
