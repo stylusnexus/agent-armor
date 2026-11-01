@@ -337,26 +337,30 @@ const spawnFind = (target: string, depth = SPAWN_DEPTH): string =>
   depth === 0
     ? `${spawnUnit(0)}*?${target}`
     : `${spawnUnit(depth)}*?(?:${target}|[(\\[{]${spawnFind(target, depth - 1)})`;
-const SPAWN_VERB = '(?:spawn|create|launch|start|fork|new)';
+const SPAWN_VERB = '(?:spawn|create|launch|start|fork|new|run)';
 // A start right after `_` or `.` covers prefixed names (my_spawn_agent,
 // orch._spawn_agent) without a prefix run that every start would rescan.
-// The suffix (Async, _v2, .remote) is one segment with no underscore inside,
-// so it cannot run on into the next start in "_spawn_agent_spawn_agent".
-const SPAWN_SUFFIX = '(?:_?[A-Za-z0-9]+)?(?:\\.[A-Za-z0-9]+)?';
-const SPAWN_NAME = `${SPAWN_VERB}[_ -]?(?:new[_-]?)?(?:sub[_-]?)?(?:agents?|workers?)${SPAWN_SUFFIX}`;
+// The suffix (Async, _v2, _with_tools, .remote) is at most three segments
+// with no underscore inside each, so it cannot run on into the next start in
+// "_spawn_agent_spawn_agent".
+const SPAWN_SUFFIX = '[A-Za-z0-9]*(?:_[A-Za-z0-9]+){0,3}(?:\\.[A-Za-z0-9]+)?';
+const SPAWN_HY = '[_ \\-\\u2010\\u2011]';
+const SPAWN_NAME = `${SPAWN_VERB}${SPAWN_HY}?(?:new${SPAWN_HY}?)?(?:sub${SPAWN_HY}?)?(?:agents?|workers?|assistants?)${SPAWN_SUFFIX}`;
 const SPAWN_CALL = `(?<![A-Za-z0-9])(?:${SPAWN_NAME}|(?:sub[_-]?)?agents?\\.${SPAWN_VERB}${SPAWN_SUFFIX})\\s*\\(`;
 const SPAWN_JSON = `\\{(?=${spawnUnit(SPAWN_DEPTH)}*?(?:["']?\\b(?:action|tool|tool_name|name|type|function|command|op|method|recipient_name)\\b["']?\\s*:\\s*["'](?:functions\\.)?${SPAWN_NAME}["']))`;
-const SPAWN_Q = '["\'`\\u2018\\u2019\\u201c\\u201d]';
+// A quote may be escaped (\"), as in a tool call whose arguments are a JSON string.
+const SPAWN_Q = '\\\\?["\'`\\u2018\\u2019\\u201c\\u201d]';
 const SPAWN_GRANT_WORD =
-  '\\b(?:(?:write|delete|exec(?:ute)?|admin|tools?)_all|full_access|all_permissions|bypass_?permissions)\\b';
+  '\\b(?:(?:write|delete|exec(?:ute)?|admin|tools?)_all|full[_-]access|all_permissions|bypass_?permissions)\\b';
 const SPAWN_GRANT_ENUM =
-  '(?<![\\w.])(?:[A-Za-z_]\\w*\\.)+(?:all|root|sudo|admin|full|unrestricted)\\b';
-const SPAWN_GRANT_TOKEN = `(?:${SPAWN_GRANT_WORD}|${SPAWN_Q}(?:\\*|all|root|sudo|admin|full|unrestricted)${SPAWN_Q}|${SPAWN_GRANT_ENUM})`;
+  '(?<![\\w.])(?:[A-Za-z_]\\w*\\.)+(?:all|root|sudo|admin(?:istrator)?|full|unrestricted)\\b';
+const SPAWN_GRANT_TOKEN = `(?:${SPAWN_GRANT_WORD}|${SPAWN_Q}(?:(?:[\\w-]{1,40}:)?\\*(?::\\*)?|all|root|sudo|admin|full|unrestricted|everything)${SPAWN_Q}|${SPAWN_GRANT_ENUM})`;
 const SPAWN_GRANT_CONST =
-  '(?:[A-Za-z_]\\w*\\.)*(?:all|root|sudo|admin|full|unrestricted|elevated)\\b(?!\\s*[=:(])';
+  '(?:[A-Za-z_]\\w*\\.)*(?:all|root|sudo|admin(?:istrator)?|full|unrestricted|elevated)\\b(?!\\s*[=:(])';
 const SPAWN_GRANT =
-  `["']?\\b(?:permissions?|perms|scopes|allowed_tools|permission_mode)\\b["']?\\s*[=:]\\s*` +
-  `(?:[\\[({][^\\[\\]{}()]*?${SPAWN_GRANT_TOKEN}|${SPAWN_Q}[^"'\`\\u2018\\u2019\\u201c\\u201d\\[\\]()]*?${SPAWN_GRANT_WORD}|${SPAWN_GRANT_TOKEN}|${SPAWN_GRANT_CONST})`;
+  `(?:\\\\?["']?\\b(?:permissions?|perms|scopes|capabilities|allowed_?tools|permission_?mode)\\b\\\\?["']?\\s*[=:]\\s*` +
+  `(?:[\\[({][^\\[\\]{}()]*?${SPAWN_GRANT_TOKEN}|${SPAWN_Q}[^"'\`\\u2018\\u2019\\u201c\\u201d\\[\\]()]*?${SPAWN_GRANT_WORD}|${SPAWN_GRANT_TOKEN}|${SPAWN_GRANT_CONST})` +
+  `|\\\\?["']?\\bdangerously_?skip_?permissions\\b\\\\?["']?\\s*[=:]\\s*true\\b)`;
 const spawnCallWith = (...targets: string[]) =>
   `(?:${SPAWN_CALL}|${SPAWN_JSON})${targets.map((t) => `(?=${spawnFind(t)})`).join('')}` +
   `${spawnUnit(SPAWN_DEPTH)}*[)}]?`;
@@ -1876,7 +1880,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // action ("send a weekly digest"), so strict only.
         id: 'sa-spawn-with-action-instructions',
         regex:
-          '(?:create|spawn|instantiate|launch|start|spin\\s+up|set\\s+up|make)\\s+(?:a\\s+)?(?:new\\s+)?(?:sub[\\s-]?agent|agent|assistant|worker)\\s+(?:with|using)\\s+(?:these|the\\s+following)\\s+(?:instructions?|directives?|orders)\\s*:\\s*(?:(?:\\d{1,3}[.)]|[-*\\u2022])\\s*)?["\'`]?(?:send|forward|upload|e-?mail|post|transmit|leak|exfiltrate|share|copy|export|delete|disable|grant)\\b',
+          '(?:create|spawn|instantiate|launch|start|spin\\s+up|set\\s+up|make)\\s+(?:an?\\s+)?(?:new\\s+)?(?:sub[\\s-]?agent|agent|assistant|worker)\\s+(?:with|using)\\s+(?:(?:these|the\\s+following)\\s+)?(?:instructions?|directives?|orders)\\s*:\\s*(?:(?:\\d{1,3}[.)]|[-*\\u2022])\\s*)?["\'`]?(?:send|forward|upload|e-?mail|post|transmit|leak|exfiltrate|share|copy|export|delete|disable|grant)\\b',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'sub-agent-spawning',
@@ -1892,7 +1896,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // orchestration guide can still say the imperative, so strict only.
         id: 'sa-delegate-elevated',
         regex:
-          '(?:^[ \\t>*-]*|[.!?][ \\t]+)(?:(?:please|now)[ \\t,]+)*delegate\\s+(?:the\\s+following|this|the|these)\\s+(?:tasks?|jobs?|work|steps?)\\s+to\\s+(?:an?\\s+)?(?:new\\s+)?(?:sub[\\s-]?agent|agent|worker|assistant)\\s+with\\s+(?:elevated|escalated|admin(?:istrator)?|root|full|unrestricted|expanded)\\s+(?:permissions?|privileges?|access|rights)',
+          '(?:^[ \\t>*-]*|[.!?][ \\t]+)["\'\\u201c]?(?:(?:please|now|then|note:|important\\s*[-:])[ \\t,]+)*delegate\\s+(?:the\\s+following|this|the|these)\\s+(?:tasks?|jobs?|work|steps?)\\s+to\\s+(?:an?\\s+)?(?:new\\s+)?(?:sub[\\s-]?agent|agent|worker|assistant)\\s+with\\s+(?:elevated|escalated|admin(?:istrator)?|root|full|unrestricted|expanded)\\s+(?:permissions?|privileges?|access|rights)',
         flags: 'gim',
         category: 'behavioural-control',
         type: 'sub-agent-spawning',
@@ -1902,11 +1906,12 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         // #393: a workflow step that runs an agent with elevated permissions,
-        // Step(agent='spawned_worker', …, permissions=ELEVATED). A real
-        // workflow can give its deploy step elevated rights, so strict only.
+        // Step(agent='spawned_worker', …, permissions=ELEVATED), arguments in
+        // any order. A real workflow can give its deploy step elevated
+        // rights, so strict only.
         id: 'sa-step-elevated-agent',
         regex:
-          '\\bStep\\s*\\(\\s*agent\\s*=\\s*["\'][^"\'()]*["\'][^()]*?\\bpermissions\\s*=\\s*["\']?(?:(?:elevated|escalated|admin|root|full|unrestricted|all)\\b|\\*)',
+          '\\bStep\\s*\\((?=[^()]*?\\bagent\\s*=)[^()]*?\\bpermissions\\s*=\\s*["\']?(?:(?:[A-Za-z_]\\w*\\.)?(?:elevated|escalated|admin|root|full|unrestricted|all)\\b|\\*)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'sub-agent-spawning',
