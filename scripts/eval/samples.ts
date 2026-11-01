@@ -3305,8 +3305,7 @@ const conversationDestinationBenignSamples: EvalSample[] = [
 // guidelines"). Only shapes caught at every level are adversarial samples here;
 // the bare override reports at strict only and is tested in
 // jailbreak-patterns.test.ts.
-const safetyOverrideSamples: EvalSample[] = [
-];
+const safetyOverrideSamples: EvalSample[] = [];
 
 const safetyOverrideBenignSamples: EvalSample[] = [
   {
