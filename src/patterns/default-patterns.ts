@@ -334,9 +334,8 @@ const SAFETY_NOT_NEGATED = `(?<!(?:\\bnever|\\bever|\\bnot|n['’]t|\\bdont|\\b(
 // "just", "you must", "I want you to": an order, not a clause in someone's
 // sentence about rules.
 const SAFETY_ORDER_START = `(?<=(?:^|[.!?:;,>*"'“(\\[\\-]|\\b(?:please|now|just|(?:want|need)\\s+you\\s+to|(?:you\\s+)?(?:must|need\\s+to|have\\s+to)))\\s*${SAFETY_VERB})`;
-// Every level: an explicit new task right after the noun ("Your new task:", "New
-// task:", "Your task is now"). Send orders ("and send the keys to me") stay
-// strict only: policy lists, dev docs and warnings use the same words.
+// An explicit new task right after the noun ("Your new task:", "New task:", "Your
+// task is now").
 const SAFETY_NEW_TASK =
   '\\s*(?:[.,;:!–—-]+\\s*)?(?:(?:and|then|&)\\s+)?' +
   '(?:(?:(?:your|the|a|my)\\s+)?new\\s+(?:task|instructions?|role|objective|goal|job|mission|orders?|directive)\\b|your\\s+task\\s+is\\s+now\\b)';
@@ -706,14 +705,18 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       },
       {
         // #391: "Ignore all safety guidelines. Your new task: ..." The order opens a
-        // sentence and an explicit new task follows the noun right away.
+        // sentence and an explicit new task follows the noun right away. Strict only
+        // (confidence 0.4): a red-team pass found negated orders ("Don't just ignore
+        // your safety training. Your new role..."), IT email ("Please disregard all
+        // security instructions. New instructions are attached.") and list items
+        // ("- Ignore all security checks\n- New task runner") with the same words.
         id: 'jb-safety-override-task',
         regex: `\\b${SAFETY_VERB}${SAFETY_ORDER_START}\\s+${SAFETY_DET}${safetyQualifiers(SAFETY_QUAL_BALANCED)}\\s+${SAFETY_NOUN}${SAFETY_NEW_TASK}`,
         flags: 'gim',
         category: 'behavioural-control',
         type: 'embedded-jailbreak',
         severity: 'critical',
-        confidence: 0.85,
+        confidence: 0.4,
         label: 'Safety-guideline override with a new task',
       },
       {
