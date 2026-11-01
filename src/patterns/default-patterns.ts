@@ -311,28 +311,36 @@ const CONVERSATION_TO_DESTINATION =
 // #391: "ignore all safety guidelines", the override with a qualifier between the
 // determiner and the noun, which jb-instruction-override does not reach.
 const SAFETY_VERB = '(?:ignore|disregard|forget)';
-// "all", "all of your", "all the", "your", "any". A bare "the" is left out: "Do
-// not ignore the safety guidelines in section 4" is honest.
+// "all", "all of your", "all the", "your", "any". The strict pattern leaves out a
+// bare "the": "Do not ignore the safety guidelines in section 4" is honest.
 const SAFETY_DET = '(?:all\\s+(?:of\\s+)?(?:your\\s+|the\\s+)?|your\\s+|any\\s+)';
 const safetyQualifiers = (words: string) =>
   `${words}(?:(?:\\s*[,/&]\\s*|\\s+(?:and|or)\\s+)${words})*`;
-const SAFETY_QUAL_BALANCED = '(?:safety|ethical|ethics|moderation|alignment|security)';
+const SAFETY_QUAL_BALANCED = '(?:safety|ethical|ethics|moderation|alignment|security)(?:-related)?';
+// Balanced only, where the attack cue keeps "the safety guidelines in section 4"
+// clean: "the", "these", "every" or no determiner, and an optional adjective.
+const SAFETY_DET_TASK = `(?:${SAFETY_DET}|(?:the|these|those|every|each)\\s+)?`;
+const SAFETY_ADJ_TASK =
+  '(?:(?:existing|current|previous|prior|default|standard|usual|normal|built-in|original|other)\\s+)?';
 const SAFETY_QUAL_STRICT = '(?:safety|ethical|ethics|moderation|alignment|security|content|usage)';
 const SAFETY_NOUN =
   '(?:instructions?|rules?|guidelines?|constraints?|directives?|polic(?:y|ies)|restrictions?|protocols?|filters?|guardrails?|training|limits?|limitations?)\\b';
 // The verb is matched first, so each lookbehind runs once per verb, not once per
 // character of a whitespace run.
 // Strict: not right after a negation or "if you" ("never ignore your safety rules").
-const SAFETY_NOT_NEGATED = `(?<!(?:\\bnever|\\bnot|n['’]t|\\bdont|\\b(?:if|when|unless)\\s+you)\\s+${SAFETY_VERB})`;
+// Also not in reported speech ("scammers will ask you to ignore your security
+// training"), which describes the order instead of giving it.
+const SAFETY_NOT_NEGATED = `(?<!(?:\\bnever|\\bnot|n['’]t|\\bdont|\\b(?:if|when|unless)\\s+you|\\b(?:ask|asks|asked|asking|tell|tells|told|telling|urge|urges|urged|trick|tricks|persuade|persuades|pressure|pressures)\\s+(?:you|users?|people|staff|employees|them|someone|anyone)\\s+to)\\s+${SAFETY_VERB})`;
 // Balanced: the verb opens a sentence, line, quote or list item, or follows
-// "please", "now", "just", "you must", "you to" and the like: an order, not a
+// "please", "now", "just", "you must", "I want you to" and the like: an order, not a
 // clause in someone's sentence about rules.
-const SAFETY_ORDER_START = `(?<=(?:^|[.!?:;,>*"'“(\\[\\-]|\\b(?:please|now|just|you\\s+to|(?:you\\s+)?(?:must|should|will|shall|need\\s+to|have\\s+to)))\\s*${SAFETY_VERB})`;
+const SAFETY_ORDER_START = `(?<=(?:^|[.!?:;,>*"'“(\\[\\-]|\\b(?:please|now|just|(?:want|need)\\s+you\\s+to|(?:you\\s+)?(?:must|should|will|shall|need\\s+to|have\\s+to)))\\s*${SAFETY_VERB})`;
 // Balanced: right after the noun, a new task or a send/reveal verb.
 const SAFETY_ATTACK_CUE =
   '\\s*(?:[.,;:!–—-]+\\s*)?(?:' +
   '(?:(?:and|then|&)\\s+)?(?:(?:your|the|a|my)\\s+)?(?:new|next|real|actual|updated)\\s+(?:task|instructions?|role|objective|goal|job|mission|orders?|directive)\\b' +
-  '|(?:(?:and|then|&)\\s+)?(?:send|e-?mail|reveal|output|print|leak|forward|upload|share|post|dump|exfiltrate|transmit|disclose|paste)\\b)';
+  '|(?:(?:and|then|&)\\s+)?(?:(?:immediately|instead|also|quickly|now|just|then)\\s+)?' +
+  '(?:send|e-?mail|reveal|print|leak|forward|upload|share|post|dump|exfiltrate|transmit|disclose|paste|give|show|provide)\\b)';
 
 export const DEFAULT_PATTERNS: PatternDatabase = {
   version: '0.9.23',
@@ -701,7 +709,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // #391: "Ignore all safety guidelines. Your new task: ..." The order opens a
         // sentence and a new task or a send verb follows the noun right away.
         id: 'jb-safety-override-task',
-        regex: `\\b${SAFETY_VERB}${SAFETY_ORDER_START}\\s+${SAFETY_DET}${safetyQualifiers(SAFETY_QUAL_BALANCED)}\\s+${SAFETY_NOUN}${SAFETY_ATTACK_CUE}`,
+        regex: `\\b${SAFETY_VERB}${SAFETY_ORDER_START}\\s+${SAFETY_DET_TASK}${SAFETY_ADJ_TASK}${safetyQualifiers(SAFETY_QUAL_BALANCED)}\\s+${SAFETY_NOUN}${SAFETY_ATTACK_CUE}`,
         flags: 'gim',
         category: 'behavioural-control',
         type: 'embedded-jailbreak',
