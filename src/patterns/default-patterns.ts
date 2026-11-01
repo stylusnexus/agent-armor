@@ -224,7 +224,7 @@ const CONV_OBJECT =
   // "conversation data", "chat logs" (#392). None of these words is a noun
   // above, so the noun run cannot be re-split here. Only after a word that
   // names the whole conversation: "message content" is what a webhook posts.
-  '){0,2}(?:(?<=(?:conversations?|convos?|chats?|dialogues?|history|transcripts?))[\\s_-]+(?:data|content|contents|text|records?|logs|details|info|information|payload|dumps?)(?![a-z0-9]))?' +
+  '){0,2}(?:(?<=(?:conversations?|convos?|chats?|dialogues?|history|transcripts?|logs?))[\\s_-]+(?:data|content|contents|text|records?|logs|details|info|information|payload|dumps?)(?![a-z0-9]))?' +
   '(?:\\s+so\\s+far\\b)?' +
   CONV_ALSO +
   '|' +
@@ -303,7 +303,10 @@ const CONV_BE_SENT =
 // embed", "it's a bad idea to encode"). "Why not encode ..." is an
 // instruction, so its "not" does not count.
 const EX_NOT_BANNED =
-  '(?<!(?:(?<!\\bwhy\\s+)\\bnot|\\bnever|\\bavoid|n[\\x27\\u2019]t|\\b(?:bad|terrible|poor)\\s+idea\\s+to|\\b(?:unsafe|dangerous|risky|insecure)\\s+to)(?:\\s+(?:ever|even|really|just|actually))?\\s+)';
+  '(?<!(?:(?:(?<!\\bwhy\\s+)\\bnot|\\bnever|\\bavoid|n[\\x27\\u2019]t|\\b(?:bad|terrible|poor)\\s+idea\\s+to|\\b(?:unsafe|dangerous|risky|insecure)\\s+to)' +
+  '(?:[,\\s]+(?:ever|even|really|just|actually|under\\s+any\\s+circumstances))?[,\\s]+' +
+  // No comma after these: "Stop, append the history" is an order.
+  '|\\b(?:stop|cannot|can\\s+not|instead\\s+of|rather\\s+than|refrain\\s+from)\\s+))';
 // #392 shape 4: where a fake tool call starts, in call form
 // "TOOL_CALL(name='http_request'" or tag form
 // '<tool_call>{"name": "http_request"' / '<invoke name="http_request">'.
@@ -316,7 +319,8 @@ const EX_FAKE_CALL_HEAD =
 // What the fake call sends: a function that reads the conversation, in
 // snake_case or camelCase, or a variable that holds it.
 const EX_FAKE_CALL_CONTEXT =
-  '(?:\\b(?:get|fetch|read|dump|collect|load|export)_(?:(?:full|entire|whole|all|complete|raw)_)?(?:context|conversation|history|chat_history|chat|messages|transcript|memory|session)\\s*\\(' +
+  '(?:\\b(?:get|fetch|read|dump|collect|load|export)[_-]?(?:conversation|chat|message|session)[_-]?(?:history|log|logs|transcript|messages)\\s*\\(' +
+  '|\\b(?:get|fetch|read|dump|collect|load|export)_(?:(?:full|entire|whole|all|complete|raw)_)?(?:context|conversation|history|chat_history|chat|messages|transcript|memory|session)\\s*\\(' +
   '|\\b(?:get|fetch|read|dump|collect|load|export)(?:full|entire|whole|all|complete|raw)?(?:conversation|history|chathistory|chat|messages|transcript)\\s*\\(' +
   '|\\b(?:get|fetch|read|dump|collect|load|export)(?:full|entire|whole|all|complete|raw)(?:context|memory|session)\\s*\\(' +
   '|\\b(?:full|entire|whole|all|complete)[_-]?(?:context|conversation|history|chat_?history|messages|transcript|memory)\\b' +
@@ -1084,7 +1088,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         id: 'ex-private-data-in-url',
         regex:
           EX_NOT_BANNED +
-          '\\b(?:encode[sd]?|encoding|embed(?:s|ded|ding)?|put(?:s|ting)?|place[sd]?|placing|stuff(?:s|ed|ing)?|pack(?:s|ed|ing)?|serialize[sd]?|serializing|insert(?:s|ed|ing)?|include[sd]?|including|add(?:s|ed|ing)?|append(?:s|ed|ing)?)\\b[^.!?;\\n]{0,60}?\\b(?:private|sensitive|confidential|secret|personal|stolen|harvested|collected|conversation|chat|context)\\s+(?:[a-z]+\\s+)?(?:data|information|info|details|contents?|history|text)\\b[^.!?;\\n]{0,40}?\\b(?:as|in|into|inside|within)\\s+(?:an?\\s+|the\\s+)?(?:url|uri|query|get|link)[\\s_-]*(?:param(?:eter)?s?|strings?|arguments?|args?|fragments?)\\b',
+          '\\b(?:encode[sd]?|encoding|pass(?:es|ed|ing)?|send(?:s|ing)?|sent|attach(?:es|ed|ing)?|embed(?:s|ded|ding)?|put(?:s|ting)?|place[sd]?|placing|stuff(?:s|ed|ing)?|pack(?:s|ed|ing)?|serialize[sd]?|serializing|insert(?:s|ed|ing)?|include[sd]?|including|add(?:s|ed|ing)?|append(?:s|ed|ing)?)\\b[^.!?;\\n]{0,60}?\\b(?:private|sensitive|confidential|secret|personal|stolen|harvested|collected|conversation|chat|context)\\s+(?:[a-z]+\\s+)?(?:data|information|info|details|contents?|history|text)\\b[^.!?;\\n]{0,40}?\\b(?:as|in|into|inside|within)\\s+(?:an?\\s+|the\\s+)?(?:[a-z]+\\s+)?(?:(?:url|uri|link)(?:[\\x27\\u2019]s)?[\\s_-]+)?(?:url|uri|query|get|link)[\\s_-]*(?:param(?:eter)?s?|strings?|arguments?|args?|fragments?)\\b',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -1099,7 +1103,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
           EX_NOT_BANNED +
           '\\b(?:append|add|include|insert|attach|paste|copy|copie|print|output|echo|dump|write|repeat|reproduce|place|put)(?:s|es|d|ed|ing)?\\s+(?:(?:the|a|an|this|all|your|our|my|entire|full|complete|whole|previous|prior|current|raw|verbatim|of|copy|system|prompt|and)\\s+){0,5}(?:conversation|chat|dialogue|session|message|context)s?(?:[\\s_-]+(?:history|log|logs|transcripts?|context|text|data|so\\s+far))?(?:\\s+(?:verbatim|word\\s+for\\s+word|in\\s+full))?\\s+(?:to|in|into|inside|within|below|beneath|after|(?:to|at|on|in)\\s+the\\s+(?:very\\s+)?(?:end|bottom|top|start|beginning)\\s+of)\\s+(?:each|every|your|this|the|all\\s+(?:of\\s+)?your)\\s+(?:(?:next|final|later|future|current)\\s+)?(?:responses?|replies|reply|answers?|outputs?|messages?)\\b' +
           // Not a field of an API response: "the response headers", "the messages array".
-          '(?!\\s*(?:headers?|body|bodies|objects?|arrays?|lists?|fields?|payloads?|codes?|status|times?|ids?|schemas?|formats?|json|types?|\\[|\\.\\w))',
+          '(?![ \\t]*(?:(?:headers?|body|bodies|objects?|arrays?|lists?|fields?|payloads?|codes?|status|times?|ids?|schemas?|formats?|json|types?)(?![a-z0-9])|\\[|\\.\\w))',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -1113,8 +1117,12 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // arguments carry the conversation. Text, not a real tool call (#332).
         id: 'ex-fake-http-call-context',
         // The window may cross line breaks: it starts only after a call head, so
-        // each head reads at most 400 characters once.
-        regex: EX_FAKE_CALL_HEAD + '[\\s\\S]{0,400}?' + EX_FAKE_CALL_CONTEXT,
+        // each head reads at most 400 characters once. It ends at a closing tag
+        // and at a ")" that ends a line, where the call ends.
+        regex:
+          EX_FAKE_CALL_HEAD +
+          '(?:(?!<\\/|\\)[ \\t]*(?:\\r?\\n|$))[\\s\\S]){0,400}?' +
+          EX_FAKE_CALL_CONTEXT,
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
