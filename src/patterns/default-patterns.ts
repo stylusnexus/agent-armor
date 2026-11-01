@@ -300,10 +300,11 @@ const CONV_IS_WHERE_PASSIVE =
 const CONV_BE_SENT =
   '\\s+(?:(?:should|must|shall|will|can|is\\s+to|are\\s+to|needs\\s+to|has\\s+to)\\s+)?be\\s+(?:sent|posted|forwarded|uploaded|pasted|copied|submitted|emailed|relayed|shared|dumped)(?![a-z0-9])';
 // #392: the verb is not reported after a ban ("never put", "don't ever
-// embed", "it's a bad idea to encode"). "Why not encode ..." is an
-// instruction, so its "not" does not count.
+// embed", "it's a bad idea to encode"). "Why not encode ...", "If not,
+// append ..." and "... or not, encode ..." are instructions, so their "not"
+// does not count.
 const EX_NOT_BANNED =
-  '(?<!(?:(?:(?<!\\bwhy\\s+)\\bnot|\\bnever|\\bavoid|n[\\x27\\u2019]t|\\b(?:bad|terrible|poor)\\s+idea\\s+to|\\b(?:unsafe|dangerous|risky|insecure)\\s+to)' +
+  '(?<!(?:(?:(?<!\\b(?:why|or|if)\\s+)\\bnot|\\bnever|\\bavoid|n[\\x27\\u2019]t|\\b(?:bad|terrible|poor)\\s+idea\\s+to|\\b(?:unsafe|dangerous|risky|insecure)\\s+to)' +
   '(?:[,\\s]+(?:ever|even|really|just|actually|under\\s+any\\s+circumstances))?[,\\s]+' +
   // No comma after these: "Stop, append the history" is an order.
   '|\\b(?:stop|cannot|can\\s+not|instead\\s+of|rather\\s+than|refrain\\s+from)\\s+))';
@@ -1117,11 +1118,12 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // arguments carry the conversation. Text, not a real tool call (#332).
         id: 'ex-fake-http-call-context',
         // The window may cross line breaks: it starts only after a call head, so
-        // each head reads at most 400 characters once. It ends at a closing tag
-        // and at a ")" that ends a line, where the call ends.
+        // each head reads at most 400 characters once. It ends at the call's own
+        // closing tag and at a ")" that ends a line when the next line is not
+        // indented, where the call ends.
         regex:
           EX_FAKE_CALL_HEAD +
-          '(?:(?!<\\/|\\)[ \\t]*(?:\\r?\\n|$))[\\s\\S]){0,400}?' +
+          '(?:(?!<\\/\\s*(?:tool[_-]?call|function[_-]?call|tool[_-]?use|invoke)\\b|\\)[ \\t]*(?:\\r?\\n(?![ \\t,)\\]}])|$))[\\s\\S]){0,400}?' +
           EX_FAKE_CALL_CONTEXT,
         flags: 'gi',
         category: 'behavioural-control',
