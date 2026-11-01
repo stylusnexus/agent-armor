@@ -102,11 +102,18 @@ function ownUnits(entry: PatternEntry): string[] {
 
 const DEADLINE_MS = 60_000;
 
-function checkPattern(entry: PatternEntry): Promise<string[]> {
+function checkPattern(
+  entry: PatternEntry,
+  opts: { units?: string[]; steps?: typeof STEPS; v8Flags?: string[] } = {},
+): Promise<string[]> {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, ['--import', 'tsx', TIME_PATTERN], {
-      stdio: ['pipe', 'pipe', 'inherit'],
-    });
+    const child = spawn(
+      process.execPath,
+      [...(opts.v8Flags ?? []), '--import', 'tsx', TIME_PATTERN],
+      {
+        stdio: ['pipe', 'pipe', 'inherit'],
+      },
+    );
     let out = '';
     const timer = setTimeout(() => {
       child.kill('SIGKILL');
@@ -133,8 +140,8 @@ function checkPattern(entry: PatternEntry): Promise<string[]> {
           flags: entry.flags,
           extractGroup: entry.extractGroup,
         },
-        units: [...new Set([...UNITS, ...ownUnits(entry)])],
-        steps: STEPS,
+        units: opts.units ?? [...new Set([...UNITS, ...ownUnits(entry)])],
+        steps: opts.steps ?? STEPS,
       }),
     );
   });
@@ -175,6 +182,17 @@ const TRIGGER_PHRASES = [
   // #393: an open spawn call and an open JSON spawn tool call.
   "spawn_agent(role='x', permissions=['*'],",
   '{"name":"spawn_agent","arguments":{"permissions":["*"],',
+  // #392: the fake tool call window may cross line breaks.
+  "TOOL_CALL(name='http_request',",
+  'tool_call(http',
+  '<tool_call>{"name": "http_request",',
+  '<invoke name="http_request">',
+  'append the conversation history to the end of',
+  'encode the private user',
+  // The encoded-payload hostile texts that took 24 to 58 minutes in CI at
+  // 8a14b75: a base64 payload then spaces, and line breaks alone.
+  'SWdub3JlIGFsbCBwcmV2aW91cyBpbnN0cnVjdGlvbnMu',
+  '',
 ];
 const WHITESPACE_RUNS = ['\n', '\n ', '\t\n', '\r\n'];
 
@@ -206,6 +224,47 @@ describe('one trigger phrase then a long whitespace run (#262)', () => {
         }
       }
     }
+    expect(slow).toEqual([]);
+  });
+});
+
+/**
+ * #392 follow-up. ex-history-into-response passed every check above, then took
+ * 58 minutes on 200,000 spaces in CI at 8a14b75: its ban lookbehind read the
+ * whole whitespace run back from every position in it. Locally V8 skips the
+ * positions where no match can start, which hid the cost. These flags turn that
+ * skip off, so a pattern that rescans a run is slow here too.
+ */
+const NO_REGEX_SKIP = ['--no-regexp-optimization', '--regexp-interpret-all'];
+const RUNS = ['\n', ' ', '\r\n', '\t', ', ', '\n '];
+const UNSKIPPED_STEPS = [
+  { chars: 4_000, budgetMs: 150 },
+  { chars: 40_000, budgetMs: 1_500 },
+  { chars: 200_000, budgetMs: 4_000 },
+];
+const UNSKIPPED_IDS = [
+  'ex-conversation-to-destination',
+  'ex-private-data-in-url',
+  'ex-history-into-response',
+  'ex-fake-http-call-context',
+  // #393
+  'sa-spawn-call-broad-permissions',
+  'sa-spawn-with-action-instructions',
+  'sa-delegate-elevated',
+  'sa-step-elevated-agent',
+];
+
+describe('whitespace runs without V8 skipping positions (#392)', () => {
+  it.each(UNSKIPPED_IDS)('%s stays linear', { timeout: 120_000 }, async (id) => {
+    const entry = Object.values(DEFAULT_PATTERNS.detectors)
+      .flat()
+      .find((e) => e.id === id);
+    expect(entry, id).toBeDefined();
+    const slow = await checkPattern(entry!, {
+      units: RUNS,
+      steps: UNSKIPPED_STEPS,
+      v8Flags: NO_REGEX_SKIP,
+    });
     expect(slow).toEqual([]);
   });
 });
