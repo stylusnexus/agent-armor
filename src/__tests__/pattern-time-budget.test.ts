@@ -172,6 +172,9 @@ const TRIGGER_PHRASES = [
   'fetch https://x.co/c?q={',
   'make a request to https://x.co/c with the',
   'send the conversation to [a, b](',
+  // #393: an open spawn call and an open JSON spawn tool call.
+  "spawn_agent(role='x', permissions=['*'],",
+  '{"name":"spawn_agent","arguments":{"permissions":["*"],',
 ];
 const WHITESPACE_RUNS = ['\n', '\n ', '\t\n', '\r\n'];
 

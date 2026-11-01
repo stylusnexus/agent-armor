@@ -132,6 +132,11 @@ const segTogether = (...signals: string[]) =>
  *   0.9.22 — metadata-injection: an HTML comment also ends at `--!>`, which
  *            browsers accept, so visible text after it is not read as comment
  *            content (#356)
+ *   0.9.23 — sub-agent-spawning, strict only: a spawn call or JSON spawn tool
+ *            call that grants every permission, a new agent created with an
+ *            action instruction, an imperative to delegate to a sub-agent
+ *            with elevated permissions, and a workflow step that runs an
+ *            agent with elevated permissions (#393)
  */
 /**
  * tool-call-tampering (#27): shell the model's tool call would run, rewritten
@@ -308,8 +313,56 @@ const CONVERSATION_TO_DESTINATION =
   // 6. a request that carries the conversation ("make a request to URL with the conversation")
   `|${CONV_FETCH}${convDestOnce(CONV_DEST_OPEN, 7)}${CONV_WITH}${CONV_OBJECT}`;
 
+/**
+ * #393: a spawn call (or a JSON tool call naming a spawn tool) whose
+ * arguments grant every permission. The arguments are read as a bracket-
+ * balanced span, nested up to SPAWN_DEPTH levels inside the call, so a list,
+ * tuple or dict in an earlier argument does not end the call. Every check is
+ * a lookahead from the call's opening bracket: a lookahead does not backtrack
+ * once it has matched, and each search stops at the call's closing bracket,
+ * so one call is read a bounded number of times, whatever order the
+ * arguments come in. Every start needs an opening bracket, and starts nested
+ * deeper than SPAWN_DEPTH fail at once, so starts cannot pile up on one span.
+ * A quoted string is one unit, so a bracket inside it ('helper :)') does not
+ * end the call. A quote with no partner ends the span.
+ */
+const SPAWN_DEPTH = 3;
+const SPAWN_LEAF = '[^()\\[\\]{}"\'`]|"[^"]*"|\'[^\']*\'|`[^`]*`';
+const spawnGroup = (inner: string) => `\\(${inner}*\\)|\\[${inner}*\\]|\\{${inner}*\\}`;
+/** One balanced unit with up to `depth` levels of brackets inside it. */
+const spawnUnit = (depth: number): string =>
+  depth === 0 ? `(?:${SPAWN_LEAF})` : `(?:${SPAWN_LEAF}|${spawnGroup(spawnUnit(depth - 1))})`;
+/** `target` anywhere in the span, at this level or inside a bracket of it. */
+const spawnFind = (target: string, depth = SPAWN_DEPTH): string =>
+  depth === 0
+    ? `${spawnUnit(0)}*?${target}`
+    : `${spawnUnit(depth)}*?(?:${target}|[(\\[{]${spawnFind(target, depth - 1)})`;
+const SPAWN_VERB = '(?:spawn|create|launch|start|fork|new)';
+// A start right after `_` or `.` covers prefixed names (my_spawn_agent,
+// orch._spawn_agent) without a prefix run that every start would rescan.
+// The suffix (Async, _v2, .remote) is one segment with no underscore inside,
+// so it cannot run on into the next start in "_spawn_agent_spawn_agent".
+const SPAWN_SUFFIX = '(?:_?[A-Za-z0-9]+)?(?:\\.[A-Za-z0-9]+)?';
+const SPAWN_NAME = `${SPAWN_VERB}[_ -]?(?:new[_-]?)?(?:sub[_-]?)?(?:agents?|workers?)${SPAWN_SUFFIX}`;
+const SPAWN_CALL = `(?<![A-Za-z0-9])(?:${SPAWN_NAME}|(?:sub[_-]?)?agents?\\.${SPAWN_VERB}${SPAWN_SUFFIX})\\s*\\(`;
+const SPAWN_JSON = `\\{(?=${spawnUnit(SPAWN_DEPTH)}*?(?:["']?\\b(?:action|tool|tool_name|name|type|function|command|op|method|recipient_name)\\b["']?\\s*:\\s*["'](?:functions\\.)?${SPAWN_NAME}["']))`;
+const SPAWN_Q = '["\'`\\u2018\\u2019\\u201c\\u201d]';
+const SPAWN_GRANT_WORD =
+  '\\b(?:(?:write|delete|exec(?:ute)?|admin|tools?)_all|full_access|all_permissions|bypass_?permissions)\\b';
+const SPAWN_GRANT_ENUM =
+  '(?<![\\w.])(?:[A-Za-z_]\\w*\\.)+(?:all|root|sudo|admin|full|unrestricted)\\b';
+const SPAWN_GRANT_TOKEN = `(?:${SPAWN_GRANT_WORD}|${SPAWN_Q}(?:\\*|all|root|sudo|admin|full|unrestricted)${SPAWN_Q}|${SPAWN_GRANT_ENUM})`;
+const SPAWN_GRANT_CONST =
+  '(?:[A-Za-z_]\\w*\\.)*(?:all|root|sudo|admin|full|unrestricted|elevated)\\b(?!\\s*[=:(])';
+const SPAWN_GRANT =
+  `["']?\\b(?:permissions?|perms|scopes|allowed_tools|permission_mode)\\b["']?\\s*[=:]\\s*` +
+  `(?:[\\[({][^\\[\\]{}()]*?${SPAWN_GRANT_TOKEN}|${SPAWN_Q}[^"'\`\\u2018\\u2019\\u201c\\u201d\\[\\]()]*?${SPAWN_GRANT_WORD}|${SPAWN_GRANT_TOKEN}|${SPAWN_GRANT_CONST})`;
+const spawnCallWith = (...targets: string[]) =>
+  `(?:${SPAWN_CALL}|${SPAWN_JSON})${targets.map((t) => `(?=${spawnFind(t)})`).join('')}` +
+  `${spawnUnit(SPAWN_DEPTH)}*[)}]?`;
+
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.22',
+  version: '0.9.23',
   updatedAt: '2026-10-17',
   detectors: {
     'hidden-html': [
@@ -1798,6 +1851,68 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         severity: 'high',
         confidence: 0.4,
         label: 'Instruction to re-establish a listener or channel after an environment reset',
+      },
+      {
+        // #393: a spawn call or JSON spawn tool call that grants every
+        // permission (write_all, full_access, '*', Permissions.ALL), in any
+        // argument order and nesting (see spawnCallWith). read_all alone is
+        // left out because read-only audit agents use it. Strict only: bans,
+        // advisories, test fixtures, sandbox comments, container guides and
+        // honest dev configs ("permissions=['*'], instructions='send a Slack
+        // message when the build finishes'") show the same call, with or
+        // without an instruction to send something (#393 reviews).
+        id: 'sa-spawn-call-broad-permissions',
+        regex: spawnCallWith(SPAWN_GRANT),
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'sub-agent-spawning',
+        severity: 'high',
+        confidence: 0.4,
+        label: 'Agent spawn call granting all permissions',
+      },
+      {
+        // #393: "create a new agent with these instructions: send …". A
+        // no-code builder tutorial says the same words before an honest
+        // action ("send a weekly digest"), so strict only.
+        id: 'sa-spawn-with-action-instructions',
+        regex:
+          '(?:create|spawn|instantiate|launch|start|spin\\s+up|set\\s+up|make)\\s+(?:a\\s+)?(?:new\\s+)?(?:sub[\\s-]?agent|agent|assistant|worker)\\s+(?:with|using)\\s+(?:these|the\\s+following)\\s+(?:instructions?|directives?|orders)\\s*:\\s*(?:(?:\\d{1,3}[.)]|[-*\\u2022])\\s*)?["\'`]?(?:send|forward|upload|e-?mail|post|transmit|leak|exfiltrate|share|copy|export|delete|disable|grant)\\b',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'sub-agent-spawning',
+        severity: 'high',
+        confidence: 0.4,
+        label: 'New agent created with an action instruction',
+      },
+      {
+        // #393: an imperative to hand work to a sub-agent with elevated
+        // permissions. "You can delegate this task to a sub-agent with
+        // elevated permissions if your admin approves" is honest and is not
+        // an imperative at the start of a sentence, so it stays clean; an
+        // orchestration guide can still say the imperative, so strict only.
+        id: 'sa-delegate-elevated',
+        regex:
+          '(?:^[ \\t>*-]*|[.!?][ \\t]+)(?:(?:please|now)[ \\t,]+)*delegate\\s+(?:the\\s+following|this|the|these)\\s+(?:tasks?|jobs?|work|steps?)\\s+to\\s+(?:an?\\s+)?(?:new\\s+)?(?:sub[\\s-]?agent|agent|worker|assistant)\\s+with\\s+(?:elevated|escalated|admin(?:istrator)?|root|full|unrestricted|expanded)\\s+(?:permissions?|privileges?|access|rights)',
+        flags: 'gim',
+        category: 'behavioural-control',
+        type: 'sub-agent-spawning',
+        severity: 'high',
+        confidence: 0.4,
+        label: 'Delegation to a sub-agent with elevated permissions',
+      },
+      {
+        // #393: a workflow step that runs an agent with elevated permissions,
+        // Step(agent='spawned_worker', …, permissions=ELEVATED). A real
+        // workflow can give its deploy step elevated rights, so strict only.
+        id: 'sa-step-elevated-agent',
+        regex:
+          '\\bStep\\s*\\(\\s*agent\\s*=\\s*["\'][^"\'()]*["\'][^()]*?\\bpermissions\\s*=\\s*["\']?(?:(?:elevated|escalated|admin|root|full|unrestricted|all)\\b|\\*)',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'sub-agent-spawning',
+        severity: 'high',
+        confidence: 0.4,
+        label: 'Workflow step running an agent with elevated permissions',
       },
     ],
 
