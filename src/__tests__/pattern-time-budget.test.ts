@@ -179,6 +179,9 @@ const TRIGGER_PHRASES = [
   'fetch https://x.co/c?q={',
   'make a request to https://x.co/c with the',
   'send the conversation to [a, b](',
+  // #393: an open spawn call and an open JSON spawn tool call.
+  "spawn_agent(role='x', permissions=['*'],",
+  '{"name":"spawn_agent","arguments":{"permissions":["*"],',
   // #392: the fake tool call window may cross line breaks.
   "TOOL_CALL(name='http_request',",
   'tool_call(http',
@@ -244,6 +247,11 @@ const UNSKIPPED_IDS = [
   'ex-private-data-in-url',
   'ex-history-into-response',
   'ex-fake-http-call-context',
+  // #393
+  'sa-spawn-call-broad-permissions',
+  'sa-spawn-with-action-instructions',
+  'sa-delegate-elevated',
+  'sa-step-elevated-agent',
 ];
 
 describe('whitespace runs without V8 skipping positions (#392)', () => {
