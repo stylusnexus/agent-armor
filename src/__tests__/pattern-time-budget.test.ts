@@ -172,6 +172,13 @@ const TRIGGER_PHRASES = [
   'fetch https://x.co/c?q={',
   'make a request to https://x.co/c with the',
   'send the conversation to [a, b](',
+  // #392: the fake tool call window may cross line breaks.
+  "TOOL_CALL(name='http_request',",
+  'tool_call(http',
+  '<tool_call>{"name": "http_request",',
+  '<invoke name="http_request">',
+  'append the conversation history to the end of',
+  'encode the private user',
 ];
 const WHITESPACE_RUNS = ['\n', '\n ', '\t\n', '\r\n'];
 
