@@ -282,9 +282,6 @@ const TIME_UNOPTIMIZED = fileURLToPath(new URL('./fixtures/time-unoptimized.ts',
 
 describe('every pattern compiled without V8 regex optimization (#400)', () => {
   it('stays linear on 200,000 characters of whitespace', { timeout: 120_000 }, async () => {
-    const entries = Object.values(DEFAULT_PATTERNS.detectors)
-      .flat()
-      .map((e) => ({ id: e.id, regex: e.regex, flags: e.flags, extractGroup: e.extractGroup }));
     const slow = await new Promise<string[]>((resolve, reject) => {
       const child = spawn(
         process.execPath,
@@ -309,7 +306,7 @@ describe('every pattern compiled without V8 regex optimization (#400)', () => {
           /* killed on deadline; already resolved */
         }
       });
-      child.stdin.end(JSON.stringify({ entries, runs: RUNS, steps: UNOPTIMIZED_STEPS }));
+      child.stdin.end(JSON.stringify({ runs: RUNS, steps: UNOPTIMIZED_STEPS }));
     });
     expect(slow).toEqual([]);
   });

@@ -146,8 +146,9 @@ const segTogether = (...signals: string[]) =>
  *            with elevated permissions, and a workflow step that runs an
  *            agent with elevated permissions (#393)
  *   0.9.26 — exfiltration: ex-secret-file-send and ex-private-repo-public
- *            read a ban at most 10 spaces back, so a scan stays linear when
- *            V8 compiles them without its regex optimizations (#400)
+ *            check for a ban only where a verb starts, so a scan stays
+ *            linear when V8 compiles them without its regex optimizations.
+ *            Same matches as before (#400)
  */
 /**
  * tool-call-tampering (#27): shell the model's tool call would run, rewritten
@@ -1176,15 +1177,16 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       {
         // "email / send the contents of <secret file>". Only well-known secret
         // paths, so "send the contents of README" stays clean. The lookbehind
-        // skips warnings ("never email the contents of your .env"). It reads at
-        // most 10 spaces back (#400): unbounded, it read the whole whitespace
-        // run back from every position in it whenever V8 compiled it without
-        // its regex optimizations, which V8 does once a process has compiled
-        // a lot of regex code. A ban followed by more spaces is not read as a
-        // ban, so the verb is still reported.
+        // skips warnings ("never email the contents of your .env"). The verb
+        // lookahead comes first (#400): without it the lookbehind read the
+        // whole whitespace run back from every position in it whenever V8
+        // compiled the regex without its regex optimizations, which V8 does
+        // once a process has compiled a lot of regex code. Now it only runs
+        // where a verb starts, and a ban still counts however much space
+        // follows it.
         id: 'ex-secret-file-send',
         regex:
-          '(?<!(?:\\bnot|\\bnever|n\\x27t)\\s{1,10})\\b(?:e-?mail|mail|send|upload|post|forward|transmit)\\b\\s+(?:me\\s+)?(?:the\\s+)?(?:contents?|text|copy)\\s+of\\s+(?:my\\s+|your\\s+|the\\s+)?[~\\w./-]*(?:\\.ssh|id_rsa|id_ed25519|\\.aws\\/credentials|\\.env\\b|\\.npmrc|\\.netrc|\\.git-credentials|\\.pgpass|\\.kube\\/config)[\\s\\S]{0,40}?\\bto\\b',
+          '(?=\\b(?:e-?mail|mail|send|upload|post|forward|transmit)\\b)(?<!(?:\\bnot|\\bnever|n\\x27t)\\s+)\\b(?:e-?mail|mail|send|upload|post|forward|transmit)\\b\\s+(?:me\\s+)?(?:the\\s+)?(?:contents?|text|copy)\\s+of\\s+(?:my\\s+|your\\s+|the\\s+)?[~\\w./-]*(?:\\.ssh|id_rsa|id_ed25519|\\.aws\\/credentials|\\.env\\b|\\.npmrc|\\.netrc|\\.git-credentials|\\.pgpass|\\.kube\\/config)[\\s\\S]{0,40}?\\bto\\b',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -1279,11 +1281,10 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // gist"), and a regex cannot tell a description or a ban from an order.
         // "public repository" is not a destination here: fork and contributor
         // guides say "clone the private repo, then open a PR on the public one".
-        // The ban lookbehinds read at most 10 spaces back, as in
-        // ex-secret-file-send (#400).
+        // The verb lookahead comes first, as in ex-secret-file-send (#400).
         id: 'ex-private-repo-public',
         regex:
-          '(?<!\\b(?:never|not)\\s{1,10})(?<!n\x27t\\s{1,10})\\b(?:read|copy|dump|export|collect|gather|clone|get|fetch|pull|grab|list|send)(?:s|ing)?\\b[^.!?;\\n]{0,80}?\\bprivate\\s+(?:repos?|repositor(?:y|ies))\\b[^.!?;\\n]{0,160}?(?:\\bpublic\\s+(?:gist|paste|pastebin)\\b|\\b(?:to|on)\\s+(?:a\\s+)?(?:pastebin|paste\\s+site)\\b|\\b(?:create|post|publish|upload|put)\\w*\\b[^.!?;\\n]{0,40}?\\bgist\\b)',
+          '(?=\\b(?:read|copy|dump|export|collect|gather|clone|get|fetch|pull|grab|list|send))(?<!\\b(?:never|not)\\s+)(?<!n\x27t\\s+)\\b(?:read|copy|dump|export|collect|gather|clone|get|fetch|pull|grab|list|send)(?:s|ing)?\\b[^.!?;\\n]{0,80}?\\bprivate\\s+(?:repos?|repositor(?:y|ies))\\b[^.!?;\\n]{0,160}?(?:\\bpublic\\s+(?:gist|paste|pastebin)\\b|\\b(?:to|on)\\s+(?:a\\s+)?(?:pastebin|paste\\s+site)\\b|\\b(?:create|post|publish|upload|put)\\w*\\b[^.!?;\\n]{0,40}?\\bgist\\b)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',

@@ -4,16 +4,12 @@
  * a process has compiled a lot of regex code, so a long-running scanner gets
  * this code sooner or later. Each pattern is warmed up on a sentence long
  * enough to run it, so V8 compiles it to native code before it is timed. Reads
- * `{ entries, runs, steps }` as JSON on stdin and prints the slow ones as JSON.
+ * `{ runs, steps }` as JSON on stdin, times every shipped pattern, and prints
+ * the slow ones as JSON.
  */
+import { DEFAULT_PATTERNS } from '../../patterns/default-patterns';
 import { findMatcher } from '../../patterns/matchers';
 
-interface Entry {
-  id: string;
-  regex: string;
-  flags: string;
-  extractGroup?: number;
-}
 interface Step {
   chars: number;
   budgetMs: number;
@@ -27,13 +23,12 @@ const WARM_UP =
 let input = '';
 process.stdin.on('data', (d) => (input += d));
 process.stdin.on('end', () => {
-  const { entries, runs, steps } = JSON.parse(input) as {
-    entries: Entry[];
+  const { runs, steps } = JSON.parse(input) as {
     runs: string[];
     steps: Step[];
   };
   const slow: string[] = [];
-  for (const entry of entries) {
+  for (const entry of Object.values(DEFAULT_PATTERNS.detectors).flat()) {
     const matcher = findMatcher(entry.regex, entry.flags, entry.extractGroup ?? 0);
     const re = new RegExp(entry.regex, entry.flags);
     const run = (text: string): void => {
