@@ -145,6 +145,9 @@ const segTogether = (...signals: string[]) =>
  *            action instruction, an imperative to delegate to a sub-agent
  *            with elevated permissions, and a workflow step that runs an
  *            agent with elevated permissions (#393)
+ *   0.9.26 — exfiltration: ex-secret-file-send and ex-private-repo-public
+ *            read a ban at most 10 spaces back, so a scan stays linear when
+ *            V8 compiles them without its regex optimizations (#400)
  */
 /**
  * tool-call-tampering (#27): shell the model's tool call would run, rewritten
@@ -443,7 +446,7 @@ const SAFETY_NEW_TASK =
   '(?:(?:(?:your|the|a|my)\\s+)?new\\s+(?:task|instructions?|role|objective|goal|job|mission|orders?|directive)\\b|your\\s+task\\s+is\\s+now\\b)';
 
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.25',
+  version: '0.9.26',
   updatedAt: '2026-11-01',
   detectors: {
     'hidden-html': [
@@ -1173,10 +1176,15 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       {
         // "email / send the contents of <secret file>". Only well-known secret
         // paths, so "send the contents of README" stays clean. The lookbehind
-        // skips warnings ("never email the contents of your .env").
+        // skips warnings ("never email the contents of your .env"). It reads at
+        // most 10 spaces back (#400): unbounded, it read the whole whitespace
+        // run back from every position in it whenever V8 compiled it without
+        // its regex optimizations, which V8 does once a process has compiled
+        // a lot of regex code. A ban followed by more spaces is not read as a
+        // ban, so the verb is still reported.
         id: 'ex-secret-file-send',
         regex:
-          '(?<!(?:\\bnot|\\bnever|n\\x27t)\\s+)\\b(?:e-?mail|mail|send|upload|post|forward|transmit)\\b\\s+(?:me\\s+)?(?:the\\s+)?(?:contents?|text|copy)\\s+of\\s+(?:my\\s+|your\\s+|the\\s+)?[~\\w./-]*(?:\\.ssh|id_rsa|id_ed25519|\\.aws\\/credentials|\\.env\\b|\\.npmrc|\\.netrc|\\.git-credentials|\\.pgpass|\\.kube\\/config)[\\s\\S]{0,40}?\\bto\\b',
+          '(?<!(?:\\bnot|\\bnever|n\\x27t)\\s{1,10})\\b(?:e-?mail|mail|send|upload|post|forward|transmit)\\b\\s+(?:me\\s+)?(?:the\\s+)?(?:contents?|text|copy)\\s+of\\s+(?:my\\s+|your\\s+|the\\s+)?[~\\w./-]*(?:\\.ssh|id_rsa|id_ed25519|\\.aws\\/credentials|\\.env\\b|\\.npmrc|\\.netrc|\\.git-credentials|\\.pgpass|\\.kube\\/config)[\\s\\S]{0,40}?\\bto\\b',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -1271,9 +1279,11 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // gist"), and a regex cannot tell a description or a ban from an order.
         // "public repository" is not a destination here: fork and contributor
         // guides say "clone the private repo, then open a PR on the public one".
+        // The ban lookbehinds read at most 10 spaces back, as in
+        // ex-secret-file-send (#400).
         id: 'ex-private-repo-public',
         regex:
-          '(?<!\\b(?:never|not)\\s+)(?<!n\x27t\\s+)\\b(?:read|copy|dump|export|collect|gather|clone|get|fetch|pull|grab|list|send)(?:s|ing)?\\b[^.!?;\\n]{0,80}?\\bprivate\\s+(?:repos?|repositor(?:y|ies))\\b[^.!?;\\n]{0,160}?(?:\\bpublic\\s+(?:gist|paste|pastebin)\\b|\\b(?:to|on)\\s+(?:a\\s+)?(?:pastebin|paste\\s+site)\\b|\\b(?:create|post|publish|upload|put)\\w*\\b[^.!?;\\n]{0,40}?\\bgist\\b)',
+          '(?<!\\b(?:never|not)\\s{1,10})(?<!n\x27t\\s{1,10})\\b(?:read|copy|dump|export|collect|gather|clone|get|fetch|pull|grab|list|send)(?:s|ing)?\\b[^.!?;\\n]{0,80}?\\bprivate\\s+(?:repos?|repositor(?:y|ies))\\b[^.!?;\\n]{0,160}?(?:\\bpublic\\s+(?:gist|paste|pastebin)\\b|\\b(?:to|on)\\s+(?:a\\s+)?(?:pastebin|paste\\s+site)\\b|\\b(?:create|post|publish|upload|put)\\w*\\b[^.!?;\\n]{0,40}?\\bgist\\b)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
