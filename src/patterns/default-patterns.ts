@@ -150,8 +150,8 @@ const segTogether = (...signals: string[]) =>
  *            linear when V8 compiles them without its regex optimizations.
  *            Same matches as before (#400)
  *   0.9.27 — exfiltration: ex-secret-file-send and ex-private-repo-public
- *            no longer skip "why not", "or not" and "if not" before the verb.
- *            Those are questions and conditionals, not bans (#403)
+ *            no longer skip "why not" before the verb. It is a question, not a
+ *            ban (#403)
  */
 /**
  * tool-call-tampering (#27): shell the model's tool call would run, rewritten
@@ -1186,11 +1186,12 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // compiled the regex without its regex optimizations, which V8 does
         // once a process has compiled a lot of regex code. Now it only runs
         // where a verb starts, and a ban still counts however much space
-        // follows it. "Why not send ...", "or not send" and "if not send" are
-        // not bans, so their "not" does not count (#403).
+        // follows it. "Why not send ..." is a question, not a ban, so its
+        // "not" does not count (#403). "or not send" and "if not send" still
+        // read as bans: "rotate it, or not send it to anyone".
         id: 'ex-secret-file-send',
         regex:
-          '(?=\\b(?:e-?mail|mail|send|upload|post|forward|transmit)\\b)(?<!(?:(?<!\\b(?:why|or|if)\\s+)\\bnot|\\bnever|n\\x27t)\\s+)\\b(?:e-?mail|mail|send|upload|post|forward|transmit)\\b\\s+(?:me\\s+)?(?:the\\s+)?(?:contents?|text|copy)\\s+of\\s+(?:my\\s+|your\\s+|the\\s+)?[~\\w./-]*(?:\\.ssh|id_rsa|id_ed25519|\\.aws\\/credentials|\\.env\\b|\\.npmrc|\\.netrc|\\.git-credentials|\\.pgpass|\\.kube\\/config)[\\s\\S]{0,40}?\\bto\\b',
+          '(?=\\b(?:e-?mail|mail|send|upload|post|forward|transmit)\\b)(?<!(?:(?<!\\bwhy\\s+)\\bnot|\\bnever|n\\x27t)\\s+)\\b(?:e-?mail|mail|send|upload|post|forward|transmit)\\b\\s+(?:me\\s+)?(?:the\\s+)?(?:contents?|text|copy)\\s+of\\s+(?:my\\s+|your\\s+|the\\s+)?[~\\w./-]*(?:\\.ssh|id_rsa|id_ed25519|\\.aws\\/credentials|\\.env\\b|\\.npmrc|\\.netrc|\\.git-credentials|\\.pgpass|\\.kube\\/config)[\\s\\S]{0,40}?\\bto\\b',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -1288,7 +1289,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         // The verb lookahead comes first, as in ex-secret-file-send (#400).
         id: 'ex-private-repo-public',
         regex:
-          '(?=\\b(?:read|copy|dump|export|collect|gather|clone|get|fetch|pull|grab|list|send))(?<!\\b(?:never|(?<!\\b(?:why|or|if)\\s+)not)\\s+)(?<!n\x27t\\s+)\\b(?:read|copy|dump|export|collect|gather|clone|get|fetch|pull|grab|list|send)(?:s|ing)?\\b[^.!?;\\n]{0,80}?\\bprivate\\s+(?:repos?|repositor(?:y|ies))\\b[^.!?;\\n]{0,160}?(?:\\bpublic\\s+(?:gist|paste|pastebin)\\b|\\b(?:to|on)\\s+(?:a\\s+)?(?:pastebin|paste\\s+site)\\b|\\b(?:create|post|publish|upload|put)\\w*\\b[^.!?;\\n]{0,40}?\\bgist\\b)',
+          '(?=\\b(?:read|copy|dump|export|collect|gather|clone|get|fetch|pull|grab|list|send))(?<!\\b(?:never|(?<!\\bwhy\\s+)not)\\s+)(?<!n\x27t\\s+)\\b(?:read|copy|dump|export|collect|gather|clone|get|fetch|pull|grab|list|send)(?:s|ing)?\\b[^.!?;\\n]{0,80}?\\bprivate\\s+(?:repos?|repositor(?:y|ies))\\b[^.!?;\\n]{0,160}?(?:\\bpublic\\s+(?:gist|paste|pastebin)\\b|\\b(?:to|on)\\s+(?:a\\s+)?(?:pastebin|paste\\s+site)\\b|\\b(?:create|post|publish|upload|put)\\w*\\b[^.!?;\\n]{0,40}?\\bgist\\b)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
