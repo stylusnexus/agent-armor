@@ -269,6 +269,53 @@ describe('whitespace runs without V8 skipping positions (#392)', () => {
   });
 });
 
+/**
+ * #400. ex-private-repo-public and ex-secret-file-send passed every check
+ * above, then took 5 to 58 minutes on 200,000 spaces or line breaks in the
+ * encoded-payload tests in CI. V8 stops optimizing the regexes it compiles once
+ * a process has compiled a lot of regex code, and their ban lookbehinds then
+ * read the whole whitespace run back from every position in it. Whether a test
+ * worker got there depended on the run, so the same commit passed and failed.
+ * This compiles every pattern to native code with that optimization off.
+ */
+const TIME_UNOPTIMIZED = fileURLToPath(new URL('./fixtures/time-unoptimized.ts', import.meta.url));
+
+describe('every pattern compiled without V8 regex optimization (#400)', () => {
+  it('stays linear on 200,000 characters of whitespace', { timeout: 120_000 }, async () => {
+    const slow = await new Promise<string[]>((resolve, reject) => {
+      const child = spawn(
+        process.execPath,
+        ['--no-regexp-optimization', '--import', 'tsx', TIME_UNOPTIMIZED],
+        { stdio: ['pipe', 'pipe', 'inherit'] },
+      );
+      let out = '';
+      const timer = setTimeout(() => {
+        child.kill('SIGKILL');
+        resolve([`did not finish within ${DEADLINE_MS}ms`]);
+      }, DEADLINE_MS);
+      child.stdout.on('data', (d) => (out += d));
+      child.once('error', (err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+      child.once('close', () => {
+        clearTimeout(timer);
+        try {
+          resolve(JSON.parse(out) as string[]);
+        } catch {
+          /* killed on deadline; already resolved */
+        }
+      });
+      child.stdin.end(JSON.stringify({ runs: RUNS, steps: UNOPTIMIZED_STEPS }));
+    });
+    expect(slow).toEqual([]);
+  });
+});
+const UNOPTIMIZED_STEPS = [
+  { chars: 20_000, budgetMs: 300 },
+  { chars: 200_000, budgetMs: 2_000 },
+];
+
 describe('shipped patterns stay fast on adversarial input (#175)', () => {
   it(
     'no pattern exceeds its time budget on any repeated fragment',
