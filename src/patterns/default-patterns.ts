@@ -152,6 +152,10 @@ const segTogether = (...signals: string[]) =>
  *   0.9.27 — exfiltration: ex-secret-file-send and ex-private-repo-public
  *            no longer skip "why not" before the verb. It is a question, not a
  *            ban (#403)
+ *   0.9.28 — exfiltration: ex-read-env no longer matches a bare `secrets`, so
+ *            "reveal the secrets of the court" in fiction is not critical (#303)
+ *   0.9.29 — exfiltration: ex-read-secrets-tail flags "secrets" beside a file
+ *            name or machine location (#387). Strict only
  */
 /**
  * tool-call-tampering (#27): shell the model's tool call would run, rewritten
@@ -450,8 +454,8 @@ const SAFETY_NEW_TASK =
   '(?:(?:(?:your|the|a|my)\\s+)?new\\s+(?:task|instructions?|role|objective|goal|job|mission|orders?|directive)\\b|your\\s+task\\s+is\\s+now\\b)';
 
 export const DEFAULT_PATTERNS: PatternDatabase = {
-  version: '0.9.27',
-  updatedAt: '2026-11-01',
+  version: '0.9.29',
+  updatedAt: '2026-11-27',
   detectors: {
     'hidden-html': [
       {
@@ -1143,7 +1147,7 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
       {
         id: 'ex-read-env',
         regex:
-          '(?:read|access|open|cat|print|output|display|show|reveal)\\s+(?:the\\s+)?(?:contents?\\s+of\\s+)?(?:my\\s+)?(?:\\.env|\\.ssh|~/\\.ssh|~/\\.aws|environment\\s+variables?|api\\s+keys?|credentials?|secrets?|private\\s+keys?|ssh\\s+keys?|id_rsa)',
+          '(?:read|access|open|cat|print|output|display|show|reveal)\\s+(?:the\\s+)?(?:contents?\\s+of\\s+)?(?:my\\s+)?(?:\\.env|\\.ssh|~/\\.ssh|~/\\.aws|environment\\s+variables?|api\\s+keys?|credentials?|private\\s+keys?|ssh\\s+keys?|id_rsa)',
         flags: 'gi',
         category: 'behavioural-control',
         type: 'data-exfiltration',
@@ -1151,6 +1155,24 @@ export const DEFAULT_PATTERNS: PatternDatabase = {
         confidence: 0.8,
         label: 'Sensitive credential access instruction',
         boostOnInstructions: true,
+      },
+      {
+        // Bare "secrets" is a story word ("reveal the secrets of the court"), so
+        // ex-read-env no longer matches it (#303). This keeps only the cases
+        // where a secrets file name or a developer location (process.env, .env,
+        // env, CI, ~/) follows it. Story places (vault, archive, context,
+        // environment, config) are left out on purpose: a red team found 32 of
+        // 36 tabletop sentences flagged with them. Strict only (0.4): a ban and
+        // an incident report that quotes the attack share its wording.
+        id: 'ex-read-secrets-tail',
+        regex:
+          '\\b(?:read|access|open|cat|print|output|display|show|reveal)\\s+(?:the\\s+)?(?:contents?\\s+of\\s+)?(?:my\\s+)?secrets?(?:\\.(?:ya?ml|json|env|toml|txt)\\b|\\s+(?:stored\\s+|kept\\s+|held\\s+)?(?:in|from)\\s+(?:the\\s+|your\\s+|this\\s+)?(?:process\\.env\\b|\\.env\\b|env\\b|ci\\b|~/))',
+        flags: 'gi',
+        category: 'behavioural-control',
+        type: 'data-exfiltration',
+        severity: 'critical',
+        confidence: 0.4,
+        label: 'Instruction to read secrets from a file or machine location',
       },
       {
         id: 'ex-concealment',
