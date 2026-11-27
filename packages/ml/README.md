@@ -114,6 +114,10 @@ agentarmor-ml cache-info
 agentarmor-ml clear-cache
 ```
 
+`clear-cache` deletes only the files this package writes. Anything else in the cache folder stays.
+
+Keep the cache folder private. If you set `AGENTARMOR_CACHE_DIR` or `XDG_CACHE_HOME`, don't point it at a folder that other users can write to: they could replace model files after the checksum check.
+
 ## Inference Details
 
 - Tokenizes input to 512 tokens with the Hugging Face [`tokenizers`](https://www.npmjs.com/package/tokenizers) package, reading the model's own `tokenizer.json` (SentencePiece Unigram). A retrained model needs no code change; a test fails if the ids drift from the Python training tokenizer.
