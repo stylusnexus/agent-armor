@@ -20,7 +20,7 @@
     "dev": "tsup --watch",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "docs:build": "typedoc",
+    "docs:build": "node ../../scripts/patch-typedoc.mjs && typedoc",
     "check:model": "tsx scripts/check-model-integrity.ts",
     "check:model:deep": "tsx scripts/check-model-integrity.ts --deep",
     "typecheck:scripts": "tsc -p tsconfig.scripts.json"
@@ -64,6 +64,9 @@
     "node": ">=18.0.0"
   },
   "overrides": {
+    "typedoc": {
+      "minimatch": "^11.0.9"
+    },
     "esbuild": "^0.28.1"
   }
 }
