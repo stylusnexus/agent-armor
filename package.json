@@ -25,7 +25,7 @@
     "eval:multi-turn": "tsx scripts/eval/run-multi-turn-eval.ts",
     "eval:action-gate": "tsx scripts/eval/action-gate-fuzz.ts",
     "check:docs": "tsx scripts/check-doc-drift.ts",
-    "docs:build": "typedoc",
+    "docs:build": "node scripts/patch-typedoc.mjs && typedoc",
     "docs:build:all": "npm run docs:build && npm --prefix packages/ml run docs:build",
     "format": "prettier --write",
     "format:check": "prettier --check ."
@@ -76,6 +76,9 @@
     "vitest": "^4.1.11"
   },
   "overrides": {
+    "typedoc": {
+      "minimatch": "^11.0.9"
+    },
     "esbuild": "^0.28.1"
   }
 }
