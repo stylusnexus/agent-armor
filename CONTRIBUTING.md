@@ -22,7 +22,7 @@ npm run test:run
 
 - Create a feature branch from `dev` (`git checkout -b feat/my-feature origin/dev`)
 - Make your changes
-- Open a PR against `dev` and squash-merge it once CI passes
+- Open a PR against `dev` and squash-merge it once the required checks pass and someone else has approved it (admins too; new commits dismiss an earlier approval)
 - To ship, open a PR from `dev` to `main` and merge it with a **merge commit** (not squash), so release-please sees each feature's commit
 - After the release PR merges and publishes, merge `main` back into `dev`
 - Use conventional commit messages (see below)
