@@ -48,8 +48,8 @@ The ML companion package is in `packages/ml/` with its own `npm run build|test|t
 
 ## Git and releases
 
-- Branch from `dev`; open PRs against `dev`; squash-merge once CI passes. `dev` goes to `main` with a merge commit.
-- `main` enforces its required checks and one human review for admins too. Never bypass those gates on a release PR.
+- Branch from `dev`; open PRs against `dev`; squash-merge once the required checks pass and the PR has an approving review. `dev` goes to `main` with a merge commit, not squash or rebase.
+- `dev` and `main` enforce their required checks and one approving review, for admins too. You can't approve your own PR, and new commits dismiss an earlier approval. Never bypass these gates.
 - Conventional commits: `type(scope): imperative summary`, lowercase, 50 characters or fewer, no period. Reference issues as `Fixes #123` on its own line.
 - Do not edit `CHANGELOG.md`: release-please generates it from commit messages.
 - Do not publish to npm by hand: merging the release PR publishes through CI.
