@@ -7,6 +7,13 @@ This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor 
 <!-- New entries are generated automatically by release-please from Conventional
 Commit messages on merge to main. Do not edit unreleased entries by hand. -->
 
+## [0.2.28](https://github.com/stylusnexus/agent-armor/compare/v0.2.27...v0.2.28) (2026-11-27)
+
+
+### Fixed
+
+* **ml:** harden model download and cache clearing ([#413](https://github.com/stylusnexus/agent-armor/issues/413)) ([a55214f](https://github.com/stylusnexus/agent-armor/commit/a55214f735cdd4e04f6af3cfb115cd35d8188946)), closes [#412](https://github.com/stylusnexus/agent-armor/issues/412)
+
 ## [0.2.27](https://github.com/stylusnexus/agent-armor/compare/v0.2.26...v0.2.27) (2026-11-03)
 
 
