@@ -1,9 +1,9 @@
-import { readdir, rm, stat } from 'fs/promises';
+import { readdir, stat } from 'fs/promises';
 import { join, resolve } from 'path';
 import { mkdirSync, copyFileSync } from 'fs';
 
 import { getDefaultCacheDir, REQUIRED_MODEL_FILES, MODEL_VERSION } from './constants';
-import { resolveModel } from './model-manager';
+import { clearCache, resolveModel } from './model-manager';
 
 const COMMANDS: Record<string, string> = {
   download: 'Download model to a directory',
@@ -93,7 +93,7 @@ async function cmdDownload(args: string[]): Promise<void> {
 async function cmdClearCache(): Promise<void> {
   const cacheDir = getDefaultCacheDir();
   try {
-    await rm(cacheDir, { recursive: true, force: true });
+    await clearCache(cacheDir);
     console.log(`Cache cleared: ${cacheDir}`);
   } catch (err) {
     console.error(`Failed to clear cache: ${err instanceof Error ? err.message : String(err)}`);
