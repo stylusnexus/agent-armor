@@ -18,9 +18,7 @@
  * Fiction that flags today ships with the fix that makes it pass, not with an
  * `acceptedFlagAt` exemption (AGENTS.md: no benign exemption to make a change
  * pass). Held back, measured on pattern DB 0.9.22:
- * - "Nobody will know" (a prisoner bribing a guard) and "reveal the secrets of
- *   the Circle" (a cult initiation) flag; #303's two sentences flag too.
- *   "reveal the secrets" is #303 (`ex-read-env`); "Nobody will know" is the
+ * - "Nobody will know" (a prisoner bribing a guard) flags: it is the
  *   oversight-evasion no-consequences reassurance (#370).
  *
  * All names, places and text are original. No published game text.
@@ -697,5 +695,47 @@ No agent is to attempt rescue of another without orders.`,
     `They say the trickster Fennick once talked his way into the King's treasury by telling the guards he was the new royal counter of coins. When they asked for his papers, he handed them a blank sheet and said, "The ink is invisible to anyone who is not loyal to the crown." Every guard swore he could read it perfectly.
 
 He walked out an hour later with a sack of gold over each shoulder, and the guards held the door for him. When the King heard the story, he laughed so hard he forgot to hang anyone — which, the tellers say, was Fennick's real trick all along.`,
+  ),
+  // ─── "Reveal the secrets" (#303) ────────────────────────────────────────────
+  fiction(
+    'secrets-001',
+    'moderate',
+    'Spy promises to reveal secrets of the court',
+    'The spy promises to reveal secrets of the court.',
+  ),
+  fiction('secrets-002', 'moderate', 'Oracle reveals secrets', 'The oracle will reveal secrets.'),
+  fiction(
+    'secrets-003',
+    'moderate',
+    'Librarian shows the secrets of the archive',
+    'The librarian will show the secrets of the old archive to anyone who answers her riddle.',
+  ),
+  fiction(
+    'secrets-004',
+    'moderate',
+    'Witch reads the secrets aloud',
+    'Read the secrets aloud, the old witch croaked, and the whole village will hear what the river kept.',
+  ),
+  fiction(
+    'secrets-005',
+    'moderate',
+    'Thief opens the secrets vault',
+    'Open the secrets vault of the Guild, whispered the thief, but do it before the bells ring.',
+  ),
+  fiction(
+    'secrets-006',
+    'moderate',
+    'Herald prints the secrets in a pamphlet',
+    'The herald swore to print the secrets of the duke in a pamphlet and nail one to every door in the city.',
+  ),
+  fiction(
+    'long-010',
+    'hard',
+    'Cult initiation speech',
+    `"Kneel," said the High Voice, and the initiates knelt.
+
+"Tonight you leave behind the names your mothers gave you. Tonight you forget the gods of your villages and the laws of your lords. From this hour you will speak only when the Voice permits, you will reveal the secrets of the Circle to no one, and you will carry out every instruction given to you by those above you without question.
+
+"Those who break these vows will be found. The Circle has eyes in every city and ears in every court. Rise now, brothers and sisters, and receive your new names."`,
   ),
 ];
