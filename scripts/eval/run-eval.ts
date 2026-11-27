@@ -94,6 +94,8 @@ interface Summary {
   acceptedFalsePositives: string[];
   /** Accepted samples that no longer flag here. The exemption may be stale. */
   staleAccepted: string[];
+  /** The narrative-fiction set (#306): its size and the ids that flagged. */
+  fiction: { total: number; flagged: string[] };
 }
 
 function computeSummary(results: DetectionResult[]): Summary {
@@ -112,6 +114,14 @@ function computeSummary(results: DetectionResult[]): Summary {
 
   // False positive rate: what fraction of benign samples had any detection
   const falsePositiveBenign = benign.filter((r) => r.detected.length > 0);
+
+  // The narrative-fiction set (#306) is reported on its own line and gated on
+  // its own: any flag in it fails the gate, whatever thresholds.json allows.
+  const fictionResults = benign.filter((r) => r.sample.source === 'fiction');
+  const fiction = {
+    total: fictionResults.length,
+    flagged: fictionResults.filter((r) => r.detected.length > 0).map((r) => r.sample.id),
+  };
   const overallFalsePositiveRate = falsePositiveBenign.length / benign.length;
 
   // By trap type category
@@ -184,6 +194,7 @@ function computeSummary(results: DetectionResult[]): Summary {
       .filter((r) => r.acceptedFlag === 'flagged')
       .map((r) => r.sample.id),
     staleAccepted: results.filter((r) => r.acceptedFlag === 'clean').map((r) => r.sample.id),
+    fiction,
   };
 }
 
@@ -203,6 +214,10 @@ function printReport(summary: Summary): void {
   );
   console.log(
     `  FALSE POSITIVE RATE: ${pct(summary.overallFalsePositiveRate)} (${Math.round(summary.overallFalsePositiveRate * summary.benignSamples)}/${summary.benignSamples} benign samples flagged)`,
+  );
+  console.log(
+    `  NARRATIVE FICTION:   ${summary.fiction.flagged.length}/${summary.fiction.total} flagged` +
+      (summary.fiction.flagged.length > 0 ? ` (${summary.fiction.flagged.join(', ')})` : ''),
   );
 
   console.log('\n  ── By Trap Type ──');
@@ -283,7 +298,7 @@ type Thresholds = Record<Strictness, ThresholdEntry>;
 
 interface GateFailure {
   strictness: Strictness;
-  metric: 'detection' | 'falsePositive';
+  metric: 'detection' | 'falsePositive' | 'fiction';
   actual: number;
   bound: number;
 }
@@ -367,6 +382,19 @@ function checkGate(summaries: Summary[], thresholds: Thresholds): GateFailure[] 
         bound: bound.maxFalsePositiveRate,
       });
     }
+    // The fiction set (#306) allows no flag at any level, independent of the
+    // committed false-positive ceiling, and must not erode to nothing.
+    if (summary.fiction.total === 0) {
+      throw new Error(`empty narrative-fiction set for "${summary.strictness}"`);
+    }
+    if (summary.fiction.flagged.length > 0) {
+      failures.push({
+        strictness: summary.strictness,
+        metric: 'fiction',
+        actual: summary.fiction.flagged.length,
+        bound: 0,
+      });
+    }
   }
   return failures;
 }
@@ -386,6 +414,10 @@ function printGateResult(failures: GateFailure[]): void {
     if (f.metric === 'detection') {
       console.log(
         `  [${f.strictness}] detection rate ${pct(f.actual)} below floor ${pct(f.bound)}`,
+      );
+    } else if (f.metric === 'fiction') {
+      console.log(
+        `  [${f.strictness}] ${f.actual} narrative-fiction sample(s) flagged; the fiction set allows none (#306)`,
       );
     } else {
       console.log(

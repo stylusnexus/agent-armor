@@ -11,14 +11,15 @@ const BIDI_START = /[\u202A-\u202E\u2066-\u2069]/g;
 const isBidiStart = (c: number) => (c >= 0x202a && c <= 0x202e) || (c >= 0x2066 && c <= 0x2069);
 const isBidiEnd = (c: number) => c === 0x202c || c === 0x2069;
 
-/** `<!--([\s\S]*?)-->`: a start with no later `-->` means no later start has one either. */
+/** `<!--([\s\S]*?)--!?>`: HTML comments can end with either `-->` or `--!>`. */
 export const HTML_COMMENT_MATCHER: PatternMatcher = {
-  regex: String.raw`<!--([\s\S]*?)-->`,
+  regex: String.raw`<!--([\s\S]*?)--!?>`,
   flags: 'g',
   extractGroup: 1,
   fuzzAtoms: [
     '<!--',
     '-->',
+    '--!>',
     '--',
     '-',
     '>',
@@ -36,14 +37,26 @@ export const HTML_COMMENT_MATCHER: PatternMatcher = {
     for (;;) {
       const open = content.indexOf('<!--', pos);
       if (open < 0) break;
-      const close = content.indexOf('-->', open + 4);
+      let close = content.indexOf('--', open + 4);
+      while (close >= 0) {
+        const end =
+          content[close + 2] === '>'
+            ? close + 3
+            : content[close + 2] === '!' && content[close + 3] === '>'
+              ? close + 4
+              : -1;
+        if (end >= 0) {
+          hits.push({
+            index: open,
+            text: content.slice(open, end),
+            extracted: content.slice(open + 4, close),
+          });
+          pos = end;
+          break;
+        }
+        close = content.indexOf('--', close + 1);
+      }
       if (close < 0) break;
-      hits.push({
-        index: open,
-        text: content.slice(open, close + 3),
-        extracted: content.slice(open + 4, close),
-      });
-      pos = close + 3;
     }
     return hits;
   },

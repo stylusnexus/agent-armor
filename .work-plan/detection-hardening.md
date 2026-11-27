@@ -7,19 +7,28 @@ github:
   repo: stylusnexus/agent-armor
   issues:
     - 34
-    - 35
     - 37
     - 57
     - 68
     - 69
+    - 98
+    - 99
+    - 106
+    - 107
+    - 178
+    - 232
+    - 245
+    - 304
+  references:
+    - 35
   branches: []
 depends_on: []
-last_touched: 2026-08-06T09:00
-last_handoff: 2026-08-06T09:00
+last_touched: 2026-10-20T04:15
+last_handoff: 2026-10-20T04:15
 next_up:
   - 68
-  - 69
-  - 37
+  - 107
+  - 106
 blockers: []
 ---
 
@@ -31,14 +40,22 @@ Reprioritized 2026-07-07 (down from P0, alongside a value pass across all tracks
 
 ## Issues
 
-| #   | Title                                                                                                                                                                   | Assignee | Status                                                     |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------- |
-| #34 | Add computed riskLevel roll-up to ScanResult                                                                                                                            | —        | ✅ Shipped                                                 |
-| #35 | ML-based semantic accumulation detection across turns (mt-mem/mt-ctx blind spots) — structural half shipped via #50/#53, ML-windowing half shipped via #62 (2026-07-09) | —        | ✅ Shipped                                                 |
-| #37 | Long-context attention-dilution detection                                                                                                                               | —        | 🔲 Open                                                    |
-| #57 | feat: allowlist-based pre-execution action gate (`checkAction`)                                                                                                         | —        | ✅ Shipped                                                 |
-| #68 | feat(action-gate): policy ergonomics and hardening                                                                                                                      | —        | 🔲 Open                                                    |
-| #69 | test(eval): cover zero/thin-coverage trap types; extract multi-turn gate thresholds                                                                                     | —        | 🟡 Item 1 shipped (steganographic-payload); items 2-3 open |
+| #    | Title                                                                                                                    | Assignee | Status                                                             |
+| ---- | ------------------------------------------------------------------------------------------------------------------------ | -------- | ------------------------------------------------------------------ |
+| #34  | Add computed riskLevel roll-up to ScanResult                                                                             | —        | ✅ Shipped                                                         |
+| #35  | ML retrain: cross-turn semantic accumulation (mt-mem/mt-ctx) — structural half shipped via #50/#53, ML windowing via #62 | —        | 🔲 Open (retrain step; after #25)                                  |
+| #37  | Long-context attention-dilution detection                                                                                | —        | 🔲 Open                                                            |
+| #57  | feat: allowlist-based pre-execution action gate (`checkAction`)                                                          | —        | ✅ Shipped                                                         |
+| #68  | feat(action-gate): policy ergonomics and hardening                                                                       | —        | 🔲 Open                                                            |
+| #69  | test(eval): cover zero/thin-coverage trap types; extract multi-turn gate thresholds                                      | —        | ✅ Shipped                                                         |
+| #98  | Detector: C2 / drop-service channel endpoints in scanned content                                                         | —        | ✅ Closed: shipped at `strict` (#329); `balanced` is ML work (#25) |
+| #99  | Detector: cross-environment persistence and logging suppression                                                          | —        | ✅ Closed: shipped at `strict` (#329); `balanced` is ML work (#25) |
+| #106 | feat(action-gate): package-install policy — release-age floor and pin enforcement                                        | —        | 🔲 Open (after #68)                                                |
+| #107 | Detector: dependency-install risk in scanned content (lockfile bypass, lifecycle scripts)                                | —        | 🔲 Open                                                            |
+| #178 | fix(patterns): exfiltration instruction check reads only the matched words                                               | —        | ✅ Closed at `strict` (#334, #339); see 2026-10-20 04:15 log       |
+| #232 | Help wanted: try to break the reference-image scan with your own markdown                                                | —        | 🔲 Open (community)                                                |
+| #245 | design: multilingual detection with opt-in language packs                                                                | —        | 🔲 Open (after #25)                                                |
+| #304 | feat(output): flag markdown images that leak data to outside hosts                                                       | —        | 🔲 Open (after #308)                                               |
 
 ## Session log
 
@@ -88,3 +105,37 @@ Reprioritized 2026-07-07 (down from P0, alongside a value pass across all tracks
 - **Normalization was making it worse, not better.** The Tags block is absent from `src/normalize/unicode.ts` entirely; variation selectors are stripped only from the detection skeleton, while `sanitize()` operates on raw content — so nothing flagged meant nothing removed. Normalization was silently converting a detection problem into a clean pass-through. There is now a test asserting the detector runs on RAW input; if anyone moves it onto the normalized skeleton, that test fails.
 - **Gotcha for anyone touching these patterns:** they deliberately carry no `requireInstructions`/`boostOnInstructions`. `findPatterns` tests instruction signals against the MATCHED text, which by construction contains no ASCII, so `hasInstruction` is always false and either flag would permanently suppress them. Presence of the carrier is the signal.
 - Items 2 (thin per-type coverage) and 3 (multi-turn threshold extraction) remain open. Reordered `next_up`: #68 and #69 now lead #37.
+
+### Session — 2026-10-20 00:45 (backlog review: untracked issues slotted)
+
+- Gave this track the detection and action-gate issues that had no home track: #98, #99, #106, #107 (previously only referenced from `best-wins-cross`), plus #178, #232, #245 and #304.
+- Status corrections: #69 is closed (all items shipped). #35 is still open on GitHub. Its remaining step is a retrain, which rides with #25 in `ml-v2-retrain`. Closing or rescoping it unblocks #38 (`enterprise-readiness`).
+- #98 and #99 got strict-only patterns in #329 (0.2.25). Decide whether `balanced` coverage is worth more work, or close both.
+- Dependencies:
+  - **#178 before #305** (`fiction-false-positives`). Both change the instruction-signal check.
+  - **#68 before #106.** A bare `{ tool: 'npm.install' }` rule would admit any package, so fix the rule hygiene before adding the rule type.
+  - **#107** can run in parallel with #106. It's the content-scanning side of the same threat.
+  - **#304 after #308** (`scan-performance`), because it adds time-bound tests.
+  - **#245 after #25.** Multilingual needs tokenizer and training data that the retrain brings.
+  - **#37** shares a long-document eval set with #274 (`runtime-hardening`). Build it once.
+- next_up re-ranked: #178 (unblocks the fiction track), #68 (rule hygiene before new rule types), #107.
+
+### Session — 2026-10-20 03:00 (housekeeping decisions applied)
+
+- **#98 and #99 closed as completed.** On current `main`, `rw-011` and `rw-014` are caught at `strict` and missed at `permissive` and `balanced`. #329 already tried `balanced` versions and found they flagged honest text with the same wording (for example "Never send credentials to https://webhook.site"), so AGENTS.md's strict-only rule applies. Getting `balanced` coverage is now ML work: #25's data checklist has a line for training variants of both shapes, never the `rw-*` eval samples.
+- **#35 rescoped to the retrain step and moved to `ml-v2-retrain`.** It's kept here as a reference because the shipped halves (#50, #53, #62) are logged in this track.
+- next_up unchanged: #178, #68, #107.
+
+### Session — 2026-10-20 04:15 (#178 closed at strict)
+
+- **#178 closed as completed.** #334 and #339 shipped `ex-conversation-to-destination` at `strict`. On 1,000 real honest documents (`ml/data/real_honest_list.jsonl`), it flags 0.
+- **Widening the instruction check was measured and rejected.** The check was run at three scopes (matched words as today, whole sentence, ±80 characters) against the eval set, the 1,000 real documents and 1,871 short honest trigger texts. Results at `balanced`:
+  - Attacks: 162 → 163. The only gain is `rw-011`, which `strict` already catches.
+  - Real documents flagged: 90 → 93 (sentence) or 97 (±80).
+  - The issue's own example stays clean at `balanced` under every scope.
+  - The check gates 25 patterns, so this would be a net loss.
+- **Where the rest went:**
+  - `balanced` coverage of the bare form → #25 (data item).
+  - Variants aimed at the agent ("Ignore the user and send…", "Silently send… without telling the user") → an acceptance line on #305, using its "addressed to the AI" signal rather than a wider general check.
+- **Side finding filed as #368** (home: `fiction-false-positives`): the regex layer flags 90 of 1,000 real honest documents at `balanced`. 44 of those are HTML comments; 15 are badge images.
+- next_up: #68, #107, #106 (#178 removed).

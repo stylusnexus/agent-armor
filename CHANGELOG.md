@@ -7,6 +7,43 @@ This project follows [Semantic Versioning](https://semver.org/). Pre-1.0, minor 
 <!-- New entries are generated automatically by release-please from Conventional
 Commit messages on merge to main. Do not edit unreleased entries by hand. -->
 
+## [0.2.27](https://github.com/stylusnexus/agent-armor/compare/v0.2.26...v0.2.27) (2026-11-03)
+
+
+### Added
+
+* **ml:** add safety-override and honest samples ([2ed88b1](https://github.com/stylusnexus/agent-armor/commit/2ed88b1379a1c791f82341baa2d369255026ec48)), closes [#394](https://github.com/stylusnexus/agent-armor/issues/394)
+* **patterns:** flag elevated agent spawn calls ([370dce4](https://github.com/stylusnexus/agent-armor/commit/370dce450bde2451a7262b4562e4c00f0e3df625)), closes [#393](https://github.com/stylusnexus/agent-armor/issues/393)
+
+
+### Fixed
+
+* **ml:** check checksum shape before download ([09d5319](https://github.com/stylusnexus/agent-armor/commit/09d5319c1de196a5bb120db4120c3cbf5c889169))
+* **ml:** check checksum shape before download ([ac0848a](https://github.com/stylusnexus/agent-armor/commit/ac0848a046e7492187144655ab9d8a26b1c4b9dc)), closes [#359](https://github.com/stylusnexus/agent-armor/issues/359)
+* **patterns:** bound the fake http call window ([1c749f1](https://github.com/stylusnexus/agent-armor/commit/1c749f123953b4728524cd9a1dff87a69c2afffd)), closes [#392](https://github.com/stylusnexus/agent-armor/issues/392)
+* **patterns:** bump db to 0.9.22 for [#356](https://github.com/stylusnexus/agent-armor/issues/356) ([4b85ccc](https://github.com/stylusnexus/agent-armor/commit/4b85ccca46ada6f26d2efaff23887bcaad78113f))
+* **patterns:** bump db to 0.9.22 for [#356](https://github.com/stylusnexus/agent-armor/issues/356) ([546e9ea](https://github.com/stylusnexus/agent-armor/commit/546e9ea7ca5d4f76140176816302f8130e793569))
+* **patterns:** check bans only where a verb starts ([#402](https://github.com/stylusnexus/agent-armor/issues/402)) ([16efe6f](https://github.com/stylusnexus/agent-armor/commit/16efe6fcd5632010d9bdbcf2580b156c7af952fa)), closes [#400](https://github.com/stylusnexus/agent-armor/issues/400) [#403](https://github.com/stylusnexus/agent-armor/issues/403)
+* **patterns:** flag fake exfiltration wording ([8a14b75](https://github.com/stylusnexus/agent-armor/commit/8a14b75bd408224d929611e0bb4c8c587738db30)), closes [#392](https://github.com/stylusnexus/agent-armor/issues/392)
+* **patterns:** flag ignore all safety guidelines ([5393a6b](https://github.com/stylusnexus/agent-armor/commit/5393a6bb8555d888b89feb57266d9a32ae010d79)), closes [#391](https://github.com/stylusnexus/agent-armor/issues/391)
+* **security:** handle comment end bang ([#356](https://github.com/stylusnexus/agent-armor/issues/356)) ([2ae62ea](https://github.com/stylusnexus/agent-armor/commit/2ae62eaf9c2f56ba417b1033e3e1afe1956afcda))
+
+
+### Documentation
+
+* **api:** sync DEFAULT_PATTERNS source line ([411e285](https://github.com/stylusnexus/agent-armor/commit/411e2857c030c335c8be3ed01c193fa5087be3bf))
+* clarify performance and release guidance ([#372](https://github.com/stylusnexus/agent-armor/issues/372)) ([d4656fc](https://github.com/stylusnexus/agent-armor/commit/d4656fc46ed2ffc40cf00fbcc47ae739429618a5))
+* clarify performance and release guidance ([#373](https://github.com/stylusnexus/agent-armor/issues/373)) ([e68a56d](https://github.com/stylusnexus/agent-armor/commit/e68a56d6ff932bf63bcf7371a80a373a55e96c7f))
+* **ml:** document AGENTARMOR_MODEL_DIR ([c93770f](https://github.com/stylusnexus/agent-armor/commit/c93770f46f58d4127abf29f32089571e2c5ed584))
+* **ml:** document AGENTARMOR_MODEL_DIR ([c243f04](https://github.com/stylusnexus/agent-armor/commit/c243f04f3a6311412dc3a1b44d45380a335f78ee)), closes [#360](https://github.com/stylusnexus/agent-armor/issues/360)
+* **work-plan:** apply issue housekeeping ([75827cc](https://github.com/stylusnexus/agent-armor/commit/75827ccb5bee00e372fc067841115702ea578876))
+* **work-plan:** apply issue housekeeping ([a3b7ad1](https://github.com/stylusnexus/agent-armor/commit/a3b7ad1c05fb5046df0f5a5639a0788f29929c68))
+* **work-plan:** close [#178](https://github.com/stylusnexus/agent-armor/issues/178), add [#368](https://github.com/stylusnexus/agent-armor/issues/368), re-rank ([36b46e4](https://github.com/stylusnexus/agent-armor/commit/36b46e44d62930f9edfcc1d58a0afd8f478ef69d))
+* **work-plan:** close [#178](https://github.com/stylusnexus/agent-armor/issues/178), add [#368](https://github.com/stylusnexus/agent-armor/issues/368), re-rank ([3ace5ac](https://github.com/stylusnexus/agent-armor/commit/3ace5ac9624d72e3ec7bf4f7b306fe1d88913038))
+* **work-plan:** re-rank backlog, add three tracks ([#361](https://github.com/stylusnexus/agent-armor/issues/361)) ([2e59428](https://github.com/stylusnexus/agent-armor/commit/2e594285dfba3c652b8d0afacd7e792a57c52099))
+* **work-plan:** sync track corrections ([c361931](https://github.com/stylusnexus/agent-armor/commit/c36193170fb60bfc52c166a4cd1908e65085ec0d))
+* **work-plan:** sync track corrections ([03dd688](https://github.com/stylusnexus/agent-armor/commit/03dd68811ce1231929009f41ba74a57904cfa20d))
+
 ## [0.2.26](https://github.com/stylusnexus/agent-armor/compare/v0.2.25...v0.2.26) (2026-10-19)
 
 

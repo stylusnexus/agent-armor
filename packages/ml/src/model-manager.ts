@@ -1,6 +1,6 @@
 import { createHash } from 'crypto';
 import { createReadStream, createWriteStream } from 'fs';
-import { access, mkdir, open, rename, rm, stat, unlink } from 'fs/promises';
+import { access, lstat, mkdir, open, readdir, rename, rmdir, stat, unlink } from 'fs/promises';
 import { get as httpsGet } from 'https';
 import { join } from 'path';
 import { pipeline } from 'stream/promises';
@@ -44,6 +44,8 @@ interface MLConfigLike {
   };
 }
 
+const LOCK_FILENAME = 'model.onnx.lock';
+
 function artifactsFrom(dir: string): ModelArtifacts {
   return {
     modelPath: join(dir, MODEL_FILENAME),
@@ -79,11 +81,12 @@ export async function validateModelDir(
   await verifyRequiredModelChecksums(dir, checksums);
 }
 
-/** Verify pinned SHA-256 digests for all required artifacts in a complete directory. */
-export async function verifyRequiredModelChecksums(
-  dir: string,
-  checksums: ModelArtifactChecksums = REQUIRED_MODEL_CHECKSUMS,
-): Promise<void> {
+/**
+ * Throw CHECKSUM_REQUIRED unless every required artifact has a 64-character
+ * hex SHA-256 digest. Needs no file I/O, so a bad config fails before any
+ * cache read or download.
+ */
+function assertModelChecksums(checksums: ModelArtifactChecksums = REQUIRED_MODEL_CHECKSUMS): void {
   const invalid = REQUIRED_MODEL_FILES.filter(
     (file) => !/^[a-f0-9]{64}$/i.test(checksums?.[file] ?? ''),
   );
@@ -93,6 +96,26 @@ export async function verifyRequiredModelChecksums(
       `A valid SHA-256 checksum is required for each model artifact; missing or invalid: ${invalid.join(', ')}`,
     );
   }
+}
+
+/**
+ * Whether a failed cache check means "download again": a required file is
+ * missing or does not match its digest. Any other error (a bad checksum
+ * config, an unreadable cache) would fail the same way after a download.
+ */
+function isCacheMiss(err: unknown): boolean {
+  if (err instanceof AgentArmorModelError) {
+    return err.code === 'MODEL_NOT_FOUND' || err.code === 'CHECKSUM_MISMATCH';
+  }
+  return (err as NodeJS.ErrnoException | undefined)?.code === 'ENOENT';
+}
+
+/** Verify pinned SHA-256 digests for all required artifacts in a complete directory. */
+export async function verifyRequiredModelChecksums(
+  dir: string,
+  checksums: ModelArtifactChecksums = REQUIRED_MODEL_CHECKSUMS,
+): Promise<void> {
+  assertModelChecksums(checksums);
   for (const file of REQUIRED_MODEL_FILES) {
     const path = join(dir, file);
     if (!(await verifyChecksum(path, checksums[file]))) {
@@ -109,6 +132,9 @@ export async function verifyRequiredModelChecksums(
  * Downloads from HuggingFace if not cached.
  */
 export async function resolveModel(config: MLConfigLike = {}): Promise<ModelArtifacts> {
+  // A bad checksum config would fail again after every download (#359).
+  assertModelChecksums(config.modelChecksums);
+
   const modelDir = config.modelDir || process.env.AGENTARMOR_MODEL_DIR;
 
   if (modelDir) {
@@ -126,7 +152,8 @@ export async function resolveModel(config: MLConfigLike = {}): Promise<ModelArti
   try {
     await validateModelDir(cacheDir, config.modelChecksums);
     return artifactsFrom(cacheDir);
-  } catch {
+  } catch (err) {
+    if (!isCacheMiss(err)) throw err;
     // Not cached — download
   }
 
@@ -150,7 +177,7 @@ export function getModelCacheDir(config: MLConfigLike): string {
  * If another process holds the lock, wait for it.
  */
 export async function downloadWithLock(cacheDir: string, config: MLConfigLike): Promise<void> {
-  const lockPath = join(cacheDir, 'model.onnx.lock');
+  const lockPath = join(cacheDir, LOCK_FILENAME);
 
   let lockFd;
   try {
@@ -162,7 +189,8 @@ export async function downloadWithLock(cacheDir: string, config: MLConfigLike): 
       try {
         await validateModelDir(cacheDir, config.modelChecksums);
         return;
-      } catch {
+      } catch (validateErr) {
+        if (!isCacheMiss(validateErr)) throw validateErr;
         // Still missing — acquire lock and download ourselves
         lockFd = await open(lockPath, 'wx');
       }
@@ -199,6 +227,56 @@ export async function downloadWithLock(cacheDir: string, config: MLConfigLike): 
 }
 
 /**
+ * Delete the files this package writes to a cache directory, including the
+ * caches for custom model sources. `AGENTARMOR_CACHE_DIR` can name a folder that
+ * holds other data, so anything else stays. A folder is removed only if empty.
+ */
+export async function clearCache(cacheDir: string): Promise<void> {
+  const customDir = join(cacheDir, 'custom');
+  // lstat, so that a symlinked `custom` folder is not followed.
+  const isCustomDir = await lstat(customDir).then(
+    (s) => s.isDirectory(),
+    () => false,
+  );
+  if (isCustomDir) {
+    for (const entry of await readdir(customDir, { withFileTypes: true })) {
+      if (entry.isDirectory() && /^[a-f0-9]{64}$/.test(entry.name)) {
+        await removeCacheFiles(join(customDir, entry.name));
+      }
+    }
+    await removeIfEmpty(customDir);
+  }
+  await removeCacheFiles(cacheDir);
+}
+
+async function removeCacheFiles(dir: string): Promise<void> {
+  const files = [...REQUIRED_MODEL_FILES, ...OPTIONAL_MODEL_FILES];
+  const names = [...files, ...files.map((file) => `${file}.tmp`), LOCK_FILENAME];
+  // Try every file before reporting the first one that could not be deleted.
+  let failure: unknown;
+  for (const name of names) {
+    await unlink(join(dir, name))
+      .catch(ignoreCodes('ENOENT'))
+      .catch((err: unknown) => {
+        failure ??= err;
+      });
+  }
+  if (failure) throw failure;
+  await removeIfEmpty(dir);
+}
+
+async function removeIfEmpty(dir: string): Promise<void> {
+  // ENOTDIR: the path is a symlink to a folder. Leave the link in place.
+  await rmdir(dir).catch(ignoreCodes('ENOENT', 'ENOTEMPTY', 'EEXIST', 'ENOTDIR'));
+}
+
+function ignoreCodes(...codes: string[]) {
+  return (err: NodeJS.ErrnoException): void => {
+    if (!codes.includes(err.code ?? '')) throw err;
+  };
+}
+
+/**
  * Download a single file from HuggingFace (or custom modelUrl) to destDir.
  * Downloads to a .tmp file, then atomically renames on success.
  * Retries with exponential backoff. Optional files return silently on 404.
@@ -226,7 +304,12 @@ export async function downloadFile(
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
+      // Remove a leftover temp file (or a symlink planted there) so that the
+      // exclusive create below writes only to a new file.
+      await unlink(tmpPath).catch(() => {});
+
       await new Promise<void>((resolve, reject) => {
+        let activeRequest: ReturnType<typeof httpsGet> | undefined;
         const timer = setTimeout(() => {
           reject(
             new AgentArmorModelError(
@@ -234,6 +317,7 @@ export async function downloadFile(
               `Download of ${filename} timed out after ${timeoutMs}ms`,
             ),
           );
+          activeRequest?.destroy();
         }, timeoutMs);
 
         const makeRequest = (requestUrl: string, redirectCount = 0): void => {
@@ -245,8 +329,7 @@ export async function downloadFile(
             return;
           }
 
-          const protocol = requestUrl.startsWith('https') ? httpsGet : httpsGet;
-          const req = protocol(requestUrl, (res) => {
+          const req = httpsGet(requestUrl, (res) => {
             if (
               res.statusCode &&
               res.statusCode >= 300 &&
@@ -256,7 +339,24 @@ export async function downloadFile(
               // Hugging Face redirects a branch download to a relative path
               // (/api/resolve-cache/...), so resolve it against the current URL.
               res.resume();
-              makeRequest(new URL(res.headers.location, requestUrl).toString(), redirectCount + 1);
+              // This runs outside the promise executor, so a throw here would
+              // end the host process instead of rejecting.
+              try {
+                const next = new URL(res.headers.location, requestUrl);
+                if (next.protocol !== 'https:') {
+                  throw new Error(`Redirect to ${next.protocol} is not allowed`);
+                }
+                makeRequest(next.toString(), redirectCount + 1);
+              } catch (redirectErr) {
+                clearTimeout(timer);
+                reject(
+                  new AgentArmorModelError(
+                    'DOWNLOAD_FAILED',
+                    `Invalid redirect while downloading ${filename}`,
+                    redirectErr as Error,
+                  ),
+                );
+              }
               return;
             }
 
@@ -289,7 +389,7 @@ export async function downloadFile(
               });
             }
 
-            const ws = createWriteStream(tmpPath);
+            const ws = createWriteStream(tmpPath, { flags: 'wx' });
             pipeline(res, ws)
               .then(() => {
                 clearTimeout(timer);
@@ -307,6 +407,8 @@ export async function downloadFile(
               });
           });
 
+          activeRequest = req;
+
           req.on('error', (reqErr) => {
             clearTimeout(timer);
             reject(
@@ -319,7 +421,19 @@ export async function downloadFile(
           });
         };
 
-        makeRequest(url);
+        try {
+          makeRequest(url);
+        } catch (urlErr) {
+          // https.get throws at once for an http or malformed address.
+          clearTimeout(timer);
+          reject(
+            new AgentArmorModelError(
+              'DOWNLOAD_FAILED',
+              `Invalid download address for ${filename}`,
+              urlErr as Error,
+            ),
+          );
+        }
       });
 
       // Atomic rename
